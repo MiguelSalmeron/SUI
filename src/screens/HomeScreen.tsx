@@ -12,23 +12,27 @@ import {
   StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { AuthContext } from '../context/AuthContext';
 import { COLORS, SPACING } from '../theme/theme';
 import { DashboardNavbar, type DashboardTab } from '../components/home/DashboardNavbar';
-import { HomeListSection, type HomeListItem } from '../components/home/HomeListSection';
+import { HomeListSection } from '../components/home/HomeListSection';
 import { PomodoroPanel } from '../components/home/PomodoroPanel';
+import { useGoals } from '../hooks/useGoals';
+import { useHabits } from '../hooks/useHabits';
+import { usePomodoroEngine } from '../hooks/usePomodoroEngine';
+import { usePomodoroStore, DEFAULT_POMODORO_MINUTES } from '../store/usePomodoroStore';
+import { saveUserData, loadUserData } from '../services/db';
+import { HOME_STATE_KEY } from '../services/homeStorage';
 
 type HomeState = {
-  goals: HomeListItem[];
-  habits: HomeListItem[];
+  goals: any[];
+  habits: any[];
   pomodoroMinutes: number;
   pomodoroSessions: number;
 };
-
-const HOME_STATE_KEY = 'sui-home-state-v4';
-const DEFAULT_POMODORO_MINUTES = 25;
 
 const tabs: Array<{ key: DashboardTab; label: string; description: string }> = [
   { key: 'overview', label: 'Inicio', description: 'Resumen rápido' },
@@ -38,44 +42,49 @@ const tabs: Array<{ key: DashboardTab; label: string; description: string }> = [
   { key: 'summary', label: 'Resumen', description: 'Progreso semanal' },
 ];
 
-const createItem = (title: string): HomeListItem => ({
-  id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-  title,
-  completed: false,
-});
-
-const formatTime = (totalSeconds: number) => {
-  const minutes = Math.floor(totalSeconds / 60)
-    .toString()
-    .padStart(2, '0');
-  const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-  return `${minutes}:${seconds}`;
-};
-
 export const HomeScreen = () => {
   const { user } = useContext(AuthContext);
-  const [goals, setGoals] = useState<HomeListItem[]>([]);
-  const [habits, setHabits] = useState<HomeListItem[]>([]);
-  const [pomodoroMinutes, setPomodoroMinutes] = useState(DEFAULT_POMODORO_MINUTES);
-  const [pomodoroMinutesInput, setPomodoroMinutesInput] = useState(String(DEFAULT_POMODORO_MINUTES));
-  const [pomodoroSessions, setPomodoroSessions] = useState(0);
-  const [pomodoroSeconds, setPomodoroSeconds] = useState(DEFAULT_POMODORO_MINUTES * 60);
-  const [pomodoroRunning, setPomodoroRunning] = useState(false);
-  const [pomodoroFullscreen, setPomodoroFullscreen] = useState(false);
+  const navigation = useNavigation<any>();
+  const [stateLoaded, setStateLoaded] = useState(false);
+  const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+
+  // Modals UI state
   const [configVisible, setConfigVisible] = useState(false);
   const [itemModalVisible, setItemModalVisible] = useState(false);
   const [itemMode, setItemMode] = useState<'goal' | 'habit'>('goal');
   const [itemTitle, setItemTitle] = useState('');
-  const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
-  const [stateLoaded, setStateLoaded] = useState(false);
+  const [pomodoroMinutesInput, setPomodoroMinutesInput] = useState(String(DEFAULT_POMODORO_MINUTES));
 
+  // Custom Hooks
+  const { goals, setGoals, addGoal, toggleGoal, removeGoal } = useGoals([]);
+  const { habits, setHabits, addHabit, toggleHabit, removeHabit } = useHabits([]);
+
+  // Zustand Store
+  const pomodoroMinutes = usePomodoroStore((state) => state.pomodoroMinutes);
+  const pomodoroSessions = usePomodoroStore((state) => state.pomodoroSessions);
+  const pomodoroSeconds = usePomodoroStore((state) => state.pomodoroSeconds);
+  const pomodoroRunning = usePomodoroStore((state) => state.pomodoroRunning);
+  const pomodoroFullscreen = usePomodoroStore((state) => state.pomodoroFullscreen);
+  const setPomodoroMinutes = usePomodoroStore((state) => state.setPomodoroMinutes);
+  const setPomodoroSeconds = usePomodoroStore((state) => state.setPomodoroSeconds);
+  const setPomodoroFullscreen = usePomodoroStore((state) => state.setPomodoroFullscreen);
+  const startPomodoro = usePomodoroStore((state) => state.startPomodoro);
+  const pausePomodoro = usePomodoroStore((state) => state.pausePomodoro);
+  const resetPomodoro = usePomodoroStore((state) => state.resetPomodoro);
+  const initFromStorage = usePomodoroStore((state) => state.initFromStorage);
+
+  // Engine: Attach engine to component lifecycle and alert on complete
+  usePomodoroEngine(() => {
+    Alert.alert('Pomodoro completado', 'Tu sesión terminó. Toma un descanso breve.');
+  });
+
+  // Metrics
   const completedGoals = useMemo(() => goals.filter((item) => item.completed).length, [goals]);
   const completedHabits = useMemo(() => habits.filter((item) => item.completed).length, [habits]);
   const weeklySummary = useMemo(() => {
     if (goals.length === 0 && habits.length === 0) {
       return 'Empieza hoy: agrega una meta, registra un hábito y configura tu pomodoro.';
     }
-
     return `Metas: ${completedGoals}/${goals.length} | Hábitos: ${completedHabits}/${habits.length} | Pomodoros: ${pomodoroSessions}`;
   }, [completedGoals, completedHabits, goals.length, habits.length, pomodoroSessions]);
 
@@ -83,152 +92,115 @@ export const HomeScreen = () => {
     signOut(auth);
   };
 
+  // Load persistence (Local and cloud)
   useEffect(() => {
     let isMounted = true;
-
     const loadState = async () => {
       try {
+        // Step 1: Attempt to load from local first for instant paint
         const savedState = await AsyncStorage.getItem(HOME_STATE_KEY);
-        if (!savedState || !isMounted) {
-          return;
+        let initialMinutes = DEFAULT_POMODORO_MINUTES;
+        let initialSessions = 0;
+        let initialGoals: any[] = [];
+        let initialHabits: any[] = [];
+
+        if (savedState) {
+          const parsedState = JSON.parse(savedState) as Partial<HomeState>;
+          initialMinutes = parsedState.pomodoroMinutes ?? DEFAULT_POMODORO_MINUTES;
+          initialSessions = parsedState.pomodoroSessions ?? 0;
+          initialGoals = parsedState.goals ?? [];
+          initialHabits = parsedState.habits ?? [];
+
+          if (isMounted) {
+            setGoals(initialGoals);
+            setHabits(initialHabits);
+            initFromStorage(initialMinutes, initialSessions);
+            setPomodoroMinutesInput(String(initialMinutes));
+          }
         }
 
-        const parsedState = JSON.parse(savedState) as Partial<HomeState>;
-        const loadedMinutes = parsedState.pomodoroMinutes ?? DEFAULT_POMODORO_MINUTES;
-
-        setGoals(parsedState.goals ?? []);
-        setHabits(parsedState.habits ?? []);
-        setPomodoroMinutes(loadedMinutes);
-        setPomodoroMinutesInput(String(loadedMinutes));
-        setPomodoroSessions(parsedState.pomodoroSessions ?? 0);
-        setPomodoroSeconds(loadedMinutes * 60);
-      } catch {
-        // Keep the dashboard usable even if persistence fails.
+        // Step 2: Sincronización en la nube con Firestore (si el usuario está autenticado)
+        if (user?.uid) {
+          const cloudState = await loadUserData(user.uid);
+          if (cloudState && isMounted) {
+            // Firestore data takes priority if it exists
+            setGoals(cloudState.goals ?? []);
+            setHabits(cloudState.habits ?? []);
+            initFromStorage(cloudState.pomodoroMinutes ?? DEFAULT_POMODORO_MINUTES, cloudState.pomodoroSessions ?? 0);
+            setPomodoroMinutesInput(String(cloudState.pomodoroMinutes ?? DEFAULT_POMODORO_MINUTES));
+            
+            // Sync local storage to match cloud
+            await AsyncStorage.setItem(HOME_STATE_KEY, JSON.stringify(cloudState));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load state:', err);
       } finally {
-        if (isMounted) {
-          setStateLoaded(true);
-        }
+        if (isMounted) setStateLoaded(true);
       }
     };
-
+    
     loadState();
-
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user, setGoals, setHabits, initFromStorage]);
 
+  // Save persistence (Local and cloud)
   useEffect(() => {
-    if (!stateLoaded) {
-      return;
-    }
-
-    void AsyncStorage.setItem(
-      HOME_STATE_KEY,
-      JSON.stringify({ goals, habits, pomodoroMinutes, pomodoroSessions })
-    );
-  }, [goals, habits, pomodoroMinutes, pomodoroSessions, stateLoaded]);
-
-  useEffect(() => {
-    if (!pomodoroRunning) {
-      return;
-    }
-
-    const intervalId = setInterval(() => {
-      setPomodoroSeconds((currentSeconds) => {
-        if (currentSeconds <= 1) {
-          clearInterval(intervalId);
-          setPomodoroRunning(false);
-          setPomodoroFullscreen(false);
-          setPomodoroSessions((currentSessions) => currentSessions + 1);
-          Alert.alert('Pomodoro completado', 'Tu sesión terminó. Toma un descanso breve.');
-          return 0;
+    if (!stateLoaded) return;
+    
+    const saveState = async () => {
+      const stateObj = { goals, habits, pomodoroMinutes, pomodoroSessions };
+      try {
+        // Save Local
+        await AsyncStorage.setItem(HOME_STATE_KEY, JSON.stringify(stateObj));
+        
+        // Save Cloud Firestore
+        if (user?.uid) {
+          await saveUserData(user.uid, stateObj);
         }
+      } catch (err) {
+        console.error('Failed to save state:', err);
+      }
+    };
 
-        return currentSeconds - 1;
-      });
-    }, 1000);
+    saveState();
+  }, [goals, habits, pomodoroMinutes, pomodoroSessions, stateLoaded, user]);
 
-    return () => clearInterval(intervalId);
-  }, [pomodoroRunning]);
-
+  // Handlers
   const openItemModal = (mode: 'goal' | 'habit') => {
     setItemMode(mode);
     setItemTitle('');
     setItemModalVisible(true);
   };
 
-  const addItem = () => {
-    const trimmedTitle = itemTitle.trim();
-
-    if (!trimmedTitle) {
+  const handleAddItem = () => {
+    if (!itemTitle.trim()) {
       Alert.alert('Error', 'Escribe un texto antes de guardar');
       return;
     }
-
-    const newItem = createItem(trimmedTitle);
+    
     if (itemMode === 'goal') {
-      setGoals((currentGoals) => [newItem, ...currentGoals]);
+      addGoal(itemTitle);
     } else {
-      setHabits((currentHabits) => [newItem, ...currentHabits]);
+      addHabit(itemTitle);
     }
-
+    
     setItemModalVisible(false);
     setItemTitle('');
   };
 
-  const toggleGoal = (itemId: string) => {
-    setGoals((currentGoals) =>
-      currentGoals.map((item) => (item.id === itemId ? { ...item, completed: !item.completed } : item))
-    );
-  };
-
-  const toggleHabit = (itemId: string) => {
-    setHabits((currentHabits) =>
-      currentHabits.map((item) => (item.id === itemId ? { ...item, completed: !item.completed } : item))
-    );
-  };
-
-  const removeGoal = (itemId: string) => {
-    setGoals((currentGoals) => currentGoals.filter((item) => item.id !== itemId));
-  };
-
-  const removeHabit = (itemId: string) => {
-    setHabits((currentHabits) => currentHabits.filter((item) => item.id !== itemId));
-  };
-
   const savePomodoroConfig = () => {
     const minutes = Number.parseInt(pomodoroMinutesInput, 10);
-
     if (!Number.isFinite(minutes) || minutes < 1 || minutes > 180) {
       Alert.alert('Error', 'Ingresa minutos válidos entre 1 y 180');
       return;
     }
-
     setPomodoroMinutes(minutes);
     setPomodoroSeconds(minutes * 60);
-    setPomodoroRunning(false);
-    setPomodoroFullscreen(false);
+    pausePomodoro();
     setConfigVisible(false);
-  };
-
-  const startPomodoro = () => {
-    if (pomodoroSeconds === 0) {
-      setPomodoroSeconds(pomodoroMinutes * 60);
-    }
-
-    setPomodoroFullscreen(true);
-    setPomodoroRunning(true);
-  };
-
-  const pausePomodoro = () => {
-    setPomodoroRunning(false);
-  };
-
-  const resetPomodoro = () => {
-    setPomodoroRunning(false);
-    setPomodoroFullscreen(false);
-    setPomodoroSeconds(pomodoroMinutes * 60);
   };
 
   const renderOverview = () => (
@@ -266,7 +238,7 @@ export const HomeScreen = () => {
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.headerShell}>
           <View>
-            <Text style={styles.kicker}>Tu tablero personal</Text>
+            <Text style={styles.kicker}>Tu tablero personal (Sincronizado)</Text>
             <Text style={styles.greeting}>Hola, {user?.email?.split('@')[0] || 'Usuario'}</Text>
             <Text style={styles.date}>
               {new Date().toLocaleDateString('es-ES', {
@@ -357,7 +329,7 @@ export const HomeScreen = () => {
               <TouchableOpacity style={styles.secondaryAction} onPress={() => setItemModalVisible(false)}>
                 <Text style={styles.secondaryActionText}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.primaryAction} onPress={addItem}>
+              <TouchableOpacity style={styles.primaryAction} onPress={handleAddItem}>
                 <Text style={styles.primaryActionText}>Guardar</Text>
               </TouchableOpacity>
             </View>
@@ -389,34 +361,13 @@ export const HomeScreen = () => {
         </View>
       </Modal>
 
-      <Modal visible={pomodoroFullscreen} animationType="fade" onRequestClose={() => setPomodoroFullscreen(false)}>
-        <View style={styles.fullscreenShell}>
-          <View style={styles.fullscreenHeader}>
-            <TouchableOpacity onPress={() => setPomodoroFullscreen(false)}>
-              <Text style={styles.fullscreenAction}>Cerrar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={resetPomodoro}>
-              <Text style={styles.fullscreenAction}>Reset</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.fullscreenBody}>
-            <Text style={styles.fullscreenKicker}>Modo enfoque</Text>
-            <Text style={styles.fullscreenTimer}>{formatTime(pomodoroSeconds)}</Text>
-            <Text style={styles.fullscreenMeta}>Duración: {pomodoroMinutes} minutos</Text>
-            <Text style={styles.fullscreenMeta}>Sesiones completadas: {pomodoroSessions}</Text>
-
-            <View style={styles.fullscreenButtons}>
-              <TouchableOpacity style={styles.secondaryAction} onPress={pausePomodoro}>
-                <Text style={styles.secondaryActionText}>{pomodoroRunning ? 'Pausar' : 'Reanudar'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.primaryAction} onPress={startPomodoro}>
-                <Text style={styles.primaryActionText}>Continuar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <TouchableOpacity
+        style={styles.chatFab}
+        onPress={() => navigation.navigate('Chat')}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.chatFabText}>Hablar con SUI</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -653,52 +604,23 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 15,
   },
-  fullscreenShell: {
-    flex: 1,
+  chatFab: {
+    position: 'absolute',
+    right: SPACING.lg,
+    bottom: SPACING.lg,
     backgroundColor: COLORS.primary,
-    paddingTop: SPACING.xl,
+    paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.xl,
+    borderRadius: 30,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  fullscreenHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  fullscreenAction: {
+  chatFabText: {
     color: COLORS.white,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  fullscreenBody: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullscreenKicker: {
-    color: COLORS.accent,
-    fontSize: 14,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    marginBottom: SPACING.md,
-  },
-  fullscreenTimer: {
-    color: COLORS.white,
-    fontSize: 78,
     fontWeight: '900',
-    letterSpacing: 2,
-  },
-  fullscreenMeta: {
-    color: COLORS.white,
-    fontSize: 16,
-    marginTop: SPACING.sm,
-    opacity: 0.94,
-  },
-  fullscreenButtons: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-    marginTop: SPACING.xl,
-    width: '100%',
+    fontSize: 15,
   },
 });

@@ -11,8 +11,32 @@ import {
   Alert,
 } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { auth } from '../config/firebase';
 import { COLORS, SPACING } from '../theme/theme';
+
+// Validation Schema with Zod
+const registerSchema = z
+  .object({
+    email: z
+      .string()
+      .min(1, { message: 'Por favor ingresa tu email' })
+      .email({ message: 'Ingresa un email válido' }),
+    password: z
+      .string()
+      .min(6, { message: 'La contraseña debe tener al menos 6 caracteres' }),
+    confirmPassword: z
+      .string()
+      .min(1, { message: 'Por favor confirma tu contraseña' }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Las contraseñas no coinciden',
+    path: ['confirmPassword'],
+  });
+
+type RegisterFields = z.infer<typeof registerSchema>;
 
 const getRegisterErrorMessage = (error: any) => {
   switch (error?.code) {
@@ -30,34 +54,25 @@ const getRegisterErrorMessage = (error: any) => {
 };
 
 export const RegisterScreen = ({ navigation }: any) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = async () => {
-    const trimmedEmail = email.trim();
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFields>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
 
-    if (!trimmedEmail || !password || !confirmPassword) {
-      Alert.alert('Error', 'Por favor llena todos los campos');
-      return;
-    }
-    if (!trimmedEmail.includes('@')) {
-      Alert.alert('Error', 'Ingresa un email válido');
-      return;
-    }
-    if (password.length < 6) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Las contraseñas no coinciden');
-      return;
-    }
-    
+  const handleRegister = async (data: RegisterFields) => {
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, trimmedEmail, password);
+      await createUserWithEmailAndPassword(auth, data.email.trim(), data.password);
       Alert.alert('Éxito', 'Cuenta creada correctamente');
     } catch (error: any) {
       Alert.alert('Error', getRegisterErrorMessage(error));
@@ -80,41 +95,71 @@ export const RegisterScreen = ({ navigation }: any) => {
         <View style={styles.form}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="tu@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, errors.email && styles.inputError]}
+                  placeholder="tu@email.com"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              )}
             />
+            {errors.email && (
+              <Text style={styles.errorText}>{errors.email.message}</Text>
+            )}
           </View>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Contraseña</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, errors.password && styles.inputError]}
+                  placeholder="••••••••"
+                  secureTextEntry
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              )}
             />
+            {errors.password && (
+              <Text style={styles.errorText}>{errors.password.message}</Text>
+            )}
           </View>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Confirmar Contraseña</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
+            <Controller
+              control={control}
+              name="confirmPassword"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, errors.confirmPassword && styles.inputError]}
+                  placeholder="••••••••"
+                  secureTextEntry
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              )}
             />
+            {errors.confirmPassword && (
+              <Text style={styles.errorText}>{errors.confirmPassword.message}</Text>
+            )}
           </View>
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleRegister}
+            onPress={handleSubmit(handleRegister)}
             disabled={loading}
           >
             <Text style={styles.buttonText}>
@@ -188,6 +233,15 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     fontSize: 16,
     color: COLORS.text,
+  },
+  inputError: {
+    borderColor: COLORS.error,
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '600',
   },
   button: {
     backgroundColor: COLORS.primary,
