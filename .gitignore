@@ -1,0 +1,17 @@
+node_modules/
+functions/node_modules/
+functions/lib/
+.expo/
+android/
+dist/
+web-build/
+.env
+.env.local
+.env.*.local
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.expo-shared/
+.metro/
+/*.pdf
