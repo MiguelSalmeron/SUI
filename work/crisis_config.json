@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "keywords": [
+    "suicidio",
+    "suicidarme",
+    "quiero morir",
+    "me quiero morir",
+    "matarme",
+    "quitarme la vida",
+    "acabar con todo",
+    "no quiero vivir",
+    "no quiero seguir",
+    "hacerme dano",
+    "lastimarme",
+    "autolesion",
+    "cortarme",
+    "ya no aguanto",
+    "no vale la pena vivir",
+    "desaparecer para siempre"
+  ],
+  "title": "No estás solo/a",
+  "message": "Lo que sientes importa y mereces ayuda ahora mismo. Hablar con alguien puede aliviar el peso. Por favor contacta a una línea de apoyo o a una persona de confianza de inmediato.",
+  "contacts": [
+    { "label": "Emergencias", "phone": "911" },
+    { "label": "Cruz Roja", "phone": "128" }
+  ]
+}

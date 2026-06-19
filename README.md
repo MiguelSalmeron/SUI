@@ -1,12 +1,24 @@
 # Sui-2: Tu compañero de productividad 🚀
 
-Sui-2 es una aplicación móvil híbrida diseñada para gestionar el bienestar personal y la productividad. Combina un gestor de metas, seguimiento de hábitos y un temporizador Pomodoro en un solo dashboard limpio y fácil de usar.
+**Sui-2** es una aplicación móvil híbrida orientada al bienestar personal y la productividad diaria. Ayuda al usuario a estructurar su día de manera eficiente integrando tres elementos fundamentales en un único flujo de trabajo:
+1. **Metas:** Tareas puntuales del día (To-Do).
+2. **Hábitos:** Acciones repetitivas para generar constancia.
+3. **Pomodoro:** Bloques de trabajo y descanso enfocado, con una interfaz que minimiza distracciones mediante su "Modo Enfoque" (Pantalla completa).
+4. **Chatbot IA (Asistencia Emocional):** Un compañero preventivo en tiempo real (<3s de latencia) con historial temporal local de 48h, streaming por SSE y protocolo inteligente de derivación ante crisis.
 
-## 🛠 Tecnologías Principales
-* **Framework:** [React Native](https://reactnative.dev/) a través de [Expo SDK 56](https://expo.dev/)
+El primer contacto es un **onboarding conversacional sin fricción** (sin correo ni contraseña): captura un perfil básico, configura 3 objetivos de bienestar y crea una sesión anónima en segundo plano. Más detalle técnico en `GUIA-DESARROLLADOR.md`. Ver funcionamiento detallado del asistente en `CHATBOT-IA.md`.
+
+## 🛠 Tecnologías Principales y Stack
+
+* **Framework:** [React Native](https://reactnative.dev/) a través de [Expo SDK 56](https://expo.dev/). Desarrollo multiplataforma con el mismo código base.
 * **Lenguaje:** TypeScript
-* **Backend / Autenticación:** [Firebase Auth](https://firebase.google.com/)
-* **Almacenamiento Local:** AsyncStorage
+* **Backend y Autenticación:** [Firebase Auth](https://firebase.google.com/) para gestión de identidades. El onboarding usa **Anonymous Auth** (silenciosa); el login email/Google queda para una fase posterior de "consolidar cuenta".
+* **Persistencia Híbrida:** 
+  * **Almacenamiento Local:** `AsyncStorage` para garantizar funcionamiento offline y carga inmediata de la interfaz (zero-latency).
+  * **Sincronización en la Nube:** Cloud Firestore. Todos tus progresos (metas, hábitos, sesiones) se respaldan automáticamente bajo tu usuario. Si cambias de dispositivo, no pierdes nada.
+* **Gestión de Estado:** [Zustand](https://zustand-demo.pmnd.rs/) para el temporizador Pomodoro y el estado del onboarding (este último con el middleware `persist` sobre AsyncStorage como "Guardián de Estado").
+* **Validación de Formularios:** `react-hook-form` + `Zod`. Esquemas estrictos para un registro y acceso sin errores.
+* **Temporizador Resiliente:** Motor matemático basado en Timestamps y el ciclo de vida de la aplicación (`AppState`), garantizando que el Pomodoro calcule los tiempos con precisión absoluta incluso si envías la app a segundo plano.
 
 ## 📦 Instalación y Configuración
 
@@ -16,15 +28,17 @@ Sui-2 es una aplicación móvil híbrida diseñada para gestionar el bienestar p
    ```
 
 2. **Configurar Firebase:**
-   Crea un archivo `.env` en la raíz del proyecto y agrega tus credenciales de Firebase:
+   Abre el archivo `.env` en la raíz del proyecto y reemplaza los valores de prueba con tus credenciales reales de la consola de Firebase:
    ```env
-   EXPO_PUBLIC_FIREBASE_API_KEY=tu_api_key
-   EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=tu_auth_domain
-   EXPO_PUBLIC_FIREBASE_PROJECT_ID=tu_project_id
-   EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=tu_storage_bucket
-   EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=tu_sender_id
-   EXPO_PUBLIC_FIREBASE_APP_ID=tu_app_id
+   EXPO_PUBLIC_FIREBASE_API_KEY=tu_api_key_aqui
+   EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=tu_auth_domain_aqui
+   EXPO_PUBLIC_FIREBASE_PROJECT_ID=tu_project_id_aqui
+   EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=tu_storage_bucket_aqui
+   EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=tu_messaging_sender_id_aqui
+   EXPO_PUBLIC_FIREBASE_APP_ID=tu_app_id_aqui
    ```
+
+   > **Importante:** habilita **Anonymous** en Firebase Console → *Authentication → Sign-in method*. Sin esto, el onboarding completa solo en local (sin sesión en la nube). Ver `work/PENDIENTES_Onboarding.md`.
 
 ## 📱 Cómo probar la aplicación (Testeo)
 
@@ -56,4 +70,4 @@ Si deseas compartir la app como un instalable `.apk` para Android sin usar Expo 
 # Requiere tener instalado eas-cli globalmente
 eas build --platform android --profile preview
 ```
-Esto compilará tu aplicación en la nube de Expo y te devolverá un link de descarga. Para más detalles, revisa la `GUIA-DESARROLLADOR.md`.
+Esto compilará tu aplicación en la nube de Expo y te devolverá un link de descarga. Para más detalles técnicos, revisa la `GUIA-DESARROLLADOR.md`.
