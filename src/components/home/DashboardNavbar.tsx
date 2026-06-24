@@ -29,11 +29,13 @@ export const DashboardNavbar = ({ tabs, activeTab, onChange }: Props) => {
               key={tab.key}
               style={[styles.tabCard, isActive && styles.tabCardActive]}
               onPress={() => onChange(tab.key)}
+              activeOpacity={0.85}
             >
               <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
               <Text style={[styles.tabDescription, isActive && styles.tabDescriptionActive]}>
                 {tab.description}
               </Text>
+              {isActive && <View style={styles.activeIndicator} />}
             </TouchableOpacity>
           );
         })}
@@ -70,6 +72,21 @@ const styles = StyleSheet.create({
   tabCardActive: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  activeIndicator: {
+    position: 'absolute',
+    bottom: 6,
+    alignSelf: 'center',
+    width: 24,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: COLORS.white,
+    opacity: 0.9,
   },
   tabLabel: {
     fontSize: 15,

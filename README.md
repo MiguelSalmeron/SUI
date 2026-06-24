@@ -6,6 +6,8 @@
 3. **Pomodoro:** Bloques de trabajo y descanso enfocado, con una interfaz que minimiza distracciones mediante su "Modo Enfoque" (Pantalla completa).
 4. **Chatbot IA (Asistencia Emocional):** Un compañero preventivo en tiempo real (<3s de latencia) con historial temporal local de 48h, streaming por SSE y protocolo inteligente de derivación ante crisis.
 
+Además incorpora una **capa de experiencia (UX) fluida**: pantalla de carga (splash screen) nativa sincronizada con la inicialización, transiciones de pantalla consistentes en iOS y Android, header nativo con retorno claro en el chat y micro-animaciones (fade-in del tablero, escala del botón flotante).
+
 El primer contacto es un **onboarding conversacional sin fricción** (sin correo ni contraseña): captura un perfil básico, configura 3 objetivos de bienestar y crea una sesión anónima en segundo plano. Más detalle técnico en `GUIA-DESARROLLADOR.md`. Ver funcionamiento detallado del asistente en `CHATBOT-IA.md`.
 
 ## 🛠 Tecnologías Principales y Stack
@@ -19,6 +21,7 @@ El primer contacto es un **onboarding conversacional sin fricción** (sin correo
 * **Gestión de Estado:** [Zustand](https://zustand-demo.pmnd.rs/) para el temporizador Pomodoro y el estado del onboarding (este último con el middleware `persist` sobre AsyncStorage como "Guardián de Estado").
 * **Validación de Formularios:** `react-hook-form` + `Zod`. Esquemas estrictos para un registro y acceso sin errores.
 * **Temporizador Resiliente:** Motor matemático basado en Timestamps y el ciclo de vida de la aplicación (`AppState`), garantizando que el Pomodoro calcule los tiempos con precisión absoluta incluso si envías la app a segundo plano.
+* **Navegación y UX:** [React Navigation v7](https://reactnavigation.org/) (Native Stack) con transiciones nativas consistentes, y [`expo-splash-screen`](https://docs.expo.dev/versions/v56.0.0/sdk/splash-screen/) para una pantalla de carga nativa que se oculta (con *fade*) solo cuando Firebase Auth y el estado local terminan de cargar — sin destello blanco. Animaciones con la API nativa `Animated`.
 
 ## 📦 Instalación y Configuración
 
