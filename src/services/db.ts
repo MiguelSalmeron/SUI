@@ -6,6 +6,12 @@ export interface UserData {
   habits: any[];
   pomodoroMinutes: number;
   pomodoroSessions: number;
+  /** Fecha local (YYYY-MM-DD) del último reseteo diario del checklist. */
+  lastResetDate?: string;
+  /** Días consecutivos cumpliendo (racha). */
+  streakCount?: number;
+  /** Fecha local (YYYY-MM-DD) del último día que contó para la racha. */
+  lastCompletedDate?: string;
 }
 
 /**
