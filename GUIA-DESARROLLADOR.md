@@ -50,6 +50,8 @@ tradicional para evitar el abandono prematuro. No pide correo ni contraseña.
   `onboardingComplete` del store `useOnboardingStore`. Mientras sea `false`, la única ruta
   disponible es `Onboarding` (con `gestureEnabled:false` para impedir el swipe-back). Las
   pantallas `Login`/`Register` quedan **dormidas** para una futura fase de "consolidar cuenta".
+  Mientras `loading` (Firebase Auth) o `!hydrated` (Zustand) siguen pendientes, `AppNavigator`
+  **renderiza `null`** y deja visible el splash nativo (ver "Experiencia de Inicio").
 * **Guardián de Estado:** `useOnboardingStore` usa el middleware `persist` de Zustand sobre
   `AsyncStorage` (clave `sui-onboarding-v1`). Cada respuesta se persiste al instante, así que
   si la app se cierra a mitad del registro, retoma exactamente donde se dejó. El flag en memoria
@@ -68,6 +70,32 @@ tradicional para evitar el abandono prematuro. No pide correo ni contraseña.
 
 > ⚠️ Requiere habilitar **Anonymous** en Firebase Console → Authentication → Sign-in method.
 > Ver `work/PENDIENTES_Onboarding.md` para el detalle de tareas externas.
+
+## ✨ Experiencia de Inicio y Animaciones (UX)
+
+Capa de pulido visual construida solo con herramientas nativas (sin Lottie ni Reanimated):
+
+* **Splash screen nativo (`expo-splash-screen`):** Configurado vía *config plugin* en `app.json`
+  (método recomendado desde SDK 56; la clave legacy `"splash"` quedó obsoleta). Usa
+  `assets/splash-icon.png` sobre `backgroundColor: #F8FBFF` (idéntico a `COLORS.background`
+  para evitar destello).
+  * `App.tsx` llama `SplashScreen.preventAutoHideAsync()` y `SplashScreen.setOptions({ duration: 350, fade: true })`
+    en **scope global** (sin `await`), según la recomendación oficial: dentro de un componente
+    podría ejecutarse demasiado tarde.
+  * `AppNavigator` llama `SplashScreen.hideAsync()` solo cuando `!loading && hydrated`. Así no
+    hay spinner intermedio ni pantalla en blanco entre el splash y el primer render.
+  * ⚠️ **El splash nativo no se replica completo en Expo Go** (limitación SDK 52+). Para verlo
+    tal cual lo verá el usuario, prueba con un *development/release build* (`npx expo run:android`),
+    no con Expo Go.
+* **Transiciones consistentes:** `Stack.Navigator` usa `animation: 'slide_from_right'` (280ms)
+  homogéneo en iOS y Android. `Onboarding` usa `fade` para una entrada más suave.
+* **Header nativo del chat:** `ChatScreen` ya **no** dibuja un header manual. El Native Stack
+  provee la flecha de retorno nativa (`headerBackTitle: 'Inicio'`); la acción "Limpiar" se inyecta
+  con `navigation.setOptions({ headerRight })` en un `useLayoutEffect`.
+* **Micro-animaciones (`Animated`):** En `HomeScreen`, el contenido entra con *fade-in* +
+  `translateY` (350ms) cuando `stateLoaded` pasa a `true`; el botón flotante "Hablar con SUI"
+  responde con una escala `spring` (0.92) al presionar. En `DashboardNavbar`, la pestaña activa
+  muestra una barra indicadora inferior y sombra elevada.
 
 ## 🎨 Guía de Estilos (`theme.ts`)
 Para mantener coherencia visual, **nunca uses códigos hexadecimales sueltos en los componentes**. Utiliza el objeto `COLORS` y `SPACING` exportado de `theme.ts`:

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -27,7 +27,10 @@ import { streamChat, StreamController } from '../services/chatStream';
 import type { ChatMessage as ChatMessageType } from '../types/chat';
 
 interface Props {
-  navigation: { goBack: () => void };
+  navigation: {
+    goBack: () => void;
+    setOptions: (options: Record<string, unknown>) => void;
+  };
 }
 
 export const ChatScreen = ({ navigation }: Props) => {
@@ -51,6 +54,25 @@ export const ChatScreen = ({ navigation }: Props) => {
   const controllerRef = useRef<StreamController | null>(null);
 
   const busy = streamingId !== null;
+
+  const confirmClear = useCallback(() => {
+    Alert.alert('Borrar conversación', '¿Seguro que quieres limpiar el chat?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Borrar', style: 'destructive', onPress: () => clear() },
+    ]);
+  }, [clear]);
+
+  // Header nativo: el botón de retorno lo provee el Stack (flecha nativa).
+  // Solo inyectamos la acción "Limpiar" a la derecha del header.
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={confirmClear} style={styles.headerBtn} hitSlop={8}>
+          <Text style={styles.headerBtnText}>Limpiar</Text>
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, confirmClear]);
 
   // Carga del diccionario de crisis + limpieza de historial caducado.
   useEffect(() => {
@@ -113,28 +135,8 @@ export const ChatScreen = ({ navigation }: Props) => {
     ]
   );
 
-  const confirmClear = () => {
-    Alert.alert('Borrar conversación', '¿Seguro que quieres limpiar el chat?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Borrar', style: 'destructive', onPress: () => clear() },
-    ]);
-  };
-
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
-          <Text style={styles.headerBtnText}>‹ Volver</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>SUI</Text>
-          <Text style={styles.headerSubtitle}>Tu compañero de bienestar</Text>
-        </View>
-        <TouchableOpacity onPress={confirmClear} style={styles.headerBtn}>
-          <Text style={styles.headerBtnText}>Limpiar</Text>
-        </TouchableOpacity>
-      </View>
-
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -183,36 +185,14 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.white,
-  },
   headerBtn: {
     paddingVertical: SPACING.xs,
-    minWidth: 72,
+    paddingHorizontal: SPACING.xs,
   },
   headerBtnText: {
     color: COLORS.primary,
     fontWeight: '700',
     fontSize: 14,
-  },
-  headerCenter: {
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: COLORS.text,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
   },
   listContent: {
     padding: SPACING.lg,

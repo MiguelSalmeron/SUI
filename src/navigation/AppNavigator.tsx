@@ -1,7 +1,7 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ActivityIndicator, View } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { HomeScreen } from '../screens/HomeScreen';
@@ -19,30 +19,55 @@ export const AppNavigator = () => {
   const hydrated = useOnboardingStore((state) => state.hydrated);
   const onboardingComplete = useOnboardingStore((state) => state.onboardingComplete);
 
-  // Esperar tanto a Firebase Auth como a la rehidratación del Guardián de Estado.
-  if (loading || !hydrated) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
-    );
+  // El usuario ve el splash NATIVO mientras Firebase Auth y el Guardián de
+  // Estado (Zustand) terminan. Solo cuando AMBOS están listos ocultamos el
+  // splash; así no hay destello blanco ni spinner intermedio.
+  const ready = !loading && hydrated;
+
+  useEffect(() => {
+    if (ready) {
+      SplashScreen.hideAsync().catch(() => undefined);
+    }
+  }, [ready]);
+
+  // Mientras no esté listo, no renderizamos nada: el splash nativo sigue arriba.
+  if (!ready) {
+    return null;
   }
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+          animationDuration: 280,
+        }}
+      >
         {!onboardingComplete ? (
           // Tunneling: mientras no se complete el onboarding, no hay otra ruta.
           // gestureEnabled:false evita el swipe-back que rompería el bloqueo.
           <Stack.Screen
             name="Onboarding"
             component={OnboardingScreen}
-            options={{ gestureEnabled: false }}
+            options={{ gestureEnabled: false, animation: 'fade' }}
           />
         ) : (
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="Chat" component={ChatScreen} />
+            <Stack.Screen
+              name="Chat"
+              component={ChatScreen}
+              options={{
+                headerShown: true,
+                title: 'SUI',
+                headerBackTitle: 'Inicio',
+                headerTintColor: COLORS.primary,
+                headerStyle: { backgroundColor: COLORS.white },
+                headerTitleStyle: { color: COLORS.text, fontWeight: '900' },
+                headerShadowVisible: true,
+              }}
+            />
           </>
         )}
       </Stack.Navigator>
