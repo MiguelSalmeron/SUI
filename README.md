@@ -47,6 +47,27 @@ El primer contacto es un **onboarding conversacional sin fricción** (sin correo
 
 Tienes dos formas de probar la aplicación en tu celular durante el desarrollo:
 
+### Checks automatizados
+
+Antes de abrir un PR o desplegar, ejecuta:
+
+```bash
+npm run check
+```
+
+Este comando valida TypeScript estricto de la app, ejecuta los tests unitarios
+críticos y compila las Cloud Functions. También puedes correr cada etapa por
+separado:
+
+```bash
+npm run typecheck
+npm test
+npm run functions:build
+```
+
+La CI de GitHub replica estos mismos pasos en cada push a `main`/`master` y en
+cada pull request.
+
 ### Método 1: Depuración por USB (Recomendado ⭐)
 Es el método más rápido, estable y el que mejor rendimiento ofrece al desarrollar.
 1. Conecta tu celular a la PC mediante cable USB.

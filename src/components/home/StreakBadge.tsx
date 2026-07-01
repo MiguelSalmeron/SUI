@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import { COLORS, SPACING } from '../../theme/theme';
+import { MD3_COLORS, MD3_RADIUS, SPACING } from '../../theme/theme';
 
-/** Color cálido del fuego (fuera de la paleta azul base, intencional). */
+/** Tono cálido del indicador (fuera de la paleta azul base, intencional). */
 const FLAME = '#FF7A1A';
 
 type Props = {
@@ -11,8 +11,8 @@ type Props = {
 };
 
 /**
- * Insignia de RACHA (estilo Duolingo): número grande + fuego que late al
- * subir. Refuerza la constancia diaria, métrica clave del piloto SUI.
+ * Insignia de RACHA: número grande + indicador visual que late al subir.
+ * Refuerza la constancia diaria, métrica clave del piloto SUI.
  *
  * Si la racha es 0, invita a empezar (sin culpar).
  */
@@ -31,9 +31,13 @@ export const StreakBadge = ({ streak }: Props) => {
 
   return (
     <View style={[styles.card, active ? styles.cardActive : styles.cardIdle]}>
-      <Animated.Text style={[styles.flame, { transform: [{ scale }] }]}>
-        {active ? '🔥' : '✨'}
-      </Animated.Text>
+      <Animated.View
+        style={[
+          styles.dot,
+          active ? styles.dotActive : styles.dotIdle,
+          { transform: [{ scale }] },
+        ]}
+      />
       <View style={styles.textCol}>
         {active ? (
           <>
@@ -45,7 +49,7 @@ export const StreakBadge = ({ streak }: Props) => {
         ) : (
           <>
             <Text style={styles.countIdle}>Empieza tu racha</Text>
-            <Text style={styles.label}>cumple una meta hoy 🔥</Text>
+            <Text style={styles.label}>cumple una meta hoy</Text>
           </>
         )}
       </View>
@@ -58,7 +62,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
-    borderRadius: 22,
+    borderRadius: MD3_RADIUS.xl,
     padding: SPACING.lg,
     borderWidth: 1,
     marginBottom: SPACING.sm,
@@ -68,11 +72,19 @@ const styles = StyleSheet.create({
     borderColor: '#FFD9BF',
   },
   cardIdle: {
-    backgroundColor: COLORS.white,
-    borderColor: COLORS.border,
+    backgroundColor: MD3_COLORS.surface,
+    borderColor: MD3_COLORS.outlineVariant,
   },
-  flame: {
-    fontSize: 40,
+  dot: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  dotActive: {
+    backgroundColor: FLAME,
+  },
+  dotIdle: {
+    backgroundColor: MD3_COLORS.primaryContainer,
   },
   textCol: {
     flex: 1,
@@ -85,12 +97,12 @@ const styles = StyleSheet.create({
   countIdle: {
     fontSize: 20,
     fontWeight: '900',
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
   },
   label: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     marginTop: 2,
   },
 });

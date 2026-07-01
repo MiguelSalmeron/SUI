@@ -18,7 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { AuthContext } from '../context/AuthContext';
-import { COLORS, SPACING } from '../theme/theme';
+import { MD3_COLORS, SPACING } from '../theme/theme';
 import { DashboardNavbar, type DashboardTab } from '../components/home/DashboardNavbar';
 import { HomeListSection, type HomeListItem } from '../components/home/HomeListSection';
 import { PomodoroPanel } from '../components/home/PomodoroPanel';
@@ -388,7 +388,7 @@ export const HomeScreen = () => {
       </View>
 
       <TouchableOpacity style={styles.reportButton} onPress={() => setReportVisible(true)}>
-        <Text style={styles.reportButtonText}>Ver resumen del día 🌙</Text>
+        <Text style={styles.reportButtonText}>Ver resumen del día</Text>
       </TouchableOpacity>
     </View>
   );
@@ -556,7 +556,7 @@ export const HomeScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: MD3_COLORS.background,
   },
   container: {
     flex: 1,
@@ -581,23 +581,23 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1.1,
     textTransform: 'uppercase',
-    color: COLORS.secondary,
+    color: MD3_COLORS.secondary,
     marginBottom: 4,
   },
   greeting: {
     fontSize: 30,
     fontWeight: '900',
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
   },
   date: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     marginTop: 4,
     textTransform: 'capitalize',
   },
   subline: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     marginTop: 4,
     fontWeight: '600',
   },
@@ -605,66 +605,66 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
     borderRadius: 14,
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: MD3_COLORS.outlineVariant,
   },
   logoutText: {
-    color: COLORS.primary,
+    color: MD3_COLORS.primary,
     fontWeight: '700',
   },
   overviewGrid: {
     gap: SPACING.sm,
   },
   metricCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     borderRadius: 22,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.primary,
+    borderColor: MD3_COLORS.outlineVariant,
+    shadowColor: MD3_COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
     elevation: 3,
   },
   metricPrimary: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
   },
   metricSecondary: {
-    backgroundColor: COLORS.secondary,
+    backgroundColor: MD3_COLORS.secondary,
   },
   metricLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     textTransform: 'uppercase',
   },
   metricValue: {
     fontSize: 34,
     fontWeight: '900',
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
     marginTop: 2,
   },
   metricHint: {
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     marginTop: 4,
     fontSize: 13,
   },
   metricLabelLight: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     textTransform: 'uppercase',
   },
   metricValueLight: {
     fontSize: 34,
     fontWeight: '900',
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     marginTop: 2,
   },
   metricHintLight: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     marginTop: 4,
     fontSize: 13,
     opacity: 0.9,
@@ -676,37 +676,37 @@ const styles = StyleSheet.create({
   },
   quickActionPrimary: {
     flex: 1,
-    backgroundColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
     padding: SPACING.md,
     borderRadius: 18,
     alignItems: 'center',
   },
   quickActionSecondary: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     padding: SPACING.md,
     borderRadius: 18,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: MD3_COLORS.outlineVariant,
   },
   quickActionTextLight: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontWeight: '800',
   },
   quickActionText: {
-    color: COLORS.primary,
+    color: MD3_COLORS.primary,
     fontWeight: '800',
   },
   reportButton: {
-    backgroundColor: COLORS.text,
+    backgroundColor: MD3_COLORS.onSurface,
     padding: SPACING.md,
     borderRadius: 18,
     alignItems: 'center',
     marginTop: SPACING.xs,
   },
   reportButtonText: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontWeight: '800',
   },
   sectionSpacing: {
@@ -718,25 +718,25 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
   },
   sectionSubtitle: {
     marginTop: 4,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     fontSize: 14,
   },
   summaryCard: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
     borderRadius: 22,
     padding: SPACING.lg,
   },
   summaryText: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontSize: 15,
     lineHeight: 22,
   },
   cardShadow: {
-    shadowColor: COLORS.primary,
+    shadowColor: MD3_COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 14,
@@ -749,29 +749,29 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
   },
   modalCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     borderRadius: 24,
     padding: SPACING.lg,
   },
   modalTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
     marginBottom: SPACING.sm,
   },
   modalHint: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     marginBottom: SPACING.md,
   },
   modalInput: {
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.background,
+    borderColor: MD3_COLORS.outlineVariant,
+    backgroundColor: MD3_COLORS.background,
     borderRadius: 16,
     padding: SPACING.md,
     fontSize: 16,
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
   },
   modalButtons: {
     flexDirection: 'row',
@@ -779,7 +779,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.lg,
   },
   primaryAction: {
-    backgroundColor: COLORS.secondary,
+    backgroundColor: MD3_COLORS.secondary,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.md,
     borderRadius: 16,
@@ -787,22 +787,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   primaryActionText: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontWeight: '800',
     fontSize: 15,
   },
   secondaryAction: {
-    backgroundColor: COLORS.background,
+    backgroundColor: MD3_COLORS.background,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.md,
     borderRadius: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: MD3_COLORS.outlineVariant,
     flex: 1,
   },
   secondaryActionText: {
-    color: COLORS.primary,
+    color: MD3_COLORS.primary,
     fontWeight: '800',
     fontSize: 15,
   },
@@ -810,9 +810,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: SPACING.lg,
     bottom: SPACING.lg,
-    backgroundColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
     borderRadius: 30,
-    shadowColor: COLORS.primary,
+    shadowColor: MD3_COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -823,7 +823,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
   },
   chatFabText: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontWeight: '900',
     fontSize: 15,
   },

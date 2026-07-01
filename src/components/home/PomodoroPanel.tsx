@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { COLORS, SPACING } from '../../theme/theme';
+import { MD3_COLORS, SPACING } from '../../theme/theme';
 
 type Props = {
   minutes: number;
@@ -118,20 +118,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
   },
   sectionSubtitle: {
     marginTop: 4,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     fontSize: 14,
   },
   card: {
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     borderRadius: 22,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.primary,
+    borderColor: MD3_COLORS.outlineVariant,
+    shadowColor: MD3_COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -141,12 +141,12 @@ const styles = StyleSheet.create({
     fontSize: 46,
     fontWeight: '900',
     textAlign: 'center',
-    color: COLORS.primary,
+    color: MD3_COLORS.primary,
     marginBottom: SPACING.sm,
   },
   cardText: {
     fontSize: 15,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     textAlign: 'center',
     marginBottom: SPACING.md,
     lineHeight: 22,
@@ -158,19 +158,19 @@ const styles = StyleSheet.create({
   metaChip: {
     flex: 1,
     borderRadius: 18,
-    backgroundColor: COLORS.background,
+    backgroundColor: MD3_COLORS.background,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: MD3_COLORS.outlineVariant,
   },
   metaLabel: {
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     fontSize: 12,
     textTransform: 'uppercase',
     fontWeight: '800',
   },
   metaValue: {
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
     fontSize: 18,
     fontWeight: '900',
     marginTop: 2,
@@ -182,42 +182,42 @@ const styles = StyleSheet.create({
   },
   primaryAction: {
     flex: 1,
-    backgroundColor: COLORS.secondary,
+    backgroundColor: MD3_COLORS.secondary,
     padding: SPACING.md,
     borderRadius: 16,
     alignItems: 'center',
   },
   primaryActionText: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontWeight: '800',
   },
   secondaryAction: {
     flex: 1,
-    backgroundColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
     padding: SPACING.md,
     borderRadius: 16,
     alignItems: 'center',
   },
   secondaryActionText: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontWeight: '800',
   },
   ghostAction: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: MD3_COLORS.background,
     padding: SPACING.md,
     borderRadius: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: MD3_COLORS.outlineVariant,
   },
   ghostActionText: {
-    color: COLORS.primary,
+    color: MD3_COLORS.primary,
     fontWeight: '800',
   },
   fullscreenShell: {
     flex: 1,
-    backgroundColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
     paddingTop: SPACING.xl,
     paddingHorizontal: SPACING.lg,
     paddingBottom: SPACING.xl,
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fullscreenAction: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontSize: 16,
     fontWeight: '800',
   },
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fullscreenKicker: {
-    color: COLORS.accent,
+    color: MD3_COLORS.primaryContainer,
     fontSize: 14,
     fontWeight: '800',
     textTransform: 'uppercase',
@@ -246,13 +246,13 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   fullscreenTimer: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontSize: 78,
     fontWeight: '900',
     letterSpacing: 2,
   },
   fullscreenMeta: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontSize: 16,
     marginTop: SPACING.sm,
     opacity: 0.94,

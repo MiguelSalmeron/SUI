@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { COLORS, SPACING } from '../../theme/theme';
+import { MD3_COLORS, SPACING } from '../../theme/theme';
 import { ChatMessage as ChatMessageType } from '../../types/chat';
 
 interface Props {
@@ -22,7 +22,7 @@ export const ChatMessage = ({ message }: Props) => {
       </Text>
 
       {showThinking ? (
-        <ActivityIndicator size="small" color={COLORS.secondary} style={styles.thinking} />
+        <ActivityIndicator size="small" color={MD3_COLORS.secondary} style={styles.thinking} />
       ) : (
         <Text style={[styles.text, isUser ? styles.textUser : styles.textBot]}>
           {message.content}
@@ -48,25 +48,25 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   authorUser: {
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
   },
   authorBot: {
-    color: COLORS.secondary,
+    color: MD3_COLORS.secondary,
   },
   text: {
     fontSize: 16,
     lineHeight: 24,
   },
   textUser: {
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
     fontWeight: '600',
   },
   textBot: {
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
     fontWeight: '400',
   },
   cursor: {
-    color: COLORS.secondary,
+    color: MD3_COLORS.secondary,
     fontWeight: '700',
   },
   thinking: {
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.xs,
   },
   errorTag: {
-    color: COLORS.error,
+    color: MD3_COLORS.error,
     fontSize: 13,
     fontWeight: '700',
   },

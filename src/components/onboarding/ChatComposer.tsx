@@ -10,7 +10,7 @@ import {
 import { useForm, Controller, Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { COLORS, SPACING } from '../../theme/theme';
+import { MD3_COLORS, SPACING } from '../../theme/theme';
 
 interface ChatComposerProps {
   /** Esquema zod para validar el campo (string o number coercionado). */
@@ -56,7 +56,7 @@ export const ChatComposer = ({
             <TextInput
               style={[styles.input, errors.value && styles.inputError]}
               placeholder={placeholder}
-              placeholderTextColor={COLORS.textSecondary}
+              placeholderTextColor={MD3_COLORS.onSurfaceVariant}
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
@@ -87,20 +87,20 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: MD3_COLORS.outlineVariant,
     borderRadius: 16,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.md,
     fontSize: 16,
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
   },
   inputError: {
-    borderColor: COLORS.error,
+    borderColor: MD3_COLORS.error,
   },
   sendButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
     borderRadius: 16,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.lg,
@@ -108,12 +108,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendText: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontWeight: '800',
     fontSize: 15,
   },
   errorText: {
-    color: COLORS.error,
+    color: MD3_COLORS.error,
     fontSize: 12,
     fontWeight: '600',
     marginLeft: SPACING.xs,
