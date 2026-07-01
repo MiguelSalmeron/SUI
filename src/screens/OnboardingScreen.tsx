@@ -17,7 +17,7 @@ import { ChatComposer } from '../components/onboarding/ChatComposer';
 import { useOnboardingStore } from '../store/useOnboardingStore';
 import { signInAnon } from '../services/onboardingAuth';
 import { seedOnboardingGoals } from '../services/homeStorage';
-import { COLORS, SPACING } from '../theme/theme';
+import { MD3_COLORS, SPACING } from '../theme/theme';
 import {
   GOALS_REQUIRED,
   OnboardingProfile,
@@ -39,7 +39,7 @@ const studyYearLabel = (value: number): string =>
 const botCopy = (step: OnboardingStep, profile: OnboardingProfile): string => {
   switch (step) {
     case 'welcome':
-      return '¡Hola! 👋 Soy Sui, tu compañero preventivo. Te haré unas preguntas rápidas para conocerte. Sin contraseñas ni correo. ¿Empezamos?';
+      return '¡Hola! Soy Sui, tu compañero preventivo. Te haré unas preguntas rápidas para conocerte. Sin contraseñas ni correo. ¿Empezamos?';
     case 'name':
       return '¿Cómo te gustaría que te llame?';
     case 'career':
@@ -49,9 +49,9 @@ const botCopy = (step: OnboardingStep, profile: OnboardingProfile): string => {
     case 'birthYear':
       return '¿En qué año naciste? (solo el año, ej. 2003)';
     case 'goals':
-      return `Genial. Por último, elige ${GOALS_REQUIRED} objetivos de bienestar en los que quieras que te acompañe 👇`;
+      return `Genial. Por último, elige ${GOALS_REQUIRED} objetivos de bienestar en los que quieras que te acompañe:`;
     case 'submitting':
-      return '¡Listo! Estoy preparando tu espacio personal… ✨';
+      return '¡Listo! Estoy preparando tu espacio personal…';
     default:
       return '';
   }
@@ -64,7 +64,7 @@ const userAnswer = (
 ): string | null => {
   switch (step) {
     case 'welcome':
-      return '¡Empecemos! 🚀';
+      return '¡Empecemos!';
     case 'name':
       return profile.name || null;
     case 'career':
@@ -279,7 +279,7 @@ export const OnboardingScreen = () => {
       <View style={[styles.inputArea, { paddingBottom: insets.bottom + SPACING.md }]}>
         {step === 'submitting' ? (
           <View style={styles.submittingRow}>
-            <ActivityIndicator color={COLORS.primary} />
+            <ActivityIndicator color={MD3_COLORS.primary} />
             <Text style={styles.submittingText}>Creando tu cuenta…</Text>
           </View>
         ) : (
@@ -293,23 +293,23 @@ export const OnboardingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: MD3_COLORS.background,
   },
   header: {
     paddingHorizontal: SPACING.lg,
     paddingBottom: SPACING.md,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.background,
+    borderBottomColor: MD3_COLORS.outlineVariant,
+    backgroundColor: MD3_COLORS.background,
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     marginTop: 2,
   },
   chat: {
@@ -323,20 +323,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.md,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    backgroundColor: COLORS.white,
+    borderTopColor: MD3_COLORS.outlineVariant,
+    backgroundColor: MD3_COLORS.surface,
   },
   primaryButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
     borderRadius: 16,
     paddingVertical: SPACING.md,
     alignItems: 'center',
   },
   primaryButtonDisabled: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: MD3_COLORS.primaryContainer,
   },
   primaryButtonText: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontWeight: '800',
     fontSize: 16,
   },
@@ -346,15 +346,15 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   chip: {
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: MD3_COLORS.primary,
     borderRadius: 14,
     paddingVertical: SPACING.sm + 2,
     paddingHorizontal: SPACING.md,
   },
   chipText: {
-    color: COLORS.primary,
+    color: MD3_COLORS.primary,
     fontWeight: '700',
     fontSize: 14,
   },
@@ -368,30 +368,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: MD3_COLORS.outlineVariant,
     borderRadius: 14,
     paddingVertical: SPACING.sm + 2,
     paddingHorizontal: SPACING.md,
   },
   goalChipSelected: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
+    borderColor: MD3_COLORS.primary,
   },
   goalEmoji: {
     fontSize: 16,
   },
   goalLabel: {
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
     fontWeight: '600',
     fontSize: 14,
   },
   goalLabelSelected: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
   },
   goalsCounter: {
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     fontSize: 13,
     fontWeight: '600',
     marginBottom: SPACING.sm,
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
   },
   submittingText: {
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     fontWeight: '600',
   },
 });

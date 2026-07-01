@@ -3,5 +3,5 @@
   "compilerOptions": {
     "strict": true
   },
-  "exclude": ["functions", "node_modules", "dist"]
+  "exclude": ["functions", "node_modules", "dist", "**/__tests__/**", "src/**/__tests__/**"]
 }

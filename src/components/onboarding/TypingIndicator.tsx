@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet, Easing } from 'react-native';
-import { COLORS, SPACING } from '../../theme/theme';
+import { MD3_COLORS, SPACING } from '../../theme/theme';
 
 /**
  * Indicador "escribiendo…" del bot. Tres puntos con animación de opacidad.
@@ -55,15 +55,15 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
     marginRight: SPACING.sm,
     opacity: 0.5,
   },
   bubble: {
     flexDirection: 'row',
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: MD3_COLORS.outlineVariant,
     borderRadius: 20,
     borderBottomLeftRadius: 4,
     paddingVertical: SPACING.md,
@@ -74,6 +74,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.textSecondary,
+    backgroundColor: MD3_COLORS.onSurfaceVariant,
   },
 });

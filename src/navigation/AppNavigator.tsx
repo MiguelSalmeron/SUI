@@ -8,7 +8,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 import { AuthContext } from '../context/AuthContext';
 import { useOnboardingStore } from '../store/useOnboardingStore';
-import { COLORS } from '../theme/theme';
+import { MD3_COLORS } from '../theme/theme';
 
 const Stack = createNativeStackNavigator();
 
@@ -62,9 +62,9 @@ export const AppNavigator = () => {
                 headerShown: true,
                 title: 'SUI',
                 headerBackTitle: 'Inicio',
-                headerTintColor: COLORS.primary,
-                headerStyle: { backgroundColor: COLORS.white },
-                headerTitleStyle: { color: COLORS.text, fontWeight: '900' },
+                headerTintColor: MD3_COLORS.primary,
+                headerStyle: { backgroundColor: MD3_COLORS.surface },
+                headerTitleStyle: { color: MD3_COLORS.onSurface, fontWeight: '900' },
                 headerShadowVisible: true,
               }}
             />

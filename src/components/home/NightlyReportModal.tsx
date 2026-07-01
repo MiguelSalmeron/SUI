@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { COLORS, SPACING } from '../../theme/theme';
+import { MD3_COLORS, SPACING } from '../../theme/theme';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { buildEmotionalProfile } from '../../services/chatPrompt';
 import { buildReportPayload, DayStats, summarizeStats } from '../../services/reportPrompt';
@@ -26,11 +26,11 @@ type Props = {
 const offlineMessage = (stats: DayStats): string => {
   const { done, total, percent } = summarizeStats(stats);
   if (total === 0) {
-    return 'Hoy no registraste metas, y está bien. Mañana es una nueva oportunidad para empezar con calma. Sui te espera. 🌙';
+    return 'Hoy no registraste metas, y está bien. Mañana es una nueva oportunidad para empezar con calma. Sui te espera.';
   }
   return (
     `Cerraste el día con ${done} de ${total} (${percent}%). ` +
-    'Cada paso cuenta, incluso los pequeños. Descansa, mañana seguimos juntos. 🌙'
+    'Cada paso cuenta, incluso los pequeños. Descansa, mañana seguimos juntos.'
   );
 };
 
@@ -97,7 +97,7 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
           <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
             {busy ? (
               <View style={styles.loadingRow}>
-                <ActivityIndicator color={COLORS.primary} />
+                <ActivityIndicator color={MD3_COLORS.primary} />
                 <Text style={styles.loadingText}>Sui está preparando tu resumen…</Text>
               </View>
             ) : (
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: SPACING.lg,
@@ -136,17 +136,17 @@ const styles = StyleSheet.create({
     width: 44,
     height: 5,
     borderRadius: 999,
-    backgroundColor: COLORS.border,
+    backgroundColor: MD3_COLORS.outlineVariant,
     marginBottom: SPACING.md,
   },
   title: {
     fontSize: 24,
     fontWeight: '900',
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
   },
   subtitle: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     marginTop: 2,
     marginBottom: SPACING.md,
   },
@@ -163,23 +163,23 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
   },
   loadingText: {
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     fontWeight: '600',
   },
   reportText: {
     fontSize: 16,
     lineHeight: 24,
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
   },
   closeButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
     borderRadius: 16,
     paddingVertical: SPACING.md,
     alignItems: 'center',
     marginTop: SPACING.lg,
   },
   closeButtonText: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontWeight: '800',
     fontSize: 16,
   },

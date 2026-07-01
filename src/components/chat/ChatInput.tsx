@@ -6,7 +6,7 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
-import { COLORS, SPACING } from '../../theme/theme';
+import { MD3_COLORS, SPACING } from '../../theme/theme';
 import { MAX_INPUT_CHARS } from '../../types/chat';
 
 interface Props {
@@ -32,7 +32,7 @@ export const ChatInput = ({ busy, onSend }: Props) => {
       <TextInput
         style={styles.input}
         placeholder="Escribe lo que sientes…"
-        placeholderTextColor={COLORS.textSecondary}
+        placeholderTextColor={MD3_COLORS.onSurfaceVariant}
         value={text}
         onChangeText={setText}
         maxLength={MAX_INPUT_CHARS}
@@ -62,34 +62,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    backgroundColor: COLORS.white,
+    borderTopColor: MD3_COLORS.outlineVariant,
+    backgroundColor: MD3_COLORS.surface,
   },
   input: {
     flex: 1,
     maxHeight: 120,
-    backgroundColor: COLORS.background,
+    backgroundColor: MD3_COLORS.background,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: MD3_COLORS.outlineVariant,
     borderRadius: 20,
     paddingVertical: SPACING.sm + 2,
     paddingHorizontal: SPACING.md,
     fontSize: 16,
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
   },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sendButtonDisabled: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: MD3_COLORS.primaryContainer,
   },
   sendText: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontSize: 22,
     fontWeight: '900',
     lineHeight: 24,
