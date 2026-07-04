@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { MD3_COLORS, SPACING } from '../../theme/theme';
+import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 
 interface ChatBubbleProps {
   from: 'bot' | 'user';
@@ -8,6 +8,8 @@ interface ChatBubbleProps {
 }
 
 export const ChatBubble = ({ from, text }: ChatBubbleProps) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isBot = from === 'bot';
   return (
     <View style={[styles.row, isBot ? styles.rowBot : styles.rowUser]}>
@@ -30,7 +32,7 @@ export const ChatBubble = ({ from, text }: ChatBubbleProps) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorScheme) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -47,13 +49,13 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: MD3_COLORS.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.sm,
   },
   avatarText: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontWeight: '900',
     fontSize: 16,
   },
@@ -64,13 +66,13 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
   },
   bubbleBot: {
-    backgroundColor: MD3_COLORS.surface,
+    backgroundColor: colors.surface,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: MD3_COLORS.outlineVariant,
+    borderColor: colors.outlineVariant,
   },
   bubbleUser: {
-    backgroundColor: MD3_COLORS.primary,
+    backgroundColor: colors.primary,
     borderBottomRightRadius: 4,
   },
   text: {
@@ -78,10 +80,10 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   textBot: {
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
   },
   textUser: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontWeight: '600',
   },
 });

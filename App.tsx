@@ -7,6 +7,7 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { useOnboardingStore } from './src/store/useOnboardingStore';
 import { signInAnon } from './src/services/onboardingAuth';
 import { configureNotificationHandler } from './src/services/notifications';
+import { ThemeProvider, useAppTheme } from './src/theme/theme';
 
 // Mantener el splash nativo visible hasta que la app esté lista. Se llama en
 // scope global (sin await) según recomendación oficial de expo-splash-screen:
@@ -48,10 +49,22 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <AppNavigator />
-        <StatusBar style="auto" />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppShell />
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
+
+const AppShell = () => {
+  const theme = useAppTheme();
+
+  return (
+    <>
+      <AppNavigator />
+      <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
+    </>
+  );
+};

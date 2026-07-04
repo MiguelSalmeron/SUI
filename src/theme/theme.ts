@@ -109,6 +109,9 @@ export type ColorScheme = {
   onSuccess: string;
   successContainer: string;
   onSuccessContainer: string;
+  flame: string;
+  flameContainer: string;
+  flameOutline: string;
   inverseSurface: string;
   inverseOnSurface: string;
   inversePrimary: string;
@@ -157,6 +160,10 @@ export const MD3_LIGHT: ColorScheme = {
   onSuccess: '#FFFFFF',
   successContainer: '#CFE9D2',
   onSuccessContainer: '#07250B',
+
+  flame: '#FF7A1A',
+  flameContainer: '#FFF4EC',
+  flameOutline: '#FFD9BF',
 
   inverseSurface: '#2F3033',
   inverseOnSurface: '#F1F0F4',
@@ -207,6 +214,10 @@ export const MD3_DARK: ColorScheme = {
   onSuccess: '#0B3910',
   successContainer: '#1F5124',
   onSuccessContainer: '#CFE9D2',
+
+  flame: '#FFB77A',
+  flameContainer: '#4A2D1A',
+  flameOutline: '#6B4325',
 
   inverseSurface: '#E3E3E9',
   inverseOnSurface: '#2F3033',

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Modal,
   View,
@@ -8,7 +8,7 @@ import {
   Linking,
   Alert,
 } from 'react-native';
-import { MD3_COLORS, SPACING } from '../../theme/theme';
+import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 import { CrisisConfig } from '../../services/crisisConfig';
 
 interface EmergencyOverlayProps {
@@ -26,6 +26,9 @@ export const EmergencyOverlay = ({
   config,
   onClose,
 }: EmergencyOverlayProps) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const call = async (phone: string) => {
     const url = `tel:${phone.replace(/\s+/g, '')}`;
     try {
@@ -58,6 +61,9 @@ export const EmergencyOverlay = ({
                 style={styles.contactBtn}
                 onPress={() => call(c.phone)}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={`Llamar a ${c.label}`}
+                accessibilityHint={`Abre el marcador con el número ${c.phone}`}
               >
                 <Text style={styles.contactLabel}>{c.label}</Text>
                 <Text style={styles.contactPhone}>Llamar {c.phone}</Text>
@@ -65,7 +71,12 @@ export const EmergencyOverlay = ({
             ))}
           </View>
 
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Seguir conversando"
+          >
             <Text style={styles.closeText}>Seguir conversando</Text>
           </TouchableOpacity>
         </View>
@@ -74,15 +85,15 @@ export const EmergencyOverlay = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorScheme) => StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(10, 20, 60, 0.55)',
+    backgroundColor: colors.scrim,
     justifyContent: 'center',
     padding: SPACING.lg,
   },
   card: {
-    backgroundColor: MD3_COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 26,
     padding: SPACING.lg,
     alignItems: 'center',
@@ -91,27 +102,27 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: MD3_COLORS.error,
+    backgroundColor: colors.error,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.md,
   },
   badgeText: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontSize: 26,
     fontWeight: '900',
   },
   title: {
     fontSize: 22,
     fontWeight: '900',
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
     textAlign: 'center',
     marginBottom: SPACING.sm,
   },
   message: {
     fontSize: 15,
     lineHeight: 22,
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     textAlign: 'center',
     marginBottom: SPACING.lg,
   },
@@ -120,19 +131,19 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   contactBtn: {
-    backgroundColor: MD3_COLORS.error,
+    backgroundColor: colors.error,
     borderRadius: 18,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.md,
     alignItems: 'center',
   },
   contactLabel: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontWeight: '900',
     fontSize: 16,
   },
   contactPhone: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     opacity: 0.95,
     fontSize: 13,
     marginTop: 2,
@@ -143,7 +154,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
   },
   closeText: {
-    color: MD3_COLORS.primary,
+    color: colors.primary,
     fontWeight: '800',
     fontSize: 15,
   },
