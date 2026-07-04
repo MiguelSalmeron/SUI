@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "sui-app",
-    "slug": "sui-app",
+    "name": "sui",
+    "slug": "sui",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

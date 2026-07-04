@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { MD3_COLORS, SPACING } from '../../theme/theme';
+import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 
 type Props = {
   minutes: number;
@@ -35,6 +35,9 @@ export const PomodoroPanel = ({
   onConfigure,
   onCloseFullscreen,
 }: Props) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.sectionSpacing}>
       <View style={styles.sectionHeader}>
@@ -58,19 +61,39 @@ export const PomodoroPanel = ({
         </View>
 
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.primaryAction} onPress={onStart}>
+          <TouchableOpacity
+            style={styles.primaryAction}
+            onPress={onStart}
+            accessibilityRole="button"
+            accessibilityLabel="Abrir pomodoro en pantalla completa"
+          >
             <Text style={styles.primaryActionText}>Fullscreen</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryAction} onPress={onConfigure}>
+          <TouchableOpacity
+            style={styles.secondaryAction}
+            onPress={onConfigure}
+            accessibilityRole="button"
+            accessibilityLabel="Configurar duración del pomodoro"
+          >
             <Text style={styles.secondaryActionText}>Configurar</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.ghostAction} onPress={onPause}>
+          <TouchableOpacity
+            style={styles.ghostAction}
+            onPress={onPause}
+            accessibilityRole="button"
+            accessibilityLabel={running ? 'Pausar pomodoro' : 'Reanudar pomodoro'}
+          >
             <Text style={styles.ghostActionText}>{running ? 'Pausar' : 'Reanudar'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.ghostAction} onPress={onReset}>
+          <TouchableOpacity
+            style={styles.ghostAction}
+            onPress={onReset}
+            accessibilityRole="button"
+            accessibilityLabel="Reiniciar pomodoro"
+          >
             <Text style={styles.ghostActionText}>Reiniciar</Text>
           </TouchableOpacity>
         </View>
@@ -79,10 +102,10 @@ export const PomodoroPanel = ({
       <Modal visible={fullscreenVisible} animationType="fade" onRequestClose={onCloseFullscreen}>
         <View style={styles.fullscreenShell}>
           <View style={styles.fullscreenHeader}>
-            <TouchableOpacity onPress={onCloseFullscreen}>
+            <TouchableOpacity onPress={onCloseFullscreen} accessibilityRole="button" accessibilityLabel="Cerrar pantalla completa">
               <Text style={styles.fullscreenAction}>Cerrar</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={onReset}>
+            <TouchableOpacity onPress={onReset} accessibilityRole="button" accessibilityLabel="Reiniciar pomodoro">
               <Text style={styles.fullscreenAction}>Reset</Text>
             </TouchableOpacity>
           </View>
@@ -94,10 +117,20 @@ export const PomodoroPanel = ({
             <Text style={styles.fullscreenMeta}>Sesiones completadas: {sessions}</Text>
 
             <View style={styles.fullscreenButtons}>
-              <TouchableOpacity style={styles.secondaryAction} onPress={onPause}>
+              <TouchableOpacity
+                style={styles.secondaryAction}
+                onPress={onPause}
+                accessibilityRole="button"
+                accessibilityLabel={running ? 'Pausar pomodoro' : 'Reanudar pomodoro'}
+              >
                 <Text style={styles.secondaryActionText}>{running ? 'Pausar' : 'Reanudar'}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.primaryAction} onPress={onStart}>
+              <TouchableOpacity
+                style={styles.primaryAction}
+                onPress={onStart}
+                accessibilityRole="button"
+                accessibilityLabel="Continuar pomodoro"
+              >
                 <Text style={styles.primaryActionText}>Continuar</Text>
               </TouchableOpacity>
             </View>
@@ -108,7 +141,7 @@ export const PomodoroPanel = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorScheme) => StyleSheet.create({
   sectionSpacing: {
     marginTop: SPACING.md,
   },
@@ -118,20 +151,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
   },
   sectionSubtitle: {
     marginTop: 4,
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontSize: 14,
   },
   card: {
-    backgroundColor: MD3_COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 22,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: MD3_COLORS.outlineVariant,
-    shadowColor: MD3_COLORS.primary,
+    borderColor: colors.outlineVariant,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -141,12 +174,12 @@ const styles = StyleSheet.create({
     fontSize: 46,
     fontWeight: '900',
     textAlign: 'center',
-    color: MD3_COLORS.primary,
+    color: colors.primary,
     marginBottom: SPACING.sm,
   },
   cardText: {
     fontSize: 15,
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     textAlign: 'center',
     marginBottom: SPACING.md,
     lineHeight: 22,
@@ -158,19 +191,19 @@ const styles = StyleSheet.create({
   metaChip: {
     flex: 1,
     borderRadius: 18,
-    backgroundColor: MD3_COLORS.background,
+    backgroundColor: colors.background,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: MD3_COLORS.outlineVariant,
+    borderColor: colors.outlineVariant,
   },
   metaLabel: {
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontSize: 12,
     textTransform: 'uppercase',
     fontWeight: '800',
   },
   metaValue: {
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
     fontSize: 18,
     fontWeight: '900',
     marginTop: 2,
@@ -182,42 +215,42 @@ const styles = StyleSheet.create({
   },
   primaryAction: {
     flex: 1,
-    backgroundColor: MD3_COLORS.secondary,
+    backgroundColor: colors.secondary,
     padding: SPACING.md,
     borderRadius: 16,
     alignItems: 'center',
   },
   primaryActionText: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontWeight: '800',
   },
   secondaryAction: {
     flex: 1,
-    backgroundColor: MD3_COLORS.primary,
+    backgroundColor: colors.primary,
     padding: SPACING.md,
     borderRadius: 16,
     alignItems: 'center',
   },
   secondaryActionText: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontWeight: '800',
   },
   ghostAction: {
     flex: 1,
-    backgroundColor: MD3_COLORS.background,
+    backgroundColor: colors.background,
     padding: SPACING.md,
     borderRadius: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: MD3_COLORS.outlineVariant,
+    borderColor: colors.outlineVariant,
   },
   ghostActionText: {
-    color: MD3_COLORS.primary,
+    color: colors.primary,
     fontWeight: '800',
   },
   fullscreenShell: {
     flex: 1,
-    backgroundColor: MD3_COLORS.primary,
+    backgroundColor: colors.primary,
     paddingTop: SPACING.xl,
     paddingHorizontal: SPACING.lg,
     paddingBottom: SPACING.xl,
@@ -228,7 +261,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fullscreenAction: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontSize: 16,
     fontWeight: '800',
   },
@@ -238,7 +271,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fullscreenKicker: {
-    color: MD3_COLORS.primaryContainer,
+    color: colors.primaryContainer,
     fontSize: 14,
     fontWeight: '800',
     textTransform: 'uppercase',
@@ -246,13 +279,13 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   fullscreenTimer: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontSize: 78,
     fontWeight: '900',
     letterSpacing: 2,
   },
   fullscreenMeta: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontSize: 16,
     marginTop: SPACING.sm,
     opacity: 0.94,

@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import { MD3_COLORS, SPACING } from '../../theme/theme';
+import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 
 type Props = {
   /** Número de items completados hoy (metas + hábitos). */
@@ -16,6 +16,8 @@ type Props = {
  * porcentaje de cumplimiento (al marcar/desmarcar una meta o hábito).
  */
 export const DailyProgress = ({ completed, total, label }: Props) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
   const anim = useRef(new Animated.Value(0)).current;
 
@@ -55,14 +57,14 @@ export const DailyProgress = ({ completed, total, label }: Props) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorScheme) => StyleSheet.create({
   card: {
-    backgroundColor: MD3_COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 22,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: MD3_COLORS.outlineVariant,
-    shadowColor: MD3_COLORS.primary,
+    borderColor: colors.outlineVariant,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -78,28 +80,28 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '800',
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
   },
   percent: {
     fontSize: 18,
     fontWeight: '900',
-    color: MD3_COLORS.primary,
+    color: colors.primary,
   },
   track: {
     height: 12,
     borderRadius: 999,
-    backgroundColor: MD3_COLORS.outlineVariant,
+    backgroundColor: colors.outlineVariant,
     overflow: 'hidden',
   },
   fill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: MD3_COLORS.success,
+    backgroundColor: colors.success,
   },
   message: {
     marginTop: SPACING.sm,
     fontSize: 13,
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontWeight: '600',
   },
 });

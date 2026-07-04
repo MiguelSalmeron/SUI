@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   TextInput,
@@ -6,7 +6,7 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
-import { MD3_COLORS, SPACING } from '../../theme/theme';
+import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 import { MAX_INPUT_CHARS } from '../../types/chat';
 
 interface Props {
@@ -16,6 +16,8 @@ interface Props {
 }
 
 export const ChatInput = ({ busy, onSend }: Props) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [text, setText] = useState('');
 
   const submit = () => {
@@ -32,7 +34,7 @@ export const ChatInput = ({ busy, onSend }: Props) => {
       <TextInput
         style={styles.input}
         placeholder="Escribe lo que sientes…"
-        placeholderTextColor={MD3_COLORS.onSurfaceVariant}
+        placeholderTextColor={colors.onSurfaceVariant}
         value={text}
         onChangeText={setText}
         maxLength={MAX_INPUT_CHARS}
@@ -47,6 +49,9 @@ export const ChatInput = ({ busy, onSend }: Props) => {
         onPress={submit}
         disabled={disabled}
         activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Enviar mensaje"
+        accessibilityState={{ disabled }}
       >
         <Text style={styles.sendText}>↑</Text>
       </TouchableOpacity>
@@ -54,7 +59,7 @@ export const ChatInput = ({ busy, onSend }: Props) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorScheme) => StyleSheet.create({
   wrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -62,34 +67,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderTopWidth: 1,
-    borderTopColor: MD3_COLORS.outlineVariant,
-    backgroundColor: MD3_COLORS.surface,
+    borderTopColor: colors.outlineVariant,
+    backgroundColor: colors.surface,
   },
   input: {
     flex: 1,
     maxHeight: 120,
-    backgroundColor: MD3_COLORS.background,
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: MD3_COLORS.outlineVariant,
+    borderColor: colors.outlineVariant,
     borderRadius: 20,
     paddingVertical: SPACING.sm + 2,
     paddingHorizontal: SPACING.md,
     fontSize: 16,
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
   },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: MD3_COLORS.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sendButtonDisabled: {
-    backgroundColor: MD3_COLORS.primaryContainer,
+    backgroundColor: colors.primaryContainer,
   },
   sendText: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontSize: 22,
     fontWeight: '900',
     lineHeight: 24,

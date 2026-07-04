@@ -4,11 +4,12 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
 
 import { OnboardingScreen } from '../screens/OnboardingScreen';
-import { HomeScreen } from '../screens/HomeScreen';
 import { ChatScreen } from '../screens/ChatScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
+import { TabNavigator } from './TabNavigator';
 import { AuthContext } from '../context/AuthContext';
 import { useOnboardingStore } from '../store/useOnboardingStore';
-import { MD3_COLORS } from '../theme/theme';
+import { useAppTheme } from '../theme/theme';
 
 const Stack = createNativeStackNavigator();
 
@@ -18,6 +19,7 @@ export const AppNavigator = () => {
   const { loading } = useContext(AuthContext);
   const hydrated = useOnboardingStore((state) => state.hydrated);
   const onboardingComplete = useOnboardingStore((state) => state.onboardingComplete);
+  const theme = useAppTheme();
 
   // El usuario ve el splash NATIVO mientras Firebase Auth y el Guardián de
   // Estado (Zustand) terminan. Solo cuando AMBOS están listos ocultamos el
@@ -54,7 +56,7 @@ export const AppNavigator = () => {
           />
         ) : (
           <>
-            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="Home" component={TabNavigator} />
             <Stack.Screen
               name="Chat"
               component={ChatScreen}
@@ -62,10 +64,24 @@ export const AppNavigator = () => {
                 headerShown: true,
                 title: 'SUI',
                 headerBackTitle: 'Inicio',
-                headerTintColor: MD3_COLORS.primary,
-                headerStyle: { backgroundColor: MD3_COLORS.surface },
-                headerTitleStyle: { color: MD3_COLORS.onSurface, fontWeight: '900' },
+                headerTintColor: theme.colors.primary,
+                headerStyle: { backgroundColor: theme.colors.surface },
+                headerTitleStyle: { color: theme.colors.onSurface, fontWeight: '900' },
                 headerShadowVisible: true,
+              }}
+            />
+            <Stack.Screen
+              name="Settings"
+              component={SettingsScreen}
+              options={{
+                headerShown: true,
+                title: 'Ajustes',
+                headerBackTitle: 'Inicio',
+                headerTintColor: theme.colors.primary,
+                headerStyle: { backgroundColor: theme.colors.surface },
+                headerTitleStyle: { color: theme.colors.onSurface, fontWeight: '900' },
+                headerShadowVisible: true,
+                animation: 'slide_from_right',
               }}
             />
           </>

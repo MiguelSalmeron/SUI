@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { auth } from '../config/firebase';
-import { MD3_COLORS, SPACING } from '../theme/theme';
+import { ColorScheme, SPACING, useAppTheme } from '../theme/theme';
 
 // Validation Schema with Zod
 const loginSchema = z.object({
@@ -46,6 +46,8 @@ const getLoginErrorMessage = (error: any) => {
 };
 
 export const LoginScreen = ({ navigation }: any) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
 
   const {
@@ -133,6 +135,9 @@ export const LoginScreen = ({ navigation }: any) => {
             style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleSubmit(handleLogin)}
             disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel="Iniciar sesión"
+            accessibilityState={{ disabled: loading }}
           >
             <Text style={styles.buttonText}>
               {loading ? 'Entrando...' : 'Iniciar Sesión'}
@@ -142,6 +147,8 @@ export const LoginScreen = ({ navigation }: any) => {
           <TouchableOpacity
             style={styles.linkButton}
             onPress={() => navigation.navigate('Register')}
+            accessibilityRole="button"
+            accessibilityLabel="Ir a registro"
           >
             <Text style={styles.linkText}>
               ¿No tienes cuenta? <Text style={styles.linkTextBold}>Regístrate</Text>
@@ -153,10 +160,10 @@ export const LoginScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorScheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: MD3_COLORS.background,
+    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -170,38 +177,38 @@ const styles = StyleSheet.create({
   logoContainer: {
     width: 80,
     height: 80,
-    backgroundColor: MD3_COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.md,
-    shadowColor: MD3_COLORS.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
   },
   logoText: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontSize: 48,
     fontWeight: 'bold',
   },
   title: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: MD3_COLORS.primary,
+    color: colors.primary,
     marginBottom: SPACING.xs,
   },
   subtitle: {
     fontSize: 16,
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     textAlign: 'center',
   },
   form: {
-    backgroundColor: MD3_COLORS.surface,
+    backgroundColor: colors.surface,
     padding: SPACING.lg,
     borderRadius: 24,
-    shadowColor: MD3_COLORS.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -213,39 +220,39 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
     marginBottom: SPACING.xs,
   },
   input: {
-    backgroundColor: MD3_COLORS.background,
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: MD3_COLORS.outlineVariant,
+    borderColor: colors.outlineVariant,
     borderRadius: 14,
     padding: SPACING.md,
     fontSize: 16,
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
   },
   inputError: {
-    borderColor: MD3_COLORS.error,
+    borderColor: colors.error,
   },
   errorText: {
-    color: MD3_COLORS.error,
+    color: colors.error,
     fontSize: 12,
     marginTop: 4,
     fontWeight: '600',
   },
   button: {
-    backgroundColor: MD3_COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: 14,
     padding: SPACING.md,
     alignItems: 'center',
     marginTop: SPACING.md,
   },
   buttonDisabled: {
-    backgroundColor: MD3_COLORS.primaryContainer,
+    backgroundColor: colors.primaryContainer,
   },
   buttonText: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -254,11 +261,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkText: {
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontSize: 14,
   },
   linkTextBold: {
-    color: MD3_COLORS.primary,
+    color: colors.primary,
     fontWeight: 'bold',
   },
 });

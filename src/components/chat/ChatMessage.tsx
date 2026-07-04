@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { MD3_COLORS, SPACING } from '../../theme/theme';
+import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 import { ChatMessage as ChatMessageType } from '../../types/chat';
 
 interface Props {
@@ -12,6 +12,8 @@ interface Props {
  * el ancho, con tipografía diferenciada entre usuario y asistente.
  */
 export const ChatMessage = ({ message }: Props) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isUser = message.role === 'user';
   const showThinking = message.streaming && message.content.length === 0;
 
@@ -22,7 +24,7 @@ export const ChatMessage = ({ message }: Props) => {
       </Text>
 
       {showThinking ? (
-        <ActivityIndicator size="small" color={MD3_COLORS.secondary} style={styles.thinking} />
+        <ActivityIndicator size="small" color={colors.secondary} style={styles.thinking} />
       ) : (
         <Text style={[styles.text, isUser ? styles.textUser : styles.textBot]}>
           {message.content}
@@ -36,7 +38,7 @@ export const ChatMessage = ({ message }: Props) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorScheme) => StyleSheet.create({
   container: {
     marginBottom: SPACING.lg,
   },
@@ -48,25 +50,25 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   authorUser: {
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   authorBot: {
-    color: MD3_COLORS.secondary,
+    color: colors.secondary,
   },
   text: {
     fontSize: 16,
     lineHeight: 24,
   },
   textUser: {
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
     fontWeight: '600',
   },
   textBot: {
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
     fontWeight: '400',
   },
   cursor: {
-    color: MD3_COLORS.secondary,
+    color: colors.secondary,
     fontWeight: '700',
   },
   thinking: {
@@ -74,7 +76,7 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.xs,
   },
   errorTag: {
-    color: MD3_COLORS.error,
+    color: colors.error,
     fontSize: 13,
     fontWeight: '700',
   },
