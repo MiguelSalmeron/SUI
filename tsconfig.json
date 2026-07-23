@@ -1,7 +1,10 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    "rootDir": ".",
+    "ignoreDeprecations": "6.0"
   },
+  "include": ["src/**/*", "index.ts"],
   "exclude": ["functions", "node_modules", "dist", "**/__tests__/**", "src/**/__tests__/**"]
 }
