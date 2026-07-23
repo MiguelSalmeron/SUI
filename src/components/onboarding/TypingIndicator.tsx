@@ -63,7 +63,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   },
   bubble: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainer,
     borderWidth: 1,
     borderColor: colors.outlineVariant,
     borderRadius: 20,

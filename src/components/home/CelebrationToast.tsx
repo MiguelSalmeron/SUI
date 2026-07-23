@@ -52,7 +52,7 @@ export const CelebrationToast = () => {
     >
       <View style={styles.card}>
         <View style={styles.iconWrap}>
-          <Ionicons name="sparkles" size={22} color={colors.surface} />
+          <Ionicons name="sparkles" size={22} color={colors.onSecondary} />
         </View>
         <View style={styles.textCol}>
           <Text style={styles.title}>{title}</Text>
@@ -70,19 +70,19 @@ const createStyles = (colors: ColorScheme) =>
       left: SPACING.lg,
       right: SPACING.lg,
       zIndex: 200,
-      elevation: 12,
+      elevation: 7,
     },
     card: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: SPACING.md,
       backgroundColor: colors.primary,
-      borderRadius: 20,
+      borderRadius: 16,
       padding: SPACING.md,
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.35,
-      shadowRadius: 16,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
     },
     iconWrap: {
       width: 40,
@@ -96,12 +96,12 @@ const createStyles = (colors: ColorScheme) =>
       flex: 1,
     },
     title: {
-      color: colors.surface,
+      color: colors.onPrimary,
       fontSize: 16,
       fontWeight: '900',
     },
     subtitle: {
-      color: colors.surface,
+      color: colors.onPrimary,
       fontSize: 13,
       fontWeight: '700',
       opacity: 0.9,

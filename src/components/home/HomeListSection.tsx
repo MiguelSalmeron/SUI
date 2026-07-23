@@ -39,6 +39,7 @@ export const HomeListSection = ({
   const completedCount = items.filter((item) => item.completed).length;
   const progress = items.length === 0 ? 0 : completedCount / items.length;
   const accentColor = accent === 'secondary' ? colors.secondary : colors.primary;
+  const onAccentColor = accent === 'secondary' ? colors.onSecondary : colors.onPrimary;
 
   return (
     <View style={styles.sectionSpacing}>
@@ -80,8 +81,8 @@ export const HomeListSection = ({
           accessibilityRole="button"
           accessibilityLabel={addLabel}
         >
-          <Ionicons name="add" size={20} color={colors.surface} />
-          <Text style={styles.addButtonText}>{addLabel}</Text>
+          <Ionicons name="add" size={20} color={onAccentColor} />
+          <Text style={[styles.addButtonText, { color: onAccentColor }]}>{addLabel}</Text>
         </TouchableOpacity>
 
         <View style={styles.list}>
@@ -107,7 +108,7 @@ export const HomeListSection = ({
                 accessibilityState={{ checked: item.completed }}
               >
                 {item.completed && (
-                  <Ionicons name="checkmark" size={16} color={colors.surface} />
+                  <Ionicons name="checkmark" size={16} color={colors.onSuccess} />
                 )}
               </TouchableOpacity>
 
@@ -152,16 +153,11 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     fontSize: 14,
   },
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: 22,
+    backgroundColor: colors.surfaceContainer,
+    borderRadius: 16,
     padding: SPACING.lg,
     borderWidth: 1,
     borderColor: colors.outlineVariant,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
   },
   progressHeader: {
     flexDirection: 'row',
@@ -211,7 +207,6 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     gap: 6,
   },
   addButtonText: {
-    color: colors.surface,
     fontWeight: '800',
     fontSize: 15,
   },

@@ -214,14 +214,11 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     textAlign: 'center',
   },
   form: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainer,
     padding: SPACING.lg,
-    borderRadius: 20,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
   },
   inputContainer: {
     marginBottom: SPACING.md,
@@ -233,7 +230,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   input: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.surfaceContainerLow,
     borderWidth: 1,
     borderColor: colors.outlineVariant,
     borderRadius: 12,
@@ -258,10 +255,10 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     marginTop: SPACING.md,
   },
   buttonDisabled: {
-    backgroundColor: colors.primaryContainer,
+    opacity: 0.5,
   },
   buttonText: {
-    color: colors.surface,
+    color: colors.onPrimary,
     fontSize: 18,
     fontWeight: 'bold',
   },

@@ -69,8 +69,8 @@ export const WeeklyChart = ({ data }: Props) => {
 const createStyles = (colors: ColorScheme) =>
   StyleSheet.create({
     card: {
-      backgroundColor: colors.surface,
-      borderRadius: 22,
+      backgroundColor: colors.surfaceContainer,
+      borderRadius: 16,
       padding: SPACING.lg,
       borderWidth: 1,
       borderColor: colors.outlineVariant,

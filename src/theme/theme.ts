@@ -10,9 +10,20 @@
  *   - NUNCA uses colores hex hardcodeados fuera de este archivo.
  *   - NUNCA importes MD3_LIGHT o MD3_DARK directamente desde componentes.
  *   - Usa useAppTheme() para tokens dinámicos.
+ *   - NUNCA uses colors.surface como color de TEXTO/ícono sobre fondos
+ *     primary/secondary/flame/success. En dark, surface es casi negro →
+ *     texto ilegible. Usa el token onX correspondiente (onPrimary,
+ *     onSecondary, onFlame, onSuccess, onError).
+ *   - NUNCA uses colors.primary como shadowColor → genera halos en dark.
+ *     Usa theme.elevation.levelN vía createSurface().
  */
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+  useSyncExternalStore,
+} from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -41,6 +52,10 @@ const loadThemeMode = async (): Promise<ThemeMode> => {
     // ignore — default 'system'
   }
   themeModeHydrated = true;
+  // Notificar tras hidratación: el primer render pudo usar el default
+  // 'system' mientras AsyncStorage resolvía. Sin esto, la preferencia
+  // persistida nunca se aplica si difiere del default.
+  themeModeListeners.forEach((cb) => cb(themeModeCache));
   return themeModeCache;
 };
 
@@ -110,7 +125,9 @@ export type ColorScheme = {
   successContainer: string;
   onSuccessContainer: string;
   flame: string;
+  onFlame: string;
   flameContainer: string;
+  onFlameContainer: string;
   flameOutline: string;
   inverseSurface: string;
   inverseOnSurface: string;
@@ -162,7 +179,9 @@ export const MD3_LIGHT: ColorScheme = {
   onSuccessContainer: '#07250B',
 
   flame: '#FF7A1A',
+  onFlame: '#FFFFFF',
   flameContainer: '#FFF4EC',
+  onFlameContainer: '#3A1A00',
   flameOutline: '#FFD9BF',
 
   inverseSurface: '#2F3033',
@@ -191,9 +210,9 @@ export const MD3_DARK: ColorScheme = {
   tertiaryContainer: '#353F80',
   onTertiaryContainer: '#E0E5FF',
 
-  background: '#131318',
+  background: '#0E0E13',
   onBackground: '#E3E3E9',
-  surface: '#131318',
+  surface: '#17171C',
   onSurface: '#E3E3E9',
   surfaceVariant: '#44474E',
   onSurfaceVariant: '#C4C6D0',
@@ -216,7 +235,9 @@ export const MD3_DARK: ColorScheme = {
   onSuccessContainer: '#CFE9D2',
 
   flame: '#FFB77A',
+  onFlame: '#3A1A00',
   flameContainer: '#4A2D1A',
+  onFlameContainer: '#FFE0C7',
   flameOutline: '#6B4325',
 
   inverseSurface: '#E3E3E9',
@@ -250,15 +271,21 @@ const elevation = (
   opacity: number,
   radius: number,
   elev: number,
+  shadowColor: string = '#000000',
 ): Elevation => ({
-  shadowColor: '#000000',
+  shadowColor,
   shadowOffset: { width: 0, height },
   shadowOpacity: opacity,
   shadowRadius: radius,
   elevation: elev,
 });
 
-export const MD3_ELEVATION: Record<string, Elevation> = {
+/**
+ * Elevación por esquema. En dark las sombras negras apenas se ven; subimos
+ * opacidad y profundidad para mantener jerarquía sin halos de color.
+ * NUNCA uses colors.primary como shadowColor: genera halos en dark mode.
+ */
+export const MD3_ELEVATION_LIGHT: Record<string, Elevation> = {
   level0: elevation(0, 0, 0, 0),
   level1: elevation(1, 0.05, 3, 1),
   level2: elevation(2, 0.08, 6, 3),
@@ -266,6 +293,18 @@ export const MD3_ELEVATION: Record<string, Elevation> = {
   level4: elevation(6, 0.12, 14, 8),
   level5: elevation(8, 0.14, 18, 12),
 };
+
+export const MD3_ELEVATION_DARK: Record<string, Elevation> = {
+  level0: elevation(0, 0, 0, 0),
+  level1: elevation(1, 0.25, 3, 2),
+  level2: elevation(2, 0.3, 6, 4),
+  level3: elevation(4, 0.35, 10, 7),
+  level4: elevation(6, 0.4, 14, 9),
+  level5: elevation(8, 0.45, 18, 12),
+};
+
+/** @deprecated Usa theme.elevation — se resuelve por scheme. */
+export const MD3_ELEVATION = MD3_ELEVATION_LIGHT;
 
 // ──────────────────────────────────────────────────────────────────────────
 // MD3 · SHAPE (radios de esquina)
@@ -385,7 +424,7 @@ export type AppTheme = {
 
 const lightTheme: AppTheme = {
   colors: MD3_LIGHT,
-  elevation: MD3_ELEVATION,
+  elevation: MD3_ELEVATION_LIGHT,
   radius: MD3_RADIUS,
   type: MD3_TYPE,
   motion: MD3_MOTION,
@@ -397,7 +436,7 @@ const lightTheme: AppTheme = {
 
 const darkTheme: AppTheme = {
   colors: MD3_DARK,
-  elevation: MD3_ELEVATION,
+  elevation: MD3_ELEVATION_DARK,
   radius: MD3_RADIUS,
   type: MD3_TYPE,
   motion: MD3_MOTION,
@@ -427,21 +466,21 @@ export type ThemeProviderProps = {
  * ThemeProvider — opcional. Sin provider, useAppTheme() usa el esquema del SO.
  * F3 lo integrará en App.tsx con mode controlado por useSettingsStore.
  */
+/**
+ * ThemeProvider — usa useSyncExternalStore para sincronización garantizada
+ * entre el mini-store externo (AsyncStorage cache) y el árbol de React.
+ * Elimina cualquier race condition donde el modo persiste pero la UI no
+ * re-renderiza.
+ */
 export const ThemeProvider = ({ mode: modeProp, children }: ThemeProviderProps) => {
   const systemScheme = useColorScheme();
-  const [modeState, setModeState] = useState<ThemeMode>(() => modeProp ?? getThemeMode());
 
-  useEffect(() => {
-    if (modeProp !== undefined) {
-      setModeState(modeProp);
-      return;
-    }
-    void loadThemeMode().then((m) => setModeState(m));
-    const unsub = subscribeThemeMode((m) => setModeState(m));
-    return unsub;
-  }, [modeProp]);
+  const modeState = useSyncExternalStore(
+    subscribeThemeMode,
+    () => (modeProp !== undefined ? modeProp : getThemeMode()),
+  );
 
-  const resolvedMode: ThemeMode = modeState;
+  const resolvedMode: ThemeMode = modeProp ?? modeState;
   const effectiveScheme: 'light' | 'dark' =
     resolvedMode === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : resolvedMode;
 
@@ -480,5 +519,48 @@ export const useThemeController = (): ThemeContextValue => {
     theme: systemScheme === 'dark' ? darkTheme : lightTheme,
     mode: fallbackMode,
     setMode: setThemeMode,
+  };
+};
+
+// ──────────────────────────────────────────────────────────────────────────
+// SURFACE PRESETS (aplicación consistente de elevation + container color)
+// ──────────────────────────────────────────────────────────────────────────
+
+export type SurfaceLevel = 'level0' | 'level1' | 'level2' | 'level3' | 'level4' | 'level5';
+
+export type SurfaceStyle = Elevation & {
+  backgroundColor: string;
+  borderColor: string;
+  borderWidth: number;
+};
+
+/**
+ * Crea estilos de superficie consistentes a partir del nivel de elevación.
+ * - level0: sin sombra, surfaceContainerLowest, sin borde.
+ * - level1: sutil, surfaceContainer, borde outlineVariant.
+ * - level2: intermedia, surfaceContainer, borde outlineVariant (default cards).
+ * - level3: destacada, surfaceContainerHigh, sin borde (sombra suficiente).
+ * - level4/5: para overlays/modales prominentes.
+ */
+export const createSurface = (theme: AppTheme, level: SurfaceLevel = 'level1'): SurfaceStyle => {
+  const { colors, elevation: elevationTokens } = theme;
+  const elev = elevationTokens[level] ?? elevationTokens.level1;
+
+  const bgByLevel: Record<SurfaceLevel, string> = {
+    level0: colors.surfaceContainerLowest,
+    level1: colors.surfaceContainer,
+    level2: colors.surfaceContainer,
+    level3: colors.surfaceContainerHigh,
+    level4: colors.surfaceContainerHigh,
+    level5: colors.surfaceContainerHighest,
+  };
+
+  const withBorder = level === 'level1' || level === 'level2';
+
+  return {
+    ...elev,
+    backgroundColor: bgByLevel[level],
+    borderColor: withBorder ? colors.outlineVariant : 'transparent',
+    borderWidth: withBorder ? 1 : 0,
   };
 };

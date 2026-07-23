@@ -181,7 +181,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     marginTop: SPACING.lg,
   },
   closeButtonText: {
-    color: colors.surface,
+    color: colors.onPrimary,
     fontWeight: '800',
     fontSize: 16,
   },

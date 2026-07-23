@@ -338,15 +338,15 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   },
   primaryButton: {
     backgroundColor: colors.primary,
-    borderRadius: 16,
+    borderRadius: 12,
     paddingVertical: SPACING.md,
     alignItems: 'center',
   },
   primaryButtonDisabled: {
-    backgroundColor: colors.primaryContainer,
+    opacity: 0.5,
   },
   primaryButtonText: {
-    color: colors.surface,
+    color: colors.onPrimary,
     fontWeight: '800',
     fontSize: 16,
   },
@@ -356,10 +356,10 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     gap: SPACING.sm,
   },
   chip: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainer,
     borderWidth: 1,
     borderColor: colors.primary,
-    borderRadius: 14,
+    borderRadius: 12,
     paddingVertical: SPACING.sm + 2,
     paddingHorizontal: SPACING.md,
   },
@@ -378,10 +378,10 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainer,
     borderWidth: 1,
     borderColor: colors.outlineVariant,
-    borderRadius: 14,
+    borderRadius: 12,
     paddingVertical: SPACING.sm + 2,
     paddingHorizontal: SPACING.md,
   },
@@ -398,7 +398,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     fontSize: 14,
   },
   goalLabelSelected: {
-    color: colors.surface,
+    color: colors.onPrimary,
   },
   goalsCounter: {
     color: colors.onSurfaceVariant,
