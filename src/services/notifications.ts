@@ -18,12 +18,16 @@ export const NIGHTLY_REPORT_ID = 'sui-nightly-report';
 
 /** Marca de payload para enrutar el toque de la notificación. */
 export const NIGHTLY_REPORT_TYPE = 'nightly_report';
+export const POMODORO_COMPLETE_TYPE = 'pomodoro_complete';
 
 /** Hora local del recordatorio nocturno. */
 export const REPORT_HOUR = 21;
 export const REPORT_MINUTE = 30;
 
 const ANDROID_CHANNEL_ID = 'daily-reports';
+const ANDROID_POMODORO_CHANNEL_ID = 'pomodoro-timer';
+
+export const POMODORO_NOTIFICATION_ID = 'sui-pomodoro-complete';
 
 /**
  * Handler global: muestra la notificación incluso con la app en primer plano.
@@ -47,6 +51,12 @@ const ensureAndroidChannel = async (): Promise<void> => {
     name: 'Reportes diarios',
     importance: Notifications.AndroidImportance.DEFAULT,
     sound: undefined,
+  });
+  await Notifications.setNotificationChannelAsync(ANDROID_POMODORO_CHANNEL_ID, {
+    name: 'Pomodoro',
+    importance: Notifications.AndroidImportance.HIGH,
+    sound: 'default',
+    vibrationPattern: [0, 250, 120, 250],
   });
 };
 
@@ -102,3 +112,61 @@ export const isNightlyReportResponse = (
   response: Notifications.NotificationResponse | null
 ): boolean =>
   response?.notification.request.content.data?.type === NIGHTLY_REPORT_TYPE;
+
+/**
+ * Programa alerta local para cuando termine el pomodoro (funciona en background).
+ * `endTime` = timestamp ms (Date.now() + segundos restantes * 1000).
+ */
+export const schedulePomodoroComplete = async (endTime: number): Promise<boolean> => {
+  if (endTime <= Date.now()) return false;
+
+  const granted = await requestNotificationPermission();
+  if (!granted) return false;
+
+  await ensureAndroidChannel();
+  await cancelPomodoroComplete();
+
+  await Notifications.scheduleNotificationAsync({
+    identifier: POMODORO_NOTIFICATION_ID,
+    content: {
+      title: '¡Pomodoro completado! 🍅',
+      body: 'Sesión terminada. Toma un descanso breve.',
+      sound: 'default',
+      data: { type: POMODORO_COMPLETE_TYPE },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: new Date(endTime),
+      ...(Platform.OS === 'android' ? { channelId: ANDROID_POMODORO_CHANNEL_ID } : {}),
+    },
+  });
+
+  return true;
+};
+
+/** Cancela la alerta pendiente del pomodoro (pausa, reset o fin en foreground). */
+export const cancelPomodoroComplete = async (): Promise<void> => {
+  await Notifications.cancelScheduledNotificationAsync(POMODORO_NOTIFICATION_ID).catch(
+    () => undefined,
+  );
+};
+
+/** Notificación inmediata si la sesión termina con la app abierta. */
+export const notifyPomodoroCompleteNow = async (): Promise<void> => {
+  const granted = await requestNotificationPermission();
+  if (!granted) return;
+
+  await ensureAndroidChannel();
+  await cancelPomodoroComplete();
+
+  await Notifications.scheduleNotificationAsync({
+    identifier: POMODORO_NOTIFICATION_ID,
+    content: {
+      title: '¡Pomodoro completado! 🍅',
+      body: 'Sesión terminada. Toma un descanso breve.',
+      sound: 'default',
+      data: { type: POMODORO_COMPLETE_TYPE },
+    },
+    trigger: null,
+  });
+};

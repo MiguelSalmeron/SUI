@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 import { PomodoroPanel } from '../../components/home/PomodoroPanel';
-import { usePomodoroEngine } from '../../hooks/usePomodoroEngine';
 import { usePomodoroStore } from '../../store/usePomodoroStore';
 
 export const PomodoroScreen = () => {
@@ -32,10 +31,6 @@ export const PomodoroScreen = () => {
 
   const [configVisible, setConfigVisible] = useState(false);
   const [pomodoroMinutesInput, setPomodoroMinutesInput] = useState(String(pomodoroMinutes));
-
-  usePomodoroEngine(() => {
-    Alert.alert('Pomodoro completado', 'Tu sesión terminó. Toma un descanso breve.');
-  });
 
   const savePomodoroConfig = () => {
     const minutes = Number.parseInt(pomodoroMinutesInput, 10);

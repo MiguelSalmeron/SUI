@@ -12,10 +12,12 @@ import {
 import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 import { HomeListSection } from '../../components/home/HomeListSection';
 import { useHomeStore } from '../../store/useHomeStore';
+import { useCelebrationStore } from '../../store/useCelebrationStore';
 
 export const HabitsScreen = () => {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const celebrate = useCelebrationStore((s) => s.trigger);
 
   const habits = useHomeStore((s) => s.habits);
   const addHabit = useHomeStore((s) => s.addHabit);
@@ -52,6 +54,9 @@ export const HabitsScreen = () => {
         onAdd={handleOpen}
         onToggle={toggleHabit}
         onRemove={removeHabit}
+        onItemCompleted={(title) =>
+          celebrate({ kind: 'habit', subtitle: `+5 XP · ${title}` })
+        }
       />
 
       <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>

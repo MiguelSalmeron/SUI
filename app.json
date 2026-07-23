@@ -17,7 +17,13 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "pan"
+    },
+    "androidStatusBar": {
+      "barStyle": "dark-content",
+      "backgroundColor": "#F8FBFF",
+      "translucent": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -27,9 +33,9 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-icon.png",
-          "backgroundColor": "#F8FBFF",
-          "imageWidth": 200,
+          "image": "./assets/icon.png",
+          "backgroundColor": "#0047AB",
+          "imageWidth": 160,
           "resizeMode": "contain"
         }
       ]

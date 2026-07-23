@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
@@ -12,19 +12,29 @@ import { useOnboardingStore } from '../store/useOnboardingStore';
 import { useAppTheme } from '../theme/theme';
 
 const Stack = createNativeStackNavigator();
+const AUTH_READY_TIMEOUT_MS = 8000;
 
 export const AppNavigator = () => {
-  // El gate principal es el onboarding (login anónimo, sin fricción).
-  // El login tradicional (email/Google) se pospone a una fase posterior.
   const { loading } = useContext(AuthContext);
   const hydrated = useOnboardingStore((state) => state.hydrated);
+  const setHydrated = useOnboardingStore((state) => state.setHydrated);
   const onboardingComplete = useOnboardingStore((state) => state.onboardingComplete);
   const theme = useAppTheme();
+  const [authTimedOut, setAuthTimedOut] = useState(false);
 
-  // El usuario ve el splash NATIVO mientras Firebase Auth y el Guardián de
-  // Estado (Zustand) terminan. Solo cuando AMBOS están listos ocultamos el
-  // splash; así no hay destello blanco ni spinner intermedio.
-  const ready = !loading && hydrated;
+  useEffect(() => {
+    const timer = setTimeout(() => setAuthTimedOut(true), AUTH_READY_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Evita quedarse en splash si la rehidratación de Zustand no responde.
+  useEffect(() => {
+    if (hydrated) return;
+    const timer = setTimeout(() => setHydrated(true), 4000);
+    return () => clearTimeout(timer);
+  }, [hydrated, setHydrated]);
+
+  const ready = hydrated && (!loading || authTimedOut);
 
   useEffect(() => {
     if (ready) {
@@ -32,7 +42,6 @@ export const AppNavigator = () => {
     }
   }, [ready]);
 
-  // Mientras no esté listo, no renderizamos nada: el splash nativo sigue arriba.
   if (!ready) {
     return null;
   }
@@ -44,11 +53,10 @@ export const AppNavigator = () => {
           headerShown: false,
           animation: 'slide_from_right',
           animationDuration: 280,
+          contentStyle: { backgroundColor: theme.colors.background },
         }}
       >
         {!onboardingComplete ? (
-          // Tunneling: mientras no se complete el onboarding, no hay otra ruta.
-          // gestureEnabled:false evita el swipe-back que rompería el bloqueo.
           <Stack.Screen
             name="Onboarding"
             component={OnboardingScreen}
@@ -81,7 +89,6 @@ export const AppNavigator = () => {
                 headerStyle: { backgroundColor: theme.colors.surface },
                 headerTitleStyle: { color: theme.colors.onSurface, fontWeight: '900' },
                 headerShadowVisible: true,
-                animation: 'slide_from_right',
               }}
             />
           </>
