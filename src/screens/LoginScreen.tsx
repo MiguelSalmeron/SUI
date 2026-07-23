@@ -11,8 +11,24 @@ import {
   Alert,
 } from 'react-native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { auth } from '../config/firebase';
 import { COLORS, SPACING } from '../theme/theme';
+
+// Validation Schema with Zod
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, { message: 'Por favor ingresa tu email' })
+    .email({ message: 'Ingresa un email válido' }),
+  password: z
+    .string()
+    .min(6, { message: 'La contraseña debe tener al menos 6 caracteres' }),
+});
+
+type LoginFields = z.infer<typeof loginSchema>;
 
 const getLoginErrorMessage = (error: any) => {
   switch (error?.code) {
@@ -30,26 +46,24 @@ const getLoginErrorMessage = (error: any) => {
 };
 
 export const LoginScreen = ({ navigation }: any) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    const trimmedEmail = email.trim();
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFields>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
 
-    if (!trimmedEmail || !password) {
-      Alert.alert('Error', 'Por favor llena todos los campos');
-      return;
-    }
-    if (!trimmedEmail.includes('@')) {
-      Alert.alert('Error', 'Ingresa un email válido');
-      return;
-    }
-
+  const handleLogin = async (data: LoginFields) => {
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      // AuthContext will handle navigation automatically if user is signed in
+      await signInWithEmailAndPassword(auth, data.email.trim(), data.password);
     } catch (error: any) {
       Alert.alert('Error', getLoginErrorMessage(error));
     } finally {
@@ -74,30 +88,50 @@ export const LoginScreen = ({ navigation }: any) => {
         <View style={styles.form}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="tu@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, errors.email && styles.inputError]}
+                  placeholder="tu@email.com"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              )}
             />
+            {errors.email && (
+              <Text style={styles.errorText}>{errors.email.message}</Text>
+            )}
           </View>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Contraseña</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, errors.password && styles.inputError]}
+                  placeholder="••••••••"
+                  secureTextEntry
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              )}
             />
+            {errors.password && (
+              <Text style={styles.errorText}>{errors.password.message}</Text>
+            )}
           </View>
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
+            onPress={handleSubmit(handleLogin)}
             disabled={loading}
           >
             <Text style={styles.buttonText}>
@@ -190,6 +224,15 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     fontSize: 16,
     color: COLORS.text,
+  },
+  inputError: {
+    borderColor: COLORS.error,
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '600',
   },
   button: {
     backgroundColor: COLORS.primary,
