@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { COLORS, SPACING } from '../../theme/theme';
+import { MD3_COLORS, SPACING } from '../../theme/theme';
 
 export type DashboardTab = 'overview' | 'goals' | 'habits' | 'pomodoro' | 'summary';
 
@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 13,
     fontWeight: '800',
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: SPACING.sm,
@@ -65,14 +65,14 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.md,
     borderRadius: 18,
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: MD3_COLORS.outlineVariant,
   },
   tabCardActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-    shadowColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
+    borderColor: MD3_COLORS.primary,
+    shadowColor: MD3_COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -85,24 +85,24 @@ const styles = StyleSheet.create({
     width: 24,
     height: 3,
     borderRadius: 2,
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     opacity: 0.9,
   },
   tabLabel: {
     fontSize: 15,
     fontWeight: '800',
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
   },
   tabLabelActive: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
   },
   tabDescription: {
     marginTop: 4,
     fontSize: 12,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
   },
   tabDescriptionActive: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     opacity: 0.9,
   },
 });

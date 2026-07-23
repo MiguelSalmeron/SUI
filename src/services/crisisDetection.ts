@@ -21,11 +21,12 @@ const escapeRegExp = (text: string): string =>
  * Compila un único regex (insensible) a partir del diccionario.
  * Memoizado por versión para no recompilar en cada pulsación.
  */
-let cachedVersion = -1;
+let cachedKey = '';
 let cachedRegex: RegExp | null = null;
 
 const getRegex = (config: CrisisConfig): RegExp | null => {
-  if (config.version === cachedVersion && cachedRegex) return cachedRegex;
+  const cacheKey = `${config.version}:${config.keywords.join('\u0000')}`;
+  if (cacheKey === cachedKey) return cachedRegex;
 
   const parts = config.keywords
     .map((k) => normalize(k).trim())
@@ -38,7 +39,7 @@ const getRegex = (config: CrisisConfig): RegExp | null => {
     // (^|no-letra) frase (fin|no-letra) — evita falsos positivos parciales.
     cachedRegex = new RegExp(`(^|[^\\p{L}])(${parts.join('|')})([^\\p{L}]|$)`, 'iu');
   }
-  cachedVersion = config.version;
+  cachedKey = cacheKey;
   return cachedRegex;
 };
 

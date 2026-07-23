@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import { COLORS, SPACING } from '../../theme/theme';
+import { MD3_COLORS, SPACING } from '../../theme/theme';
 
 type Props = {
   /** Número de items completados hoy (metas + hábitos). */
@@ -36,7 +36,7 @@ export const DailyProgress = ({ completed, total, label }: Props) => {
     total === 0
       ? 'Agrega metas o hábitos para empezar a medir tu día.'
       : percent === 100
-      ? '¡Día completo! Excelente trabajo 🎉'
+      ? '¡Día completo! Excelente trabajo'
       : `${completed} de ${total} ${label ?? 'completados'} hoy`;
 
   return (
@@ -57,12 +57,12 @@ export const DailyProgress = ({ completed, total, label }: Props) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     borderRadius: 22,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.primary,
+    borderColor: MD3_COLORS.outlineVariant,
+    shadowColor: MD3_COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -78,28 +78,28 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '800',
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
   },
   percent: {
     fontSize: 18,
     fontWeight: '900',
-    color: COLORS.primary,
+    color: MD3_COLORS.primary,
   },
   track: {
     height: 12,
     borderRadius: 999,
-    backgroundColor: COLORS.border,
+    backgroundColor: MD3_COLORS.outlineVariant,
     overflow: 'hidden',
   },
   fill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: COLORS.success,
+    backgroundColor: MD3_COLORS.success,
   },
   message: {
     marginTop: SPACING.sm,
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     fontWeight: '600',
   },
 });

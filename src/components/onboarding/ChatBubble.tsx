@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, SPACING } from '../../theme/theme';
+import { MD3_COLORS, SPACING } from '../../theme/theme';
 
 interface ChatBubbleProps {
   from: 'bot' | 'user';
@@ -47,13 +47,13 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.sm,
   },
   avatarText: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontWeight: '900',
     fontSize: 16,
   },
@@ -64,13 +64,13 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
   },
   bubbleBot: {
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: MD3_COLORS.outlineVariant,
   },
   bubbleUser: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
     borderBottomRightRadius: 4,
   },
   text: {
@@ -78,10 +78,10 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   textBot: {
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
   },
   textUser: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontWeight: '600',
   },
 });

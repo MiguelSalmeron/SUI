@@ -15,7 +15,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { auth } from '../config/firebase';
-import { COLORS, SPACING } from '../theme/theme';
+import { MD3_COLORS, SPACING } from '../theme/theme';
 
 // Validation Schema with Zod
 const registerSchema = z
@@ -184,7 +184,7 @@ export const RegisterScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: MD3_COLORS.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -198,19 +198,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: MD3_COLORS.primary,
     marginBottom: SPACING.sm,
   },
   subtitle: {
     fontSize: 16,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     textAlign: 'center',
   },
   form: {
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     padding: SPACING.lg,
     borderRadius: 20,
-    shadowColor: COLORS.primary,
+    shadowColor: MD3_COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
@@ -222,39 +222,39 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
     marginBottom: SPACING.xs,
   },
   input: {
-    backgroundColor: COLORS.background,
+    backgroundColor: MD3_COLORS.background,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: MD3_COLORS.outlineVariant,
     borderRadius: 12,
     padding: SPACING.md,
     fontSize: 16,
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
   },
   inputError: {
-    borderColor: COLORS.error,
+    borderColor: MD3_COLORS.error,
   },
   errorText: {
-    color: COLORS.error,
+    color: MD3_COLORS.error,
     fontSize: 12,
     marginTop: 4,
     fontWeight: '600',
   },
   button: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
     borderRadius: 12,
     padding: SPACING.md,
     alignItems: 'center',
     marginTop: SPACING.md,
   },
   buttonDisabled: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: MD3_COLORS.primaryContainer,
   },
   buttonText: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -263,11 +263,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkText: {
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     fontSize: 14,
   },
   linkTextBold: {
-    color: COLORS.primary,
+    color: MD3_COLORS.primary,
     fontWeight: 'bold',
   },
 });

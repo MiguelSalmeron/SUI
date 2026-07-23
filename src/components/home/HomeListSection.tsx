@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { COLORS, SPACING } from '../../theme/theme';
+import { MD3_COLORS, SPACING } from '../../theme/theme';
 
 export type HomeListItem = {
   id: string;
@@ -86,20 +86,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
   },
   sectionSubtitle: {
     marginTop: 4,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     fontSize: 14,
   },
   card: {
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     borderRadius: 22,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.primary,
+    borderColor: MD3_COLORS.outlineVariant,
+    shadowColor: MD3_COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   cardText: {
     fontSize: 15,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     marginBottom: SPACING.md,
     lineHeight: 22,
   },
@@ -117,13 +117,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addButtonPrimary: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: MD3_COLORS.primary,
   },
   addButtonSecondary: {
-    backgroundColor: COLORS.secondary,
+    backgroundColor: MD3_COLORS.secondary,
   },
   addButtonText: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontWeight: '800',
   },
   list: {
@@ -136,35 +136,35 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     paddingTop: SPACING.sm,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: MD3_COLORS.outlineVariant,
   },
   statusPill: {
     minWidth: 56,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 999,
-    backgroundColor: COLORS.background,
+    backgroundColor: MD3_COLORS.background,
     alignItems: 'center',
   },
   statusPillDone: {
-    backgroundColor: COLORS.success,
+    backgroundColor: MD3_COLORS.success,
   },
   statusText: {
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
     fontSize: 12,
     fontWeight: '800',
   },
   itemTitle: {
     flex: 1,
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
     fontSize: 15,
   },
   itemTitleDone: {
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     textDecorationLine: 'line-through',
   },
   deleteText: {
-    color: COLORS.error,
+    color: MD3_COLORS.error,
     fontSize: 12,
     fontWeight: '700',
   },

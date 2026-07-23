@@ -10,7 +10,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { COLORS, SPACING } from '../theme/theme';
+import { MD3_COLORS, SPACING } from '../theme/theme';
 import { ChatMessage } from '../components/chat/ChatMessage';
 import { ChatInput } from '../components/chat/ChatInput';
 import { EmergencyOverlay } from '../components/chat/EmergencyOverlay';
@@ -98,6 +98,7 @@ export const ChatScreen = ({ navigation }: Props) => {
       // Protocolo de intervención: validación en cliente ANTES del envío.
       if (detectCrisis(text, crisisConfig)) {
         setOverlayVisible(true);
+        return;
       }
 
       addUserMessage(text);
@@ -144,7 +145,7 @@ export const ChatScreen = ({ navigation }: Props) => {
       >
         {messages.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>Hola 👋</Text>
+            <Text style={styles.emptyTitle}>Hola</Text>
             <Text style={styles.emptyText}>
               Estoy aquí para escucharte. Cuéntame cómo te sientes hoy.
             </Text>
@@ -180,7 +181,7 @@ export const ChatScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: MD3_COLORS.background,
   },
   flex: {
     flex: 1,
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xs,
   },
   headerBtnText: {
-    color: COLORS.primary,
+    color: MD3_COLORS.primary,
     fontWeight: '700',
     fontSize: 14,
   },
@@ -207,19 +208,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 26,
     fontWeight: '900',
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
     marginBottom: SPACING.sm,
   },
   emptyText: {
     fontSize: 16,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     textAlign: 'center',
     lineHeight: 23,
     marginBottom: SPACING.md,
   },
   emptyNote: {
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     textAlign: 'center',
     lineHeight: 19,
     opacity: 0.8,

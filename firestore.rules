@@ -1,0 +1,34 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Usuarios: solo el propio usuario puede leer/escribir su perfil.
+    match /users/{uid} {
+      allow read, write: if request.auth.uid == uid;
+    }
+
+    // Configuración de crisis: lectura pública, escritura solo admin.
+    match /app_config/crisis {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Configuración de prompts: lectura pública, escritura solo admin.
+    match /app_config/prompts/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Rate limiting: solo el propio usuario puede leer su contador.
+    match /rate_limits/{uid} {
+      allow read: if request.auth.uid == uid;
+      allow write: if request.auth.uid == uid;
+    }
+
+    // Denegar todo lo demás.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

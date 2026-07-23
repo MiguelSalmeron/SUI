@@ -8,7 +8,7 @@ import {
   Linking,
   Alert,
 } from 'react-native';
-import { COLORS, SPACING } from '../../theme/theme';
+import { MD3_COLORS, SPACING } from '../../theme/theme';
 import { CrisisConfig } from '../../services/crisisConfig';
 
 interface EmergencyOverlayProps {
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
   },
   card: {
-    backgroundColor: COLORS.white,
+    backgroundColor: MD3_COLORS.surface,
     borderRadius: 26,
     padding: SPACING.lg,
     alignItems: 'center',
@@ -91,27 +91,27 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: COLORS.error,
+    backgroundColor: MD3_COLORS.error,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.md,
   },
   badgeText: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontSize: 26,
     fontWeight: '900',
   },
   title: {
     fontSize: 22,
     fontWeight: '900',
-    color: COLORS.text,
+    color: MD3_COLORS.onSurface,
     textAlign: 'center',
     marginBottom: SPACING.sm,
   },
   message: {
     fontSize: 15,
     lineHeight: 22,
-    color: COLORS.textSecondary,
+    color: MD3_COLORS.onSurfaceVariant,
     textAlign: 'center',
     marginBottom: SPACING.lg,
   },
@@ -120,19 +120,19 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   contactBtn: {
-    backgroundColor: COLORS.error,
+    backgroundColor: MD3_COLORS.error,
     borderRadius: 18,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.md,
     alignItems: 'center',
   },
   contactLabel: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     fontWeight: '900',
     fontSize: 16,
   },
   contactPhone: {
-    color: COLORS.white,
+    color: MD3_COLORS.surface,
     opacity: 0.95,
     fontSize: 13,
     marginTop: 2,
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
   },
   closeText: {
-    color: COLORS.primary,
+    color: MD3_COLORS.primary,
     fontWeight: '800',
     fontSize: 15,
   },
