@@ -15,3 +15,7 @@ yarn-error.log*
 .expo-shared/
 .metro/
 /*.pdf
+.commandcode/
+.kimchi/
+.opencode/
+.claude/
