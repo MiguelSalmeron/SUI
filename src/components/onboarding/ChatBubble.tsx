@@ -55,7 +55,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     marginRight: SPACING.sm,
   },
   avatarText: {
-    color: colors.surface,
+    color: colors.onPrimary,
     fontWeight: '900',
     fontSize: 16,
   },
@@ -66,7 +66,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     maxWidth: '80%',
   },
   bubbleBot: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainer,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: colors.outlineVariant,
@@ -83,7 +83,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     color: colors.onSurface,
   },
   textUser: {
-    color: colors.surface,
+    color: colors.onPrimary,
     fontWeight: '600',
   },
 });

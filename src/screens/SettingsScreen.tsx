@@ -302,16 +302,12 @@ const createStyles = (colors: ColorScheme) =>
       paddingBottom: SPACING.xl * 2,
     },
     card: {
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceContainer,
       marginHorizontal: SPACING.lg,
       borderRadius: 16,
       overflow: 'hidden',
-      // Sombra sutil MD3 level1
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 3,
-      elevation: 2,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
     },
     divider: {
       height: StyleSheet.hairlineWidth,

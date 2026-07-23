@@ -41,7 +41,7 @@ export const StreakBadge = ({ streak }: Props) => {
         <Ionicons
           name={active ? 'flame' : 'flame-outline'}
           size={20}
-          color={active ? colors.surface : colors.primary}
+          color={active ? colors.onFlame : colors.primary}
         />
       </Animated.View>
       <View style={styles.textCol}>

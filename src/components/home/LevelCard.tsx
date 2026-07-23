@@ -74,7 +74,7 @@ const createStyles = (colors: ColorScheme) =>
     levelNumber: {
       fontSize: 22,
       fontWeight: '900',
-      color: colors.surface,
+      color: colors.onPrimary,
     },
     textCol: {
       flex: 1,
@@ -99,7 +99,7 @@ const createStyles = (colors: ColorScheme) =>
     track: {
       height: 8,
       borderRadius: 999,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceContainerHigh,
       overflow: 'hidden',
     },
     fill: {

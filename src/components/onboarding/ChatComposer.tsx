@@ -89,7 +89,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainerLow,
     borderWidth: 1,
     borderColor: colors.outlineVariant,
     borderRadius: 16,
@@ -110,7 +110,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     justifyContent: 'center',
   },
   sendText: {
-    color: colors.surface,
+    color: colors.onPrimary,
     fontWeight: '800',
     fontSize: 15,
   },

@@ -15,7 +15,7 @@ import { ColorScheme, SPACING, useAppTheme, NAV_BAR_HEIGHT } from '../theme/them
 import { useHomeStore } from '../store/useHomeStore';
 import { usePomodoroStore } from '../store/usePomodoroStore';
 import { useOnboardingStore } from '../store/useOnboardingStore';
-import { buildGreeting } from '../services/greeting';
+import { Avatar } from '../components/ui/Avatar';
 
 import { OverviewScreen } from '../screens/tabs/OverviewScreen';
 import { GoalsScreen } from '../screens/tabs/GoalsScreen';
@@ -40,25 +40,26 @@ const TAB_ICONS: Record<string, { focused: keyof typeof Ionicons.glyphMap; outli
 type TabHeaderProps = {
   colors: ColorScheme;
   topInset: number;
-  greeting: ReturnType<typeof buildGreeting>;
   profileName: string;
+  streak: number;
   onSettings: () => void;
 };
 
-const TabHeader = React.memo(({ colors, topInset, greeting, profileName, onSettings }: TabHeaderProps) => (
+const TabHeader = React.memo(({ colors, topInset, profileName, streak, onSettings }: TabHeaderProps) => (
   <View style={[headerStyles(colors).headerShell, { paddingTop: topInset + SPACING.sm }]}>
-    <View style={headerStyles(colors).headerText}>
-      <Text style={headerStyles(colors).kicker}>
-        {new Date().toLocaleDateString('es-ES', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-        })}
-      </Text>
-      <Text style={headerStyles(colors).greeting} numberOfLines={2}>
-        {greeting.salutation}, {profileName} {greeting.emoji}
-      </Text>
-      <Text style={headerStyles(colors).subline}>{greeting.subline}</Text>
+    <View style={headerStyles(colors).identity}>
+      <Avatar name={profileName} size="md" variant="primary" />
+      <View style={headerStyles(colors).identityText}>
+        <Text style={headerStyles(colors).name} numberOfLines={1}>
+          {profileName}
+        </Text>
+        {streak > 0 && (
+          <View style={headerStyles(colors).streakPill}>
+            <Ionicons name="flame" size={11} color={colors.flame} />
+            <Text style={headerStyles(colors).streakText}>{streak} días</Text>
+          </View>
+        )}
+      </View>
     </View>
     <TouchableOpacity
       style={headerStyles(colors).settingsBtn}
@@ -67,7 +68,7 @@ const TabHeader = React.memo(({ colors, topInset, greeting, profileName, onSetti
       accessibilityLabel="Ajustes"
       accessibilityHint="Abre la pantalla de configuración"
     >
-      <Ionicons name="settings-outline" size={24} color={colors.onSurfaceVariant} />
+      <Ionicons name="settings-outline" size={22} color={colors.onSurfaceVariant} />
     </TouchableOpacity>
   </View>
 ));
@@ -140,16 +141,6 @@ export const TabNavigator = () => {
     prevDailyCompleted.current = dailyCompleted;
   }, [dailyCompleted, dailyTotal, stateLoaded, bumpStreak, celebrate]);
 
-  const greeting = useMemo(
-    () =>
-      buildGreeting({
-        hour: new Date().getHours(),
-        completed: dailyCompleted,
-        total: goals.length + habits.length,
-      }),
-    [dailyCompleted, goals.length, habits.length],
-  );
-
   const fabScale = useRef(new Animated.Value(1)).current;
   const onFabPressIn = () =>
     Animated.spring(fabScale, { toValue: 0.92, useNativeDriver: true, speed: 50 }).start();
@@ -168,8 +159,8 @@ export const TabNavigator = () => {
             <TabHeader
               colors={colors}
               topInset={insets.top}
-              greeting={greeting}
               profileName={profileName}
+              streak={streak}
               onSettings={() => navigation.navigate('Settings')}
             />
           ),
@@ -231,7 +222,7 @@ export const TabNavigator = () => {
           accessibilityLabel="Hablar con SUI"
           accessibilityHint="Abre el chat de apoyo emocional"
         >
-          <Ionicons name="chatbubble-ellipses" size={18} color={colors.surface} />
+          <Ionicons name="chatbubble-ellipses" size={18} color={colors.onPrimary} />
           <Text style={fabStyles(colors).fabText}>SUI</Text>
         </TouchableOpacity>
       </Animated.View>
@@ -244,43 +235,45 @@ const headerStyles = (colors: ColorScheme) =>
     headerShell: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       paddingHorizontal: SPACING.lg,
       paddingBottom: SPACING.sm,
       backgroundColor: colors.background,
     },
-    headerText: {
+    identity: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
       flex: 1,
       paddingRight: SPACING.md,
     },
-    kicker: {
-      fontSize: 12,
+    identityText: {
+      flex: 1,
+      gap: 2,
+    },
+    name: {
+      fontSize: 17,
       fontWeight: '800',
-      letterSpacing: 1.1,
-      textTransform: 'uppercase',
-      color: colors.secondary,
-      marginBottom: 4,
-    },
-    greeting: {
-      fontSize: 26,
-      fontWeight: '900',
       color: colors.onSurface,
-      lineHeight: 32,
     },
-    subline: {
-      fontSize: 14,
+    streakPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      alignSelf: 'flex-start',
+    },
+    streakText: {
+      fontSize: 11,
+      fontWeight: '700',
       color: colors.onSurfaceVariant,
-      marginTop: 4,
-      fontWeight: '600',
     },
     settingsBtn: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.surfaceContainer,
-      marginTop: 4,
     },
   });
 
@@ -291,11 +284,11 @@ const fabStyles = (colors: ColorScheme) =>
       right: SPACING.lg,
       backgroundColor: colors.primary,
       borderRadius: 30,
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.35,
-      shadowRadius: 14,
-      elevation: 8,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+      elevation: 7,
       zIndex: 100,
     },
     fabInner: {
@@ -306,7 +299,7 @@ const fabStyles = (colors: ColorScheme) =>
       gap: 6,
     },
     fabText: {
-      color: colors.surface,
+      color: colors.onPrimary,
       fontWeight: '900',
       fontSize: 15,
     },
@@ -327,7 +320,7 @@ const badgeStyles = (colors: ColorScheme) =>
       paddingHorizontal: 4,
     },
     badgeText: {
-      color: colors.surface,
+      color: colors.onError,
       fontSize: 10,
       fontWeight: '900',
     },
