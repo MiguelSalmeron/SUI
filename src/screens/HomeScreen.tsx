@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,28 +10,49 @@ import {
   TextInput,
   Alert,
   StatusBar,
+  Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import { useNavigation } from '@react-navigation/native';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { AuthContext } from '../context/AuthContext';
 import { COLORS, SPACING } from '../theme/theme';
 import { DashboardNavbar, type DashboardTab } from '../components/home/DashboardNavbar';
-import { HomeListSection } from '../components/home/HomeListSection';
+import { HomeListSection, type HomeListItem } from '../components/home/HomeListSection';
 import { PomodoroPanel } from '../components/home/PomodoroPanel';
+import { DailyProgress } from '../components/home/DailyProgress';
+import { StreakBadge } from '../components/home/StreakBadge';
+import { NightlyReportModal } from '../components/home/NightlyReportModal';
 import { useGoals } from '../hooks/useGoals';
 import { useHabits } from '../hooks/useHabits';
 import { usePomodoroEngine } from '../hooks/usePomodoroEngine';
 import { usePomodoroStore, DEFAULT_POMODORO_MINUTES } from '../store/usePomodoroStore';
+import { useOnboardingStore } from '../store/useOnboardingStore';
 import { saveUserData, loadUserData } from '../services/db';
-import { HOME_STATE_KEY } from '../services/homeStorage';
+import {
+  HOME_STATE_KEY,
+  applyDailyReset,
+  localDateKey,
+  advanceStreak,
+  normalizeStreak,
+} from '../services/homeStorage';
+import { buildGreeting } from '../services/greeting';
+import {
+  scheduleNightlyReport,
+  isNightlyReportResponse,
+} from '../services/notifications';
+import type { DayStats } from '../services/reportPrompt';
 
 type HomeState = {
   goals: any[];
   habits: any[];
   pomodoroMinutes: number;
   pomodoroSessions: number;
+  lastResetDate?: string;
+  streakCount?: number;
+  lastCompletedDate?: string;
 };
 
 const tabs: Array<{ key: DashboardTab; label: string; description: string }> = [
@@ -45,8 +66,49 @@ const tabs: Array<{ key: DashboardTab; label: string; description: string }> = [
 export const HomeScreen = () => {
   const { user } = useContext(AuthContext);
   const navigation = useNavigation<any>();
+
+  // Nombre del onboarding (cae al email si el perfil aún no tiene nombre).
+  const onboardingName = useOnboardingStore((s) => s.profile.name);
+  const profileName = onboardingName?.trim() || user?.email?.split('@')[0] || 'Usuario';
   const [stateLoaded, setStateLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+
+  // Fade-in del contenido al terminar de cargar (percepción de fluidez): el
+  // contenido aparece suavemente en vez de un "pop" abrupto tras la carga.
+  const contentOpacity = useRef(new Animated.Value(0)).current;
+  const contentTranslateY = useRef(new Animated.Value(12)).current;
+
+  useEffect(() => {
+    if (!stateLoaded) return;
+    Animated.parallel([
+      Animated.timing(contentOpacity, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentTranslateY, {
+        toValue: 0,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [stateLoaded, contentOpacity, contentTranslateY]);
+
+  // Micro-interacción del FAB: escala sutil al presionar.
+  const fabScale = useRef(new Animated.Value(1)).current;
+  const onFabPressIn = () =>
+    Animated.spring(fabScale, { toValue: 0.92, useNativeDriver: true, speed: 50 }).start();
+  const onFabPressOut = () =>
+    Animated.spring(fabScale, { toValue: 1, useNativeDriver: true, speed: 50 }).start();
+
+  // Reporte nocturno (efímero) + fecha del último reseteo diario.
+  const [reportVisible, setReportVisible] = useState(false);
+  const lastResetDateRef = useRef<string | undefined>(undefined);
+
+  // Racha: días consecutivos cumpliendo. lastCompletedDateRef es el último día
+  // que ya contó (evita doble conteo dentro del mismo día).
+  const [streak, setStreak] = useState(0);
+  const lastCompletedDateRef = useRef<string | undefined>(undefined);
 
   // Modals UI state
   const [configVisible, setConfigVisible] = useState(false);
@@ -88,50 +150,103 @@ export const HomeScreen = () => {
     return `Metas: ${completedGoals}/${goals.length} | Hábitos: ${completedHabits}/${habits.length} | Pomodoros: ${pomodoroSessions}`;
   }, [completedGoals, completedHabits, goals.length, habits.length, pomodoroSessions]);
 
+  // Progreso diario combinado (metas + hábitos) para la barra en tiempo real.
+  const dailyTotal = goals.length + habits.length;
+  const dailyCompleted = completedGoals + completedHabits;
+
+  // Estadísticas del día para el reporte nocturno (efímero).
+  const dayStats = useMemo<DayStats>(() => {
+    const all: HomeListItem[] = [...goals, ...habits];
+    return {
+      completed: all.filter((i) => i.completed).map((i) => i.title),
+      pending: all.filter((i) => !i.completed).map((i) => i.title),
+      streak,
+    };
+  }, [goals, habits, streak]);
+
+  // Saludo dinámico (hora local + progreso del día). Texto local, sin IA.
+  const greeting = useMemo(
+    () => buildGreeting({ hour: new Date().getHours(), completed: dailyCompleted, total: dailyTotal }),
+    [dailyCompleted, dailyTotal]
+  );
+
   const handleLogout = () => {
     signOut(auth);
   };
 
-  // Load persistence (Local and cloud)
+  // Load persistence (Local and cloud) + daily reset
   useEffect(() => {
     let isMounted = true;
     const loadState = async () => {
       try {
-        // Step 1: Attempt to load from local first for instant paint
+        let finalGoals: any[] = [];
+        let finalHabits: any[] = [];
+        let finalMinutes = DEFAULT_POMODORO_MINUTES;
+        let finalSessions = 0;
+        let lastReset: string | undefined;
+        let finalStreakCount = 0;
+        let finalLastCompleted: string | undefined;
+
+        // Step 1: local primero (pintado instantáneo).
         const savedState = await AsyncStorage.getItem(HOME_STATE_KEY);
-        let initialMinutes = DEFAULT_POMODORO_MINUTES;
-        let initialSessions = 0;
-        let initialGoals: any[] = [];
-        let initialHabits: any[] = [];
-
         if (savedState) {
-          const parsedState = JSON.parse(savedState) as Partial<HomeState>;
-          initialMinutes = parsedState.pomodoroMinutes ?? DEFAULT_POMODORO_MINUTES;
-          initialSessions = parsedState.pomodoroSessions ?? 0;
-          initialGoals = parsedState.goals ?? [];
-          initialHabits = parsedState.habits ?? [];
+          const parsed = JSON.parse(savedState) as Partial<HomeState>;
+          finalMinutes = parsed.pomodoroMinutes ?? DEFAULT_POMODORO_MINUTES;
+          finalSessions = parsed.pomodoroSessions ?? 0;
+          finalGoals = parsed.goals ?? [];
+          finalHabits = parsed.habits ?? [];
+          lastReset = parsed.lastResetDate;
+          finalStreakCount = parsed.streakCount ?? 0;
+          finalLastCompleted = parsed.lastCompletedDate;
+        }
 
-          if (isMounted) {
-            setGoals(initialGoals);
-            setHabits(initialHabits);
-            initFromStorage(initialMinutes, initialSessions);
-            setPomodoroMinutesInput(String(initialMinutes));
+        // Step 2: la nube tiene prioridad si existe.
+        if (user?.uid) {
+          const cloudState = await loadUserData(user.uid);
+          if (cloudState) {
+            finalGoals = cloudState.goals ?? [];
+            finalHabits = cloudState.habits ?? [];
+            finalMinutes = cloudState.pomodoroMinutes ?? DEFAULT_POMODORO_MINUTES;
+            finalSessions = cloudState.pomodoroSessions ?? 0;
+            lastReset = cloudState.lastResetDate ?? lastReset;
+            finalStreakCount = cloudState.streakCount ?? finalStreakCount;
+            finalLastCompleted = cloudState.lastCompletedDate ?? finalLastCompleted;
           }
         }
 
-        // Step 2: Sincronización en la nube con Firestore (si el usuario está autenticado)
-        if (user?.uid) {
-          const cloudState = await loadUserData(user.uid);
-          if (cloudState && isMounted) {
-            // Firestore data takes priority if it exists
-            setGoals(cloudState.goals ?? []);
-            setHabits(cloudState.habits ?? []);
-            initFromStorage(cloudState.pomodoroMinutes ?? DEFAULT_POMODORO_MINUTES, cloudState.pomodoroSessions ?? 0);
-            setPomodoroMinutesInput(String(cloudState.pomodoroMinutes ?? DEFAULT_POMODORO_MINUTES));
-            
-            // Sync local storage to match cloud
-            await AsyncStorage.setItem(HOME_STATE_KEY, JSON.stringify(cloudState));
-          }
+        // Step 3: reseteo diario del checklist (medianoche local).
+        const reset = applyDailyReset(finalGoals, finalHabits, lastReset);
+        lastResetDateRef.current = reset.todayKey;
+
+        // Racha: normalizar (si se rompió por un día sin cumplir → 0).
+        lastCompletedDateRef.current = finalLastCompleted;
+        const liveStreak = normalizeStreak({
+          streakCount: finalStreakCount,
+          lastCompletedDate: finalLastCompleted,
+        });
+
+        if (isMounted) {
+          setGoals(reset.goals);
+          setHabits(reset.habits);
+          setStreak(liveStreak);
+          initFromStorage(finalMinutes, finalSessions);
+          setPomodoroMinutesInput(String(finalMinutes));
+        }
+
+        // Step 4: persistir el estado (incluyendo lastResetDate) para que el
+        // efecto de guardado no reescriba con un día previo.
+        const persisted = {
+          goals: reset.goals,
+          habits: reset.habits,
+          pomodoroMinutes: finalMinutes,
+          pomodoroSessions: finalSessions,
+          lastResetDate: reset.todayKey,
+          streakCount: liveStreak,
+          lastCompletedDate: finalLastCompleted,
+        };
+        await AsyncStorage.setItem(HOME_STATE_KEY, JSON.stringify(persisted));
+        if (user?.uid && reset.didReset) {
+          await saveUserData(user.uid, persisted);
         }
       } catch (err) {
         console.error('Failed to load state:', err);
@@ -139,7 +254,7 @@ export const HomeScreen = () => {
         if (isMounted) setStateLoaded(true);
       }
     };
-    
+
     loadState();
     return () => {
       isMounted = false;
@@ -151,7 +266,15 @@ export const HomeScreen = () => {
     if (!stateLoaded) return;
     
     const saveState = async () => {
-      const stateObj = { goals, habits, pomodoroMinutes, pomodoroSessions };
+      const stateObj = {
+        goals,
+        habits,
+        pomodoroMinutes,
+        pomodoroSessions,
+        lastResetDate: lastResetDateRef.current ?? localDateKey(),
+        streakCount: streak,
+        lastCompletedDate: lastCompletedDateRef.current,
+      };
       try {
         // Save Local
         await AsyncStorage.setItem(HOME_STATE_KEY, JSON.stringify(stateObj));
@@ -166,7 +289,39 @@ export const HomeScreen = () => {
     };
 
     saveState();
-  }, [goals, habits, pomodoroMinutes, pomodoroSessions, stateLoaded, user]);
+  }, [goals, habits, pomodoroMinutes, pomodoroSessions, stateLoaded, user, streak]);
+
+  // Avance de racha: en cuanto el usuario cumple algo hoy (>=1 ítem), cuenta el
+  // día. advanceStreak es idempotente dentro del mismo día (no duplica).
+  useEffect(() => {
+    if (!stateLoaded || dailyCompleted === 0) return;
+    const next = advanceStreak({
+      streakCount: streak,
+      lastCompletedDate: lastCompletedDateRef.current,
+    });
+    if (next.lastCompletedDate !== lastCompletedDateRef.current) {
+      lastCompletedDateRef.current = next.lastCompletedDate;
+      setStreak(next.streakCount);
+    }
+  }, [dailyCompleted, stateLoaded, streak]);
+
+  // Notificaciones push locales: programa el recordatorio nocturno (21:30) y
+  // escucha el toque para abrir el reporte reflexivo. 100% local/offline.
+  useEffect(() => {
+    scheduleNightlyReport().catch(() => undefined);
+
+    // Cold start: la app se abrió tocando la notificación.
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (isNightlyReportResponse(response)) setReportVisible(true);
+    });
+
+    // Foreground/background: toque de la notificación.
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      if (isNightlyReportResponse(response)) setReportVisible(true);
+    });
+
+    return () => sub.remove();
+  }, []);
 
   // Handlers
   const openItemModal = (mode: 'goal' | 'habit') => {
@@ -205,6 +360,9 @@ export const HomeScreen = () => {
 
   const renderOverview = () => (
     <View style={styles.overviewGrid}>
+      <StreakBadge streak={streak} />
+      <DailyProgress completed={dailyCompleted} total={dailyTotal} label="completados" />
+
       <View style={[styles.metricCard, styles.metricPrimary]}>
         <Text style={styles.metricLabelLight}>Metas activas</Text>
         <Text style={styles.metricValueLight}>{goals.length - completedGoals}</Text>
@@ -228,6 +386,10 @@ export const HomeScreen = () => {
           <Text style={styles.quickActionText}>Abrir pomodoro</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity style={styles.reportButton} onPress={() => setReportVisible(true)}>
+        <Text style={styles.reportButtonText}>Ver resumen del día 🌙</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -235,18 +397,26 @@ export const HomeScreen = () => {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar hidden={pomodoroFullscreen} barStyle="dark-content" />
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <Animated.View
+        style={[
+          styles.container,
+          { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] },
+        ]}
+      >
+        <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.headerShell}>
-          <View>
-            <Text style={styles.kicker}>Tu tablero personal (Sincronizado)</Text>
-            <Text style={styles.greeting}>Hola, {user?.email?.split('@')[0] || 'Usuario'}</Text>
-            <Text style={styles.date}>
+          <View style={styles.headerText}>
+            <Text style={styles.kicker}>
               {new Date().toLocaleDateString('es-ES', {
                 weekday: 'long',
                 day: 'numeric',
                 month: 'long',
               })}
             </Text>
+            <Text style={styles.greeting}>
+              {greeting.salutation}, {profileName} {greeting.emoji}
+            </Text>
+            <Text style={styles.subline}>{greeting.subline}</Text>
           </View>
 
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
@@ -313,6 +483,7 @@ export const HomeScreen = () => {
           </View>
         )}
       </ScrollView>
+      </Animated.View>
 
       <Modal visible={itemModalVisible} transparent animationType="fade" onRequestClose={() => setItemModalVisible(false)}>
         <View style={styles.modalBackdrop}>
@@ -361,13 +532,23 @@ export const HomeScreen = () => {
         </View>
       </Modal>
 
-      <TouchableOpacity
-        style={styles.chatFab}
-        onPress={() => navigation.navigate('Chat')}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.chatFabText}>Hablar con SUI</Text>
-      </TouchableOpacity>
+      <NightlyReportModal
+        visible={reportVisible}
+        stats={dayStats}
+        onClose={() => setReportVisible(false)}
+      />
+
+      <Animated.View style={[styles.chatFab, { transform: [{ scale: fabScale }] }]}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Chat')}
+          onPressIn={onFabPressIn}
+          onPressOut={onFabPressOut}
+          activeOpacity={0.9}
+          style={styles.chatFabInner}
+        >
+          <Text style={styles.chatFabText}>Hablar con SUI</Text>
+        </TouchableOpacity>
+      </Animated.View>
     </SafeAreaView>
   );
 };
@@ -391,6 +572,10 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
     marginTop: SPACING.md,
   },
+  headerText: {
+    flex: 1,
+    paddingRight: SPACING.md,
+  },
   kicker: {
     fontSize: 12,
     fontWeight: '800',
@@ -409,6 +594,12 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 4,
     textTransform: 'capitalize',
+  },
+  subline: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+    fontWeight: '600',
   },
   logoutBtn: {
     paddingVertical: SPACING.sm,
@@ -505,6 +696,17 @@ const styles = StyleSheet.create({
   },
   quickActionText: {
     color: COLORS.primary,
+    fontWeight: '800',
+  },
+  reportButton: {
+    backgroundColor: COLORS.text,
+    padding: SPACING.md,
+    borderRadius: 18,
+    alignItems: 'center',
+    marginTop: SPACING.xs,
+  },
+  reportButtonText: {
+    color: COLORS.white,
     fontWeight: '800',
   },
   sectionSpacing: {
@@ -609,14 +811,16 @@ const styles = StyleSheet.create({
     right: SPACING.lg,
     bottom: SPACING.lg,
     backgroundColor: COLORS.primary,
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.lg,
     borderRadius: 30,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 6,
+  },
+  chatFabInner: {
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
   },
   chatFabText: {
     color: COLORS.white,
