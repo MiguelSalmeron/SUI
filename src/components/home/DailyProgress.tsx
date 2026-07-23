@@ -58,19 +58,14 @@ export const DailyProgress = ({ completed, total, label }: Props) => {
 };
 
 const createStyles = (colors: ColorScheme) => StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 22,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-    marginBottom: SPACING.sm,
-  },
+    card: {
+      backgroundColor: colors.surfaceContainer,
+      borderRadius: 16,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      marginBottom: SPACING.sm,
+    },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

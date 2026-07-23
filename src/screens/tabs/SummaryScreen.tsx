@@ -73,7 +73,7 @@ export const SummaryScreen = () => {
       <LevelCard totalXp={totalXp} />
 
       <View style={styles.insightCard}>
-        <Ionicons name="bulb" size={20} color={colors.surface} />
+        <Ionicons name="bulb" size={20} color={colors.onSecondary} />
         <Text style={styles.insightText}>{insight}</Text>
       </View>
 
@@ -142,7 +142,7 @@ const StatBox = ({ icon, label, value, colors }: StatBoxProps) => (
 const statStyles = StyleSheet.create({
   box: {
     width: '47%',
-    borderRadius: 18,
+    borderRadius: 16,
     padding: SPACING.md,
     borderWidth: 1,
     alignItems: 'center',
@@ -181,7 +181,7 @@ const createStyles = (colors: ColorScheme) =>
     },
     insightCard: {
       backgroundColor: colors.secondary,
-      borderRadius: 18,
+      borderRadius: 16,
       padding: SPACING.md,
       flexDirection: 'row',
       alignItems: 'flex-start',
@@ -190,7 +190,7 @@ const createStyles = (colors: ColorScheme) =>
     },
     insightText: {
       flex: 1,
-      color: colors.surface,
+      color: colors.onSecondary,
       fontSize: 14,
       lineHeight: 20,
       fontWeight: '600',
@@ -203,14 +203,14 @@ const createStyles = (colors: ColorScheme) =>
     },
     todayCard: {
       backgroundColor: colors.primary,
-      borderRadius: 22,
+      borderRadius: 16,
       padding: SPACING.lg,
       marginBottom: SPACING.md,
     },
     todayTitle: {
       fontSize: 13,
       fontWeight: '800',
-      color: colors.surface,
+      color: colors.onPrimary,
       textTransform: 'uppercase',
       opacity: 0.85,
     },
@@ -223,17 +223,17 @@ const createStyles = (colors: ColorScheme) =>
     todayStat: {
       fontSize: 15,
       fontWeight: '700',
-      color: colors.surface,
+      color: colors.onPrimary,
       flex: 1,
     },
     todayRate: {
       fontSize: 28,
       fontWeight: '900',
-      color: colors.surface,
+      color: colors.onPrimary,
     },
     todayHint: {
       fontSize: 13,
-      color: colors.surface,
+      color: colors.onPrimary,
       opacity: 0.85,
       marginTop: 6,
       fontWeight: '600',

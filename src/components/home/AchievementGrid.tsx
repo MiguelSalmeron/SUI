@@ -29,7 +29,7 @@ export const AchievementGrid = ({ achievements, compact = false }: Props) => {
             <Ionicons
               name={a.icon as keyof typeof Ionicons.glyphMap}
               size={compact ? 18 : 22}
-              color={a.unlocked ? colors.surface : colors.onSurfaceVariant}
+              color={a.unlocked ? colors.onPrimary : colors.onSurfaceVariant}
             />
           </View>
           <Text style={[styles.badgeTitle, !a.unlocked && styles.badgeTitleLocked]} numberOfLines={1}>
@@ -53,7 +53,7 @@ export const AchievementGrid = ({ achievements, compact = false }: Props) => {
           {unlocked.map((a) => (
             <View key={a.id} style={styles.compactBadge}>
               <View style={styles.compactIcon}>
-                <Ionicons name={a.icon as keyof typeof Ionicons.glyphMap} size={20} color={colors.surface} />
+                <Ionicons name={a.icon as keyof typeof Ionicons.glyphMap} size={20} color={colors.onPrimary} />
               </View>
               <Text style={styles.compactTitle}>{a.title}</Text>
             </View>

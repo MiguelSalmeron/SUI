@@ -73,7 +73,7 @@ export const AppNavigator = () => {
                 title: 'SUI',
                 headerBackTitle: 'Inicio',
                 headerTintColor: theme.colors.primary,
-                headerStyle: { backgroundColor: theme.colors.surface },
+                headerStyle: { backgroundColor: theme.colors.surfaceContainer },
                 headerTitleStyle: { color: theme.colors.onSurface, fontWeight: '900' },
                 headerShadowVisible: true,
               }}
@@ -86,7 +86,7 @@ export const AppNavigator = () => {
                 title: 'Ajustes',
                 headerBackTitle: 'Inicio',
                 headerTintColor: theme.colors.primary,
-                headerStyle: { backgroundColor: theme.colors.surface },
+                headerStyle: { backgroundColor: theme.colors.surfaceContainer },
                 headerTitleStyle: { color: theme.colors.onSurface, fontWeight: '900' },
                 headerShadowVisible: true,
               }}

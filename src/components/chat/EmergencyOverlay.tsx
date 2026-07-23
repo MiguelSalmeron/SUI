@@ -108,7 +108,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     marginBottom: SPACING.md,
   },
   badgeText: {
-    color: colors.surface,
+    color: colors.onError,
     fontSize: 26,
     fontWeight: '900',
   },
@@ -138,12 +138,12 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     alignItems: 'center',
   },
   contactLabel: {
-    color: colors.surface,
+    color: colors.onError,
     fontWeight: '900',
     fontSize: 16,
   },
   contactPhone: {
-    color: colors.surface,
+    color: colors.onError,
     opacity: 0.95,
     fontSize: 13,
     marginTop: 2,

@@ -73,7 +73,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   input: {
     flex: 1,
     maxHeight: 120,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surfaceContainerLow,
     borderWidth: 1,
     borderColor: colors.outlineVariant,
     borderRadius: 20,
@@ -91,10 +91,10 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     justifyContent: 'center',
   },
   sendButtonDisabled: {
-    backgroundColor: colors.primaryContainer,
+    backgroundColor: colors.surfaceContainerHighest,
   },
   sendText: {
-    color: colors.surface,
+    color: colors.onPrimary,
     fontSize: 22,
     fontWeight: '900',
     lineHeight: 24,
