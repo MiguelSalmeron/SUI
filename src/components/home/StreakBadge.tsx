@@ -1,9 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import { MD3_COLORS, MD3_RADIUS, SPACING } from '../../theme/theme';
-
-/** Tono cálido del indicador (fuera de la paleta azul base, intencional). */
-const FLAME = '#FF7A1A';
+import { ColorScheme, MD3_RADIUS, SPACING, useAppTheme } from '../../theme/theme';
 
 type Props = {
   /** Días consecutivos cumpliendo. 0 = sin racha activa. */
@@ -17,6 +14,8 @@ type Props = {
  * Si la racha es 0, invita a empezar (sin culpar).
  */
 export const StreakBadge = ({ streak }: Props) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const scale = useRef(new Animated.Value(1)).current;
   const active = streak > 0;
 
@@ -44,7 +43,7 @@ export const StreakBadge = ({ streak }: Props) => {
             <Text style={styles.count}>
               {streak} {streak === 1 ? 'día' : 'días'}
             </Text>
-            <Text style={styles.label}>de racha · no la rompas</Text>
+            <Text style={styles.label}>de racha · vas construyendo constancia</Text>
           </>
         ) : (
           <>
@@ -57,7 +56,7 @@ export const StreakBadge = ({ streak }: Props) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorScheme) => StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -68,12 +67,12 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   cardActive: {
-    backgroundColor: '#FFF4EC',
-    borderColor: '#FFD9BF',
+    backgroundColor: colors.flameContainer,
+    borderColor: colors.flameOutline,
   },
   cardIdle: {
-    backgroundColor: MD3_COLORS.surface,
-    borderColor: MD3_COLORS.outlineVariant,
+    backgroundColor: colors.surface,
+    borderColor: colors.outlineVariant,
   },
   dot: {
     width: 36,
@@ -81,10 +80,10 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   dotActive: {
-    backgroundColor: FLAME,
+    backgroundColor: colors.flame,
   },
   dotIdle: {
-    backgroundColor: MD3_COLORS.primaryContainer,
+    backgroundColor: colors.primaryContainer,
   },
   textCol: {
     flex: 1,
@@ -92,17 +91,17 @@ const styles = StyleSheet.create({
   count: {
     fontSize: 26,
     fontWeight: '900',
-    color: FLAME,
+    color: colors.flame,
   },
   countIdle: {
     fontSize: 20,
     fontWeight: '900',
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
   },
   label: {
     fontSize: 13,
     fontWeight: '700',
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginTop: 2,
   },
 });

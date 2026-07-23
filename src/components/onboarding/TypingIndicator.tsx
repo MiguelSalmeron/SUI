@@ -1,11 +1,13 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Animated, StyleSheet, Easing } from 'react-native';
-import { MD3_COLORS, SPACING } from '../../theme/theme';
+import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 
 /**
  * Indicador "escribiendo…" del bot. Tres puntos con animación de opacidad.
  */
 export const TypingIndicator = () => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const dots = [useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current];
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export const TypingIndicator = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorScheme) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -55,15 +57,15 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: MD3_COLORS.primary,
+    backgroundColor: colors.primary,
     marginRight: SPACING.sm,
     opacity: 0.5,
   },
   bubble: {
     flexDirection: 'row',
-    backgroundColor: MD3_COLORS.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: MD3_COLORS.outlineVariant,
+    borderColor: colors.outlineVariant,
     borderRadius: 20,
     borderBottomLeftRadius: 4,
     paddingVertical: SPACING.md,
@@ -74,6 +76,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: MD3_COLORS.onSurfaceVariant,
+    backgroundColor: colors.onSurfaceVariant,
   },
 });

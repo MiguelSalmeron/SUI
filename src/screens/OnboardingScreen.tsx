@@ -17,7 +17,7 @@ import { ChatComposer } from '../components/onboarding/ChatComposer';
 import { useOnboardingStore } from '../store/useOnboardingStore';
 import { signInAnon } from '../services/onboardingAuth';
 import { seedOnboardingGoals } from '../services/homeStorage';
-import { MD3_COLORS, SPACING } from '../theme/theme';
+import { ColorScheme, SPACING, useAppTheme } from '../theme/theme';
 import {
   GOALS_REQUIRED,
   OnboardingProfile,
@@ -86,6 +86,8 @@ const userAnswer = (
 };
 
 export const OnboardingScreen = () => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
 
@@ -153,7 +155,7 @@ export const OnboardingScreen = () => {
     switch (step) {
       case 'welcome':
         return (
-          <TouchableOpacity style={styles.primaryButton} onPress={nextStep}>
+          <TouchableOpacity style={styles.primaryButton} onPress={nextStep} accessibilityRole="button" accessibilityLabel="Empezar onboarding">
             <Text style={styles.primaryButtonText}>Empezar</Text>
           </TouchableOpacity>
         );
@@ -193,6 +195,8 @@ export const OnboardingScreen = () => {
                   setStudyYear(option.value);
                   nextStep();
                 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Seleccionar ${option.label}`}
               >
                 <Text style={styles.chipText}>{option.label}</Text>
               </TouchableOpacity>
@@ -224,6 +228,9 @@ export const OnboardingScreen = () => {
                     key={goal.id}
                     style={[styles.goalChip, selected && styles.goalChipSelected]}
                     onPress={() => toggleGoal(goal.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={goal.label}
+                    accessibilityState={{ selected }}
                   >
                     <Text style={styles.goalEmoji}>{goal.emoji}</Text>
                     <Text
@@ -242,6 +249,9 @@ export const OnboardingScreen = () => {
               style={[styles.primaryButton, !goalsComplete && styles.primaryButtonDisabled]}
               onPress={nextStep}
               disabled={!goalsComplete}
+              accessibilityRole="button"
+              accessibilityLabel="Confirmar objetivos y continuar"
+              accessibilityState={{ disabled: !goalsComplete }}
             >
               <Text style={styles.primaryButtonText}>Confirmar y continuar</Text>
             </TouchableOpacity>
@@ -279,7 +289,7 @@ export const OnboardingScreen = () => {
       <View style={[styles.inputArea, { paddingBottom: insets.bottom + SPACING.md }]}>
         {step === 'submitting' ? (
           <View style={styles.submittingRow}>
-            <ActivityIndicator color={MD3_COLORS.primary} />
+                <ActivityIndicator color={colors.primary} />
             <Text style={styles.submittingText}>Creando tu cuenta…</Text>
           </View>
         ) : (
@@ -290,26 +300,26 @@ export const OnboardingScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorScheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: MD3_COLORS.background,
+    backgroundColor: colors.background,
   },
   header: {
     paddingHorizontal: SPACING.lg,
     paddingBottom: SPACING.md,
     borderBottomWidth: 1,
-    borderBottomColor: MD3_COLORS.outlineVariant,
-    backgroundColor: MD3_COLORS.background,
+    borderBottomColor: colors.outlineVariant,
+    backgroundColor: colors.background,
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginTop: 2,
   },
   chat: {
@@ -323,20 +333,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.md,
     borderTopWidth: 1,
-    borderTopColor: MD3_COLORS.outlineVariant,
-    backgroundColor: MD3_COLORS.surface,
+    borderTopColor: colors.outlineVariant,
+    backgroundColor: colors.surface,
   },
   primaryButton: {
-    backgroundColor: MD3_COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: 16,
     paddingVertical: SPACING.md,
     alignItems: 'center',
   },
   primaryButtonDisabled: {
-    backgroundColor: MD3_COLORS.primaryContainer,
+    backgroundColor: colors.primaryContainer,
   },
   primaryButtonText: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontWeight: '800',
     fontSize: 16,
   },
@@ -346,15 +356,15 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   chip: {
-    backgroundColor: MD3_COLORS.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: MD3_COLORS.primary,
+    borderColor: colors.primary,
     borderRadius: 14,
     paddingVertical: SPACING.sm + 2,
     paddingHorizontal: SPACING.md,
   },
   chipText: {
-    color: MD3_COLORS.primary,
+    color: colors.primary,
     fontWeight: '700',
     fontSize: 14,
   },
@@ -368,30 +378,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: MD3_COLORS.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: MD3_COLORS.outlineVariant,
+    borderColor: colors.outlineVariant,
     borderRadius: 14,
     paddingVertical: SPACING.sm + 2,
     paddingHorizontal: SPACING.md,
   },
   goalChipSelected: {
-    backgroundColor: MD3_COLORS.primary,
-    borderColor: MD3_COLORS.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   goalEmoji: {
     fontSize: 16,
   },
   goalLabel: {
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
     fontWeight: '600',
     fontSize: 14,
   },
   goalLabelSelected: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
   },
   goalsCounter: {
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontSize: 13,
     fontWeight: '600',
     marginBottom: SPACING.sm,
@@ -404,7 +414,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
   },
   submittingText: {
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontWeight: '600',
   },
 });

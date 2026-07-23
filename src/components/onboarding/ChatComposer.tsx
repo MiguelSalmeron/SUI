@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 import { useForm, Controller, Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { MD3_COLORS, SPACING } from '../../theme/theme';
+import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 
 interface ChatComposerProps {
   /** Esquema zod para validar el campo (string o number coercionado). */
@@ -28,6 +28,8 @@ export const ChatComposer = ({
   submitLabel = 'Enviar',
   onSubmitValue,
 }: ChatComposerProps) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   type FormValues = { value: string };
   const schema = z.object({ value: fieldSchema });
 
@@ -56,7 +58,7 @@ export const ChatComposer = ({
             <TextInput
               style={[styles.input, errors.value && styles.inputError]}
               placeholder={placeholder}
-              placeholderTextColor={MD3_COLORS.onSurfaceVariant}
+              placeholderTextColor={colors.onSurfaceVariant}
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
@@ -67,7 +69,7 @@ export const ChatComposer = ({
             />
           )}
         />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSubmit(submit)}>
+        <TouchableOpacity style={styles.sendButton} onPress={handleSubmit(submit)} accessibilityRole="button" accessibilityLabel={submitLabel}>
           <Text style={styles.sendText}>{submitLabel}</Text>
         </TouchableOpacity>
       </View>
@@ -76,7 +78,7 @@ export const ChatComposer = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorScheme) => StyleSheet.create({
   wrapper: {
     gap: 4,
   },
@@ -87,20 +89,20 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: MD3_COLORS.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: MD3_COLORS.outlineVariant,
+    borderColor: colors.outlineVariant,
     borderRadius: 16,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.md,
     fontSize: 16,
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
   },
   inputError: {
-    borderColor: MD3_COLORS.error,
+    borderColor: colors.error,
   },
   sendButton: {
-    backgroundColor: MD3_COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: 16,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.lg,
@@ -108,12 +110,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendText: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontWeight: '800',
     fontSize: 15,
   },
   errorText: {
-    color: MD3_COLORS.error,
+    color: colors.error,
     fontSize: 12,
     fontWeight: '600',
     marginLeft: SPACING.xs,

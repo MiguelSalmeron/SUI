@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { MD3_COLORS, SPACING } from '../theme/theme';
+import { ColorScheme, SPACING, useAppTheme } from '../theme/theme';
 import { ChatMessage } from '../components/chat/ChatMessage';
 import { ChatInput } from '../components/chat/ChatInput';
 import { EmergencyOverlay } from '../components/chat/EmergencyOverlay';
@@ -34,6 +34,8 @@ interface Props {
 }
 
 export const ChatScreen = ({ navigation }: Props) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const messages = useChatStore((s) => s.messages);
   const streamingId = useChatStore((s) => s.streamingId);
   const addUserMessage = useChatStore((s) => s.addUserMessage);
@@ -67,7 +69,13 @@ export const ChatScreen = ({ navigation }: Props) => {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity onPress={confirmClear} style={styles.headerBtn} hitSlop={8}>
+        <TouchableOpacity
+          onPress={confirmClear}
+          style={styles.headerBtn}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Limpiar conversación"
+        >
           <Text style={styles.headerBtnText}>Limpiar</Text>
         </TouchableOpacity>
       ),
@@ -178,10 +186,10 @@ export const ChatScreen = ({ navigation }: Props) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorScheme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: MD3_COLORS.background,
+    backgroundColor: colors.background,
   },
   flex: {
     flex: 1,
@@ -191,7 +199,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xs,
   },
   headerBtnText: {
-    color: MD3_COLORS.primary,
+    color: colors.primary,
     fontWeight: '700',
     fontSize: 14,
   },
@@ -208,19 +216,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 26,
     fontWeight: '900',
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
     marginBottom: SPACING.sm,
   },
   emptyText: {
     fontSize: 16,
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     textAlign: 'center',
     lineHeight: 23,
     marginBottom: SPACING.md,
   },
   emptyNote: {
     fontSize: 13,
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     textAlign: 'center',
     lineHeight: 19,
     opacity: 0.8,

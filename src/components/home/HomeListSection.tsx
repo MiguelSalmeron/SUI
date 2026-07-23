@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { MD3_COLORS, SPACING } from '../../theme/theme';
+import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 
 export type HomeListItem = {
   id: string;
@@ -31,6 +31,8 @@ export const HomeListSection = ({
   onToggle,
   onRemove,
 }: Props) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const completedCount = items.filter((item) => item.completed).length;
   const pendingCount = items.length - completedCount;
 
@@ -49,6 +51,8 @@ export const HomeListSection = ({
         <TouchableOpacity
           style={[styles.addButton, accent === 'secondary' ? styles.addButtonSecondary : styles.addButtonPrimary]}
           onPress={onAdd}
+          accessibilityRole="button"
+          accessibilityLabel={addLabel}
         >
           <Text style={styles.addButtonText}>{addLabel}</Text>
         </TouchableOpacity>
@@ -59,13 +63,20 @@ export const HomeListSection = ({
               <TouchableOpacity
                 style={[styles.statusPill, item.completed && styles.statusPillDone]}
                 onPress={() => onToggle(item.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.completed ? 'Desmarcar' : 'Completar'} ${item.title}`}
+                accessibilityState={{ checked: item.completed }}
               >
                 <Text style={styles.statusText}>{item.completed ? 'Hecho' : 'Pend.'}</Text>
               </TouchableOpacity>
 
               <Text style={[styles.itemTitle, item.completed && styles.itemTitleDone]}>{item.title}</Text>
 
-              <TouchableOpacity onPress={() => onRemove(item.id)}>
+              <TouchableOpacity
+                onPress={() => onRemove(item.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`Eliminar ${item.title}`}
+              >
                 <Text style={styles.deleteText}>Eliminar</Text>
               </TouchableOpacity>
             </View>
@@ -76,7 +87,7 @@ export const HomeListSection = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorScheme) => StyleSheet.create({
   sectionSpacing: {
     marginTop: SPACING.md,
   },
@@ -86,20 +97,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
   },
   sectionSubtitle: {
     marginTop: 4,
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontSize: 14,
   },
   card: {
-    backgroundColor: MD3_COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 22,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: MD3_COLORS.outlineVariant,
-    shadowColor: MD3_COLORS.primary,
+    borderColor: colors.outlineVariant,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -107,7 +118,7 @@ const styles = StyleSheet.create({
   },
   cardText: {
     fontSize: 15,
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginBottom: SPACING.md,
     lineHeight: 22,
   },
@@ -117,13 +128,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addButtonPrimary: {
-    backgroundColor: MD3_COLORS.primary,
+    backgroundColor: colors.primary,
   },
   addButtonSecondary: {
-    backgroundColor: MD3_COLORS.secondary,
+    backgroundColor: colors.secondary,
   },
   addButtonText: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontWeight: '800',
   },
   list: {
@@ -136,35 +147,35 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     paddingTop: SPACING.sm,
     borderTopWidth: 1,
-    borderTopColor: MD3_COLORS.outlineVariant,
+    borderTopColor: colors.outlineVariant,
   },
   statusPill: {
     minWidth: 56,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 999,
-    backgroundColor: MD3_COLORS.background,
+    backgroundColor: colors.background,
     alignItems: 'center',
   },
   statusPillDone: {
-    backgroundColor: MD3_COLORS.success,
+    backgroundColor: colors.success,
   },
   statusText: {
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
     fontSize: 12,
     fontWeight: '800',
   },
   itemTitle: {
     flex: 1,
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
     fontSize: 15,
   },
   itemTitleDone: {
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     textDecorationLine: 'line-through',
   },
   deleteText: {
-    color: MD3_COLORS.error,
+    color: colors.error,
     fontSize: 12,
     fontWeight: '700',
   },

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { MD3_COLORS, SPACING } from '../../theme/theme';
+import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { buildEmotionalProfile } from '../../services/chatPrompt';
 import { buildReportPayload, DayStats, summarizeStats } from '../../services/reportPrompt';
@@ -40,6 +40,8 @@ const offlineMessage = (stats: DayStats): string => {
  * desaparece. Si no hay red, muestra un cierre local cálido.
  */
 export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const profile = useOnboardingStore((s) => s.profile);
   const selectedGoals = useOnboardingStore((s) => s.selectedGoals);
 
@@ -97,7 +99,7 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
           <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
             {busy ? (
               <View style={styles.loadingRow}>
-                <ActivityIndicator color={MD3_COLORS.primary} />
+                <ActivityIndicator color={colors.primary} />
                 <Text style={styles.loadingText}>Sui está preparando tu resumen…</Text>
               </View>
             ) : (
@@ -108,7 +110,7 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
             )}
           </ScrollView>
 
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose} accessibilityRole="button" accessibilityLabel="Cerrar resumen nocturno">
             <Text style={styles.closeButtonText}>Cerrar</Text>
           </TouchableOpacity>
         </View>
@@ -117,14 +119,14 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorScheme) => StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: colors.scrim,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: MD3_COLORS.surface,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: SPACING.lg,
@@ -136,17 +138,17 @@ const styles = StyleSheet.create({
     width: 44,
     height: 5,
     borderRadius: 999,
-    backgroundColor: MD3_COLORS.outlineVariant,
+    backgroundColor: colors.outlineVariant,
     marginBottom: SPACING.md,
   },
   title: {
     fontSize: 24,
     fontWeight: '900',
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
   },
   subtitle: {
     fontSize: 14,
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginTop: 2,
     marginBottom: SPACING.md,
   },
@@ -163,23 +165,23 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
   },
   loadingText: {
-    color: MD3_COLORS.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontWeight: '600',
   },
   reportText: {
     fontSize: 16,
     lineHeight: 24,
-    color: MD3_COLORS.onSurface,
+    color: colors.onSurface,
   },
   closeButton: {
-    backgroundColor: MD3_COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: 16,
     paddingVertical: SPACING.md,
     alignItems: 'center',
     marginTop: SPACING.lg,
   },
   closeButtonText: {
-    color: MD3_COLORS.surface,
+    color: colors.surface,
     fontWeight: '800',
     fontSize: 16,
   },
