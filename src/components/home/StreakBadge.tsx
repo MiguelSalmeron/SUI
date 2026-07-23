@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { ColorScheme, MD3_RADIUS, SPACING, useAppTheme } from '../../theme/theme';
 
 type Props = {
@@ -36,7 +37,13 @@ export const StreakBadge = ({ streak }: Props) => {
           active ? styles.dotActive : styles.dotIdle,
           { transform: [{ scale }] },
         ]}
-      />
+      >
+        <Ionicons
+          name={active ? 'flame' : 'flame-outline'}
+          size={20}
+          color={active ? colors.surface : colors.primary}
+        />
+      </Animated.View>
       <View style={styles.textCol}>
         {active ? (
           <>
@@ -75,9 +82,11 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     borderColor: colors.outlineVariant,
   },
   dot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   dotActive: {
     backgroundColor: colors.flame,

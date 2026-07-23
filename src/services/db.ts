@@ -1,17 +1,17 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import type { DailySnapshot } from './gamification';
 
 export interface UserData {
   goals: any[];
   habits: any[];
   pomodoroMinutes: number;
   pomodoroSessions: number;
-  /** Fecha local (YYYY-MM-DD) del último reseteo diario del checklist. */
   lastResetDate?: string;
-  /** Días consecutivos cumpliendo (racha). */
   streakCount?: number;
-  /** Fecha local (YYYY-MM-DD) del último día que contó para la racha. */
   lastCompletedDate?: string;
+  weeklyHistory?: DailySnapshot[];
+  totalXp?: number;
 }
 
 /**

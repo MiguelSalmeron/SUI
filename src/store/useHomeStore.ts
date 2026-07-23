@@ -9,9 +9,22 @@ import {
   advanceStreak,
   normalizeStreak,
 } from '../services/homeStorage';
-import { useOnboardingStore } from './useOnboardingStore';
+import {
+  type DailySnapshot,
+  computeTotalXp,
+  makeSnapshot,
+  upsertSnapshot,
+} from '../services/gamification';
 import { usePomodoroStore } from './usePomodoroStore';
 import type { HomeListItem } from '../components/home/HomeListSection';
+
+const CLOUD_LOAD_TIMEOUT_MS = 5000;
+
+const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T | null> =>
+  Promise.race([
+    promise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
 
 export type HomeState = {
   goals: HomeListItem[];
@@ -19,24 +32,21 @@ export type HomeState = {
   streak: number;
   lastCompletedDate: string | undefined;
   lastResetDate: string | undefined;
+  weeklyHistory: DailySnapshot[];
+  totalXp: number;
   stateLoaded: boolean;
 
-  // Goals actions
   setGoals: (goals: HomeListItem[]) => void;
   addGoal: (title: string) => boolean;
   toggleGoal: (id: string) => void;
   removeGoal: (id: string) => void;
 
-  // Habits actions
   setHabits: (habits: HomeListItem[]) => void;
   addHabit: (title: string) => boolean;
   toggleHabit: (id: string) => void;
   removeHabit: (id: string) => void;
 
-  // Streak
   bumpStreak: () => void;
-
-  // Persistence
   loadState: () => Promise<void>;
   saveState: () => Promise<void>;
 };
@@ -47,15 +57,28 @@ const createItem = (title: string): HomeListItem => ({
   completed: false,
 });
 
+const snapshotFromState = (
+  goals: HomeListItem[],
+  habits: HomeListItem[],
+  date?: string,
+): DailySnapshot => {
+  const { pomodoroMinutes, pomodoroSessions } = usePomodoroStore.getState();
+  return makeSnapshot(goals, habits, pomodoroSessions, pomodoroMinutes, date);
+};
+
+let saveInFlight = false;
+let saveQueued = false;
+
 export const useHomeStore = create<HomeState>((set, get) => ({
   goals: [],
   habits: [],
   streak: 0,
   lastCompletedDate: undefined,
   lastResetDate: undefined,
+  weeklyHistory: [],
+  totalXp: 0,
   stateLoaded: false,
 
-  // Goals
   setGoals: (goals) => set({ goals }),
 
   addGoal: (title) => {
@@ -73,7 +96,6 @@ export const useHomeStore = create<HomeState>((set, get) => ({
   removeGoal: (id) =>
     set((s) => ({ goals: s.goals.filter((g) => g.id !== id) })),
 
-  // Habits
   setHabits: (habits) => set({ habits }),
 
   addHabit: (title) => {
@@ -91,7 +113,6 @@ export const useHomeStore = create<HomeState>((set, get) => ({
   removeHabit: (id) =>
     set((s) => ({ habits: s.habits.filter((h) => h.id !== id) })),
 
-  // Streak
   bumpStreak: () => {
     const { streak, lastCompletedDate } = get();
     const next = advanceStreak({ streakCount: streak, lastCompletedDate });
@@ -100,12 +121,12 @@ export const useHomeStore = create<HomeState>((set, get) => ({
     }
   },
 
-  // Persistence
   loadState: async () => {
+    if (get().stateLoaded) return;
+
     try {
       const user = auth.currentUser;
 
-      // Step 1: load local
       const saved = await AsyncStorage.getItem(HOME_STATE_KEY);
       let localGoals: HomeListItem[] = [];
       let localHabits: HomeListItem[] = [];
@@ -114,6 +135,7 @@ export const useHomeStore = create<HomeState>((set, get) => ({
       let lastReset: string | undefined;
       let streakCount = 0;
       let lastCompleted: string | undefined;
+      let weeklyHistory: DailySnapshot[] = [];
 
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -124,11 +146,11 @@ export const useHomeStore = create<HomeState>((set, get) => ({
         lastReset = parsed.lastResetDate;
         streakCount = parsed.streakCount ?? 0;
         lastCompleted = parsed.lastCompletedDate;
+        weeklyHistory = parsed.weeklyHistory ?? [];
       }
 
-      // Step 2: cloud overrides local
       if (user?.uid) {
-        const cloud = await loadUserData(user.uid);
+        const cloud = await withTimeout(loadUserData(user.uid), CLOUD_LOAD_TIMEOUT_MS);
         if (cloud) {
           localGoals = cloud.goals ?? [];
           localHabits = cloud.habits ?? [];
@@ -137,17 +159,40 @@ export const useHomeStore = create<HomeState>((set, get) => ({
           lastReset = cloud.lastResetDate ?? lastReset;
           streakCount = cloud.streakCount ?? streakCount;
           lastCompleted = cloud.lastCompletedDate ?? lastCompleted;
+          weeklyHistory = cloud.weeklyHistory ?? weeklyHistory;
         }
       }
 
-      // Step 3: daily reset
-      const reset = applyDailyReset(localGoals, localHabits, lastReset);
+      const todayKey = localDateKey();
 
-      // Streak normalization
+      if (lastReset && lastReset !== todayKey) {
+        const prevSnapshot = makeSnapshot(
+          localGoals,
+          localHabits,
+          localSessions,
+          localMinutes,
+          lastReset,
+        );
+        weeklyHistory = upsertSnapshot(weeklyHistory, prevSnapshot);
+      }
+
+      const reset = applyDailyReset(localGoals, localHabits, lastReset);
       const liveStreak = normalizeStreak({
         streakCount,
         lastCompletedDate: lastCompleted,
       });
+
+      usePomodoroStore.getState().initFromStorage(localMinutes, localSessions);
+
+      const todaySnapshot = makeSnapshot(
+        reset.goals,
+        reset.habits,
+        localSessions,
+        localMinutes,
+        todayKey,
+      );
+      weeklyHistory = upsertSnapshot(weeklyHistory, todaySnapshot);
+      const totalXp = computeTotalXp(weeklyHistory);
 
       set({
         goals: reset.goals,
@@ -155,13 +200,11 @@ export const useHomeStore = create<HomeState>((set, get) => ({
         streak: liveStreak,
         lastCompletedDate: lastCompleted,
         lastResetDate: reset.todayKey,
+        weeklyHistory,
+        totalXp,
         stateLoaded: true,
       });
 
-      // Init pomodoro store
-      usePomodoroStore.getState().initFromStorage(localMinutes, localSessions);
-
-      // Persist immediately
       const persisted = {
         goals: reset.goals,
         habits: reset.habits,
@@ -170,38 +213,63 @@ export const useHomeStore = create<HomeState>((set, get) => ({
         lastResetDate: reset.todayKey,
         streakCount: liveStreak,
         lastCompletedDate: lastCompleted,
+        weeklyHistory,
+        totalXp,
       };
       await AsyncStorage.setItem(HOME_STATE_KEY, JSON.stringify(persisted));
       if (user?.uid && reset.didReset) {
-        await saveUserData(user.uid, persisted);
+        await saveUserData(user.uid, persisted).catch(() => undefined);
       }
     } catch (err) {
       console.error('Failed to load state:', err);
+      set({ stateLoaded: true });
     }
   },
 
   saveState: async () => {
-    const { goals, habits, streak, lastCompletedDate, lastResetDate } = get();
-    const { pomodoroMinutes, pomodoroSessions } = usePomodoroStore.getState();
-    const user = auth.currentUser;
-
-    const stateObj = {
-      goals,
-      habits,
-      pomodoroMinutes,
-      pomodoroSessions,
-      lastResetDate: lastResetDate ?? localDateKey(),
-      streakCount: streak,
-      lastCompletedDate: lastCompletedDate,
-    };
+    if (saveInFlight) {
+      saveQueued = true;
+      return;
+    }
+    saveInFlight = true;
 
     try {
+      const { goals, habits, streak, lastCompletedDate, lastResetDate, weeklyHistory } = get();
+      const { pomodoroMinutes, pomodoroSessions } = usePomodoroStore.getState();
+      const user = auth.currentUser;
+
+      const todaySnapshot = snapshotFromState(goals, habits);
+      const updatedHistory = upsertSnapshot(weeklyHistory, todaySnapshot);
+      const totalXp = computeTotalXp(updatedHistory);
+
+      if (updatedHistory !== weeklyHistory || totalXp !== get().totalXp) {
+        set({ weeklyHistory: updatedHistory, totalXp });
+      }
+
+      const stateObj = {
+        goals,
+        habits,
+        pomodoroMinutes,
+        pomodoroSessions,
+        lastResetDate: lastResetDate ?? localDateKey(),
+        streakCount: streak,
+        lastCompletedDate: lastCompletedDate,
+        weeklyHistory: updatedHistory,
+        totalXp,
+      };
+
       await AsyncStorage.setItem(HOME_STATE_KEY, JSON.stringify(stateObj));
       if (user?.uid) {
-        await saveUserData(user.uid, stateObj);
+        await saveUserData(user.uid, stateObj).catch(() => undefined);
       }
     } catch (err) {
       console.error('Failed to save state:', err);
+    } finally {
+      saveInFlight = false;
+      if (saveQueued) {
+        saveQueued = false;
+        void get().saveState();
+      }
     }
   },
 }));

@@ -12,10 +12,12 @@ import {
 import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 import { HomeListSection } from '../../components/home/HomeListSection';
 import { useHomeStore } from '../../store/useHomeStore';
+import { useCelebrationStore } from '../../store/useCelebrationStore';
 
 export const GoalsScreen = () => {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const celebrate = useCelebrationStore((s) => s.trigger);
 
   const goals = useHomeStore((s) => s.goals);
   const addGoal = useHomeStore((s) => s.addGoal);
@@ -52,6 +54,9 @@ export const GoalsScreen = () => {
         onAdd={handleOpen}
         onToggle={toggleGoal}
         onRemove={removeGoal}
+        onItemCompleted={(title) =>
+          celebrate({ kind: 'goal', subtitle: `+10 XP · ${title}` })
+        }
       />
 
       <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>

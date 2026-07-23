@@ -18,7 +18,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(usr);
       setLoading(false);
     });
-    return () => unsubscribe();
+
+    const timeout = setTimeout(() => setLoading(false), 8000);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   return (

@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { DailySnapshot } from './gamification';
 
 // Clave única del estado del tablero (compartida con HomeScreen).
-export const HOME_STATE_KEY = 'sui-home-state-v4';
+export const HOME_STATE_KEY = 'sui-home-state-v5';
 
 export interface HomeListItem {
   id: string;
@@ -20,6 +21,10 @@ export interface HomeState {
   streakCount?: number;
   /** Fecha local (YYYY-MM-DD) del último día que contó para la racha. */
   lastCompletedDate?: string;
+  /** Historial diario de los últimos 14 días. */
+  weeklyHistory?: DailySnapshot[];
+  /** XP acumulado (derivado del historial). */
+  totalXp?: number;
 }
 
 /**

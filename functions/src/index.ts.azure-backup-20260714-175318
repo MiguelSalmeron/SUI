@@ -25,19 +25,18 @@ if (getApps().length === 0) {
 }
 
 // --- Configuration (parameters & secrets) ---------------------------------
-// Set the secret with:  firebase functions:secrets:set AZURE_OPENAI_API_KEY
-const AZURE_OPENAI_API_KEY = defineSecret("AZURE_OPENAI_API_KEY");
+// Set the secret with:  firebase functions:secrets:set OPENROUTER_API_KEY
+const OPENROUTER_API_KEY = defineSecret("OPENROUTER_API_KEY");
 
-// Override in functions/.env or via deploy params. Deployment id in Azure
-// Foundry project "Raiz-lifeplants" (account "Raiz", rg "lifeplants").
-const AZURE_MODEL = defineString("AZURE_MODEL", {
-  default: "gpt-5-mini",
+// Override in functions/.env or via deploy params. Keep it cheap + empathetic.
+const OPENROUTER_MODEL = defineString("OPENROUTER_MODEL", {
+  default: "openai/gpt-4o-mini",
 });
 
 // Set to 1 in production if cold-start latency hurts the < 3s target.
 const MIN_INSTANCES = defineInt("CHAT_MIN_INSTANCES", { default: 0 });
 
-const AZURE_URL = "https://raiz.services.ai.azure.com/openai/v1/chat/completions";
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 // --- Hard guardrails (cost control) ---------------------------------------
 const MAX_MESSAGES = 12; // ficha + last ~10 turns
@@ -76,7 +75,7 @@ function sanitizeMessages(input: unknown): ChatMessage[] | null {
 
 export const chatProxy = onRequest(
   {
-    secrets: [AZURE_OPENAI_API_KEY],
+    secrets: [OPENROUTER_API_KEY],
     cors: true,
     minInstances: MIN_INSTANCES,
     timeoutSeconds: 120,
@@ -84,16 +83,13 @@ export const chatProxy = onRequest(
   },
   async (req, res): Promise<void> => {
     setCorsHeaders(res);
-    logger.info("chatProxy invoked", { method: req.method, path: req.path, hasBody: !!req.body });
 
     if (req.method === "OPTIONS") {
-      logger.info("OPTIONS preflight ok");
       res.status(204).send("");
       return;
     }
 
     if (req.method !== "POST") {
-      logger.warn("405 method not allowed", { method: req.method });
       res.status(405).json({ error: "Method not allowed" });
       return;
     }
@@ -102,20 +98,13 @@ export const chatProxy = onRequest(
     const authHeader = req.headers.authorization || "";
     const match = authHeader.match(/^Bearer (.+)$/);
     if (!match) {
-      logger.warn("401 missing bearer", { authHeaderLen: authHeader.length });
       res.status(401).json({ error: "Missing Authorization bearer token" });
       return;
     }
     try {
       await getAuth().verifyIdToken(match[1]);
-      logger.info("ID token verified ok");
     } catch (err) {
-      logger.error("401 token verify failed", {
-        errorMsg: err instanceof Error ? err.message : String(err),
-        errorName: err instanceof Error ? err.name : "Unknown",
-        tokenLen: match[1].length,
-        tokenPreview: match[1].slice(0, 20) + "...",
-      });
+      logger.warn("Rejected request: invalid ID token", err);
       res.status(401).json({ error: "Invalid token" });
       return;
     }
@@ -123,52 +112,40 @@ export const chatProxy = onRequest(
     // --- Validate payload ---------------------------------------------------
     const messages = sanitizeMessages(req.body?.messages);
     if (!messages) {
-      logger.warn("400 invalid messages", { bodyType: typeof req.body, bodyKeys: req.body ? Object.keys(req.body) : [] });
       res.status(400).json({ error: "Invalid 'messages' payload" });
       return;
     }
-    logger.info("messages ok", { count: messages.length, model: AZURE_MODEL.value() });
 
     // --- Open the upstream stream ------------------------------------------
     let upstream: Response;
     try {
-      upstream = await fetch(AZURE_URL, {
+      upstream = await fetch(OPENROUTER_URL, {
         method: "POST",
         headers: {
-          "api-key": AZURE_OPENAI_API_KEY.value(),
+          Authorization: `Bearer ${OPENROUTER_API_KEY.value()}`,
           "Content-Type": "application/json",
+          "HTTP-Referer": "https://sui.app",
+          "X-Title": "SUI",
         },
         body: JSON.stringify({
-          model: AZURE_MODEL.value(),
+          model: OPENROUTER_MODEL.value(),
           messages,
           stream: true,
-          max_completion_tokens: MAX_OUTPUT_TOKENS,
-          // GPT-5 series spends tokens "thinking" before responding. "low"
-          // keeps empathy quality while cutting first-token latency under
-          // the < 3s SUI target. Allowed: "low" | "medium" | "high".
-          reasoning_effort: "low",
+          max_tokens: MAX_OUTPUT_TOKENS,
         }),
       });
     } catch (err) {
-      logger.error("Failed to reach Azure OpenAI", err);
+      logger.error("Failed to reach OpenRouter", err);
       res.status(502).json({ error: "Upstream connection failed" });
       return;
     }
 
     if (!upstream.ok || !upstream.body) {
       const detail = await upstream.text().catch(() => "");
-      logger.error("Azure upstream non-ok", {
-        status: upstream.status,
-        statusText: upstream.statusText,
-        detail: detail.slice(0, 500),
-        model: AZURE_MODEL.value(),
-        url: AZURE_URL,
-        keyLen: AZURE_OPENAI_API_KEY.value().length,
-      });
-      res.status(502).json({ error: "Upstream error", status: upstream.status, detail: detail.slice(0, 300) });
+      logger.error("OpenRouter error", { status: upstream.status, detail });
+      res.status(502).json({ error: "Upstream error", status: upstream.status });
       return;
     }
-    logger.info("Azure stream opened ok", { status: upstream.status });
 
     // --- Re-stream as normalized SSE ---------------------------------------
     res.set("Content-Type", "text/event-stream; charset=utf-8");
