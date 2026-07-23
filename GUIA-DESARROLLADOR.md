@@ -9,17 +9,22 @@ El proyecto está diseñado bajo un modelo modular que separa estrictamente la c
 ```bash
 /src
 ├── components/chat/       # UI de asistencia emocional (ChatMessage, ChatInput, EmergencyOverlay).
-├── components/home/       # Componentes UI especializados (Listas, Navbar, Pomodoro) sin estado complejo.
+├── components/home/       # Componentes UI: DailyProgress, StreakBadge, LevelCard, AchievementGrid,
+│                          #   WeeklyChart, CelebrationToast, NightlyReportModal, HomeListSection, PomodoroPanel.
 ├── components/onboarding/ # UI conversacional del onboarding (ChatBubble, TypingIndicator, ChatComposer).
 ├── config/                # Instanciación de Firebase (Auth, Firestore).
 ├── context/               # AuthContext: Provee el estado global del usuario autenticado.
-├── hooks/                 # Custom Hooks (useGoals, useHabits, usePomodoroEngine). Separan la lógica CRUD.
-├── navigation/            # AppNavigator: gate por estado de onboarding (Tunneling) y rutas.
-├── screens/               # Pantallas orquestadoras (Onboarding, Home, Login, Register, ChatScreen).
-├── services/              # Integración externa (db.ts, onboardingAuth.ts, chatStream.ts, crisisConfig.ts).
-├── store/                 # Stores Zustand (usePomodoroStore.ts, useOnboardingStore.ts, useChatStore.ts).
+├── hooks/                 # Custom Hooks (usePomodoroEngine). Separan la lógica del motor del timer.
+├── navigation/            # AppNavigator (gate onboarding + Native Stack) y TabNavigator (Bottom Tabs de Home).
+├── screens/               # Pantallas orquestadoras: OnboardingScreen, ChatScreen, SettingsScreen,
+│                          #   LoginScreen, RegisterScreen (dormidas) y screens/tabs/ (Overview, Goals, Habits, Pomodoro, Summary).
+├── services/              # Integración externa: db.ts, homeStorage.ts, gamification.ts, celebration.ts,
+│                          #   notifications.ts, greeting.ts, reportPrompt.ts, chatStream.ts, chatPrompt.ts,
+│                          #   crisisConfig.ts, crisisDetection.ts, onboardingAuth.ts.
+├── store/                 # Stores Zustand por dominio: useHomeStore, usePomodoroStore, useOnboardingStore,
+│                          #   useChatStore, useCelebrationStore, useSettingsStore.
 ├── types/                 # Tipos y esquemas Zod compartidos (onboarding.ts, chat.ts).
-└── theme/                 # theme.ts: Tokens globales de color y espaciado (Design System).
+└── theme/                 # theme.ts: Design System M3 con ColorScheme claro/oscuro + ThemeController (light/dark/system).
 ```
 
 ## 🔄 Flujo de Datos y Estado
@@ -31,15 +36,24 @@ El estado de la aplicación está rigurosamente segmentado para asegurar alto re
 * **Formularios (Login/Register):** Controlados mediante `react-hook-form` acoplado al validador estricto `Zod` (`@hookform/resolvers/zod`). Previene re-renderizados innecesarios y detiene al usuario antes de hacer requests inválidos a Firebase.
 
 ### 2. Persistencia Híbrida (Offline-First + Nube)
-Los hábitos, metas y configuraciones del temporizador utilizan una estrategia de doble capa:
-1.  **Carga Inmediata (AsyncStorage):** Al abrir la app, se lee inmediatamente el disco local (`sui-home-state-v4`).
-2.  **Sincronización Transparente (Firestore):** Si hay sesión y red, `HomeScreen` descarga los datos desde `users/{uid}` en Firestore. Si difieren, gana la nube. Cualquier cambio en la UI se guarda simultáneamente en disco y en Firebase (`saveUserData` en `services/db.ts`).
+Metas, hábitos, sesiones Pomodoro, racha, historial semanal y XP usan una estrategia de doble capa gestionada por `useHomeStore`:
+1.  **Carga Inmediata (AsyncStorage):** Al abrir la app, se lee el disco local (clave `sui-home-state-v4`). Si el documento local tiene `lastResetDate` distinto al día actual, el estado de hoy se **reconstruye vacío** (`applyDailyReset`) y el día anterior se congela como `DailySnapshot` en `weeklyHistory`.
+2.  **Sincronización Transparente (Firestore):** Si hay sesión y red, `loadState` descarga los datos desde `users/{uid}` (con timeout de 5s para no bloquear la UI). La nube wins en metas/hábitos; la última escritura wins en streak. Cualquier cambio en la UI dispara `saveState` (debounced 400ms), que escribe en disco y en Firebase de forma no bloqueante (`catch(() => undefined)` en fallo de red).
+3.  **Reconciliación diaria:** cada vez que cambia el día, `upsertSnapshot` guarda un `DailySnapshot` del día previo (max 14 días) y `computeTotalXp` recalcula el XP total a partir del historial.
 
 ### 3. El Motor del Pomodoro (Zustand + Timestamps + AppState)
 El temporizador fue refactorizado para soportar la suspensión de hilos JS del sistema operativo móvil:
 *   **Zustand:** Mantiene un estado global del Pomodoro fuera del árbol principal de React. Evita que la pantalla entera (`HomeScreen`) se vuelva a renderizar cada segundo.
 *   **Timestamps Inmutables:** El temporizador **no resta segundos con `setInterval`**. Al iniciar, calcula un `targetEndTime` (`Date.now() + duración`).
 *   **AppState Engine:** El custom hook `usePomodoroEngine` escucha transiciones nativas. Si el usuario minimiza la aplicación (Background) y regresa 10 minutos después (Active), el motor vuelve a calcular `targetEndTime - Date.now()`, reajustando la UI al tiempo correcto y matemático al instante.
+
+### 4. Gamificación y Celebraciones
+Capa de motivación construida sobre `services/gamification.ts` y `services/celebration.ts`, sin librerías externas de animación:
+*   **XP (Experiencia):** cada meta cumplida da **+10 XP**, cada hábito **+5 XP**, cada Pomodoro finalizado **+25 XP**. El XP total se deriva del `weeklyHistory` (`computeTotalXp`), así es determinista y reconciliable tras reset diarios.
+*   **Niveles:** `calculateLevel(xp)` mapea el XP a 7 niveles con títulos — *Novato → Aprendiz → Constante → Enfocado → Disciplinado → Maestro → Leyenda*. El umbral del siguiente nivel escala linealmente (`level * 100`).
+*   **Logros:** `getAchievements(ctx)` evalúa 6 logros (`first_goal`, `streak_3`, `streak_7`, `perfect_day`, `pomodoro_5`, `week_active`) a partir del estado actual + `weeklyHistory`. Se muestran en `AchievementGrid` en modo compacto (Overview) y completo (Summary).
+*   **Celebraciones:** cada vez que el contador `dailyCompleted` sube, `TabNavigator` invoca `useCelebrationStore.trigger({ kind, subtitle })`. El store dispara haptics (`expo-haptics` — `Success` para perfect_day/pomodoro, `Medium` para goal/habit) y muestra `CelebrationToast` (animación spring translateY + fade, auto-hide 2200ms). El "Día perfecto" solo se celebra una vez por sesión (`perfectDayShown` ref).
+*   **Estadísticas:** `WeeklyChart` dibuja barras de los últimos 7 días con `getCompletionRate`, coloreadas por umbral (≥80% success, ≥50% primary, resto secondary). `getWeeklyInsight` genera un mensaje textual adaptativo según promedio, pomodoros y días activos.
 
 ## 🚪 Flujo de Onboarding (Registro sin fricción)
 
@@ -71,38 +85,53 @@ tradicional para evitar el abandono prematuro. No pide correo ni contraseña.
 > ⚠️ Requiere habilitar **Anonymous** en Firebase Console → Authentication → Sign-in method.
 > Ver `work/PENDIENTES_Onboarding.md` para el detalle de tareas externas.
 
-## ✨ Experiencia de Inicio y Animaciones (UX)
+## ✨ Experiencia de Inicio, Navegación y Animaciones (UX)
 
 Capa de pulido visual construida solo con herramientas nativas (sin Lottie ni Reanimated):
 
-* **Splash screen nativo (`expo-splash-screen`):** Configurado vía *config plugin* en `app.json`
+### Splash screen nativa
+* **(`expo-splash-screen`):** Configurado vía *config plugin* en `app.json`
   (método recomendado desde SDK 56; la clave legacy `"splash"` quedó obsoleta). Usa
-  `assets/splash-icon.png` sobre `backgroundColor: #F8FBFF` (idéntico a `COLORS.background`
-  para evitar destello).
+  `assets/icon.png` (160px width, `resizeMode: contain`) sobre `backgroundColor: #0047AB`.
   * `App.tsx` llama `SplashScreen.preventAutoHideAsync()` y `SplashScreen.setOptions({ duration: 350, fade: true })`
     en **scope global** (sin `await`), según la recomendación oficial: dentro de un componente
     podría ejecutarse demasiado tarde.
-  * `AppNavigator` llama `SplashScreen.hideAsync()` solo cuando `!loading && hydrated`. Así no
-    hay spinner intermedio ni pantalla en blanco entre el splash y el primer render.
+  * `AppNavigator` llama `SplashScreen.hideAsync()` solo cuando `ready = hydrated && (!loading || authTimedOut)`.
+    Hay dos timeouts de respaldo: 8s para Firebase Auth y 4s para la rehidratación de Zustand,
+    para no quedar pegado en splash si un servicio externo no responde.
   * ⚠️ **El splash nativo no se replica completo en Expo Go** (limitación SDK 52+). Para verlo
     tal cual lo verá el usuario, prueba con un *development/release build* (`npx expo run:android`),
     no con Expo Go.
-* **Transiciones consistentes:** `Stack.Navigator` usa `animation: 'slide_from_right'` (280ms)
-  homogéneo en iOS y Android. `Onboarding` usa `fade` para una entrada más suave.
+
+### Navegación: Native Stack + Bottom Tabs
+* **Nivel raíz (`AppNavigator`):** un único `Stack.Navigator` conmuta por `onboardingComplete`.
+  Si `!onboardingComplete` solo existe la ruta `Onboarding` (con `gestureEnabled:false` y `animation:'fade'`).
+  Si `onboardingComplete`, montan Home (`TabNavigator`), Chat y Settings, con
+  `animation: 'slide_from_right'` (280ms) homogéneo en iOS y Android.
+* **Nivel Home (`TabNavigator`):** Bottom Tabs de 5 pantallas — Overview, Goals, Habits, Pomodoro, Summary.
+  * Header compartido (`TabHeader`) con fecha, saludo (`buildGreeting`) y botón Settings.
+  * `tabBarIcon` con badges numéricos en Goals/Habits cuando hay pendientes.
+  * `animation: 'fade'` al cambiar de tab.
+  * **FAB "Hablar con SUI"** flotante que abre el Chat, con escala `spring` (0.92) al presionar.
 * **Header nativo del chat:** `ChatScreen` ya **no** dibuja un header manual. El Native Stack
   provee la flecha de retorno nativa (`headerBackTitle: 'Inicio'`); la acción "Limpiar" se inyecta
   con `navigation.setOptions({ headerRight })` en un `useLayoutEffect`.
-* **Micro-animaciones (`Animated`):** En `HomeScreen`, el contenido entra con *fade-in* +
-  `translateY` (350ms) cuando `stateLoaded` pasa a `true`; el botón flotante "Hablar con SUI"
-  responde con una escala `spring` (0.92) al presionar. En `DashboardNavbar`, la pestaña activa
-  muestra una barra indicadora inferior y sombra elevada.
 
-## 🎨 Guía de Estilos (`theme.ts`)
-Para mantener coherencia visual, **nunca uses códigos hexadecimales sueltos en los componentes**. Utiliza el objeto `COLORS` y `SPACING` exportado de `theme.ts`:
-* `COLORS.primary`: Botones principales, brand principal.
-* `COLORS.secondary`: Acentos y estados activos alternativos.
-* `COLORS.background`: Fondos generales de pantalla.
-* `SPACING.md`: Espaciado estándar (16px).
+## 🎨 Guía de Estilos y Tema (`theme.ts`)
+
+El Design System sigue Material Design 3 con dos `ColorScheme` completos (claro y oscuro) y un `ThemeController` que persiste el modo elegido en AsyncStorage (`sui-theme-mode`):
+
+* **Modos soportados:** `light` | `dark` | `system` (este último sigue a `Appearance`).
+* **Acceso a colores:** `useAppTheme().colors` da el `ColorScheme` activo; **nunca uses códigos hex sueltos en componentes**.
+* **Controller:** `useThemeController()` expone `mode`, `setMode(mode)`, `toggle()` y `followSystem()`.
+* **Tokens clave:** `COLORS.primary` (brand), `COLORS.secondary` (acentos), `COLORS.background` (fondos de pantalla), `COLORS.surface` / `surfaceContainer` / `surfaceContainerHigh` (tarjetas M3), `COLORS.success` / `error` / `outlineVariant`, `SPACING.{xs|sm|md|lg|xl}` (`md`=16px estándar).
+
+### Pantalla de Ajustes (`SettingsScreen` + `useSettingsStore`)
+Hub de configuración del usuario, accesiblefrom el botón 🛠 del header. Persiste en AsyncStorage (`@sui/settings-v1`):
+* **Apariencia:** Modo de tema (Claro/Oscuro/Sistema cíclico) y Tamaño de fuente (small/medium/large cíclico).
+* **General:** toggles de Notificaciones (`expo-notifications` se inicializa en mount).
+* **Cuenta:** Cerrar sesión (`signOut` de Firebase) con alerta de confirmación.
+* > Nota: `notificationsEnabled`, `fontSize` y `language` son **stubs de UI** por ahora (escala global e i18n pendientes, ver roadmap en `RESUMEN-PROYECTO.md`).
 
 ---
 
@@ -153,12 +182,16 @@ eas build --platform ios
 ## 🤖 Chatbot de IA (Asistencia Emocional)
 
 El módulo de Chatbot de IA se integra como un servicio conversacional de acompañamiento de salud mental para los estudiantes. Las claves de su diseño son:
-- **Streaming de Respuestas (SSE):** Consume una Cloud Function `chatProxy` segura que actúa de puente entre la app móvil y OpenRouter para proteger las credenciales. Usa `react-native-sse` para evadir las limitaciones de stream nativo de Hermes en React Native.
-- **Privacidad Local:** El historial conversacional no toca la base de datos Firestore; vive únicamente en `AsyncStorage` mediante un store Zustand persistente, y posee una caducidad estricta de 48 horas (`CHAT_TTL_MS = 172800000`) que se auto-limpia activamente.
-- **Lógica de Protocolo de Crisis:** Antes de enviar el mensaje, el cliente utiliza detección de expresiones regulares (Regex) insensible a acentos para buscar señales de crisis inmediata. Si se detecta una coincidencia, se interrumpe el flujo y se lanza un modal interactivo (`EmergencyOverlay`) con botones de llamada rápida a líneas de auxilio locales.
-- **Configuración Dinámica:** El diccionario de palabras críticas y contactos telefónicos se sincronizan desde el documento `app_config/crisis` en Firestore, permitiendo actualizaciones de emergencia en tiempo real sin requerir una compilación de la app.
+- **Proveedor:** **Azure OpenAI Foundry** (modelo `gpt-5-mini`, reasoning effort low). Reemplazó a OpenRouter en jul 2026 (free tier agotado). Detalle completo en `CHATBOT-IA.md`.
+- **Streaming de Respuestas (SSE):** Consume una Cloud Function `chatProxy` segura que actúa de puente entre la app móvil y Azure. La API Key vive en Firebase Secret Manager (`AZURE_OPENAI_API_KEY`) y **nunca** se incluye en el bundle móvil. Usa `react-native-sse` para evadir las limitaciones de stream nativo de Hermes en React Native.
+- **Privacidad Local:** El historial conversacional no toca Firestore; vive únicamente en `AsyncStorage` (clave `sui-chat-v1`) mediante un store Zustand persistente, con caducidad estricta de 48 horas (`CHAT_TTL_MS = 172800000`) auto-limpieza activa.
+- **Contexto Híbrido:** el perfil del onboarding (nombre, carrera, año de estudio, edad aprox., metas) se inyecta como *ficha emocional* en el `system prompt`; solo se envían los últimos 10 mensajes del historial (ventana deslizable).
+- **Protocolo de Crisis:** antes de enviar el mensaje, el cliente detecta con Regex insensible a acentos señales de crisis inmediata. Si hay match, se lanza `EmergencyOverlay` con botones de llamada rápida a líneas de auxilio locales.
+- **Configuración Dinámica:** el diccionario de palabras críticas y contactos telefónicos se sincronizan desde el documento Firestore `app_config/crisis`, con un `DEFAULT_CRISIS_CONFIG` offline como respaldo para que la seguridad nunca falle.
 
-Ver detalles exhaustivos de su funcionamiento y flujo de datos en `CHATBOT-IA.md`.
+## 🌙 Resumen Nocturno con IA
+
+`OverviewScreen` programa una notificación local a las 21:30 (`scheduleNightlyReport` en `services/notifications.ts`) que, al abrirse, lanza `NightlyReportModal` con un resumen empático del día generado por la misma Cloud Function `chatProxy` (prompt armado por `services/reportPrompt.ts` a partir de metas/hábitos pendientes y completados). La respuesta se reproduce en streaming dentro del modal, reutilizando el motor SSE del chatbot.
 
 ---
 
