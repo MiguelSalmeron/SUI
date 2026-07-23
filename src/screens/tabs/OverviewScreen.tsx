@@ -1,16 +1,82 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import { useNavigation } from '@react-navigation/native';
 import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 import { DailyProgress } from '../../components/home/DailyProgress';
 import { StreakBadge } from '../../components/home/StreakBadge';
+import { LevelCard } from '../../components/home/LevelCard';
+import { AchievementGrid } from '../../components/home/AchievementGrid';
 import { NightlyReportModal } from '../../components/home/NightlyReportModal';
 import { useHomeStore } from '../../store/useHomeStore';
 import { usePomodoroStore } from '../../store/usePomodoroStore';
 import { scheduleNightlyReport, isNightlyReportResponse } from '../../services/notifications';
-import { buildGreeting } from '../../services/greeting';
+import { getAchievements } from '../../services/gamification';
 import type { DayStats } from '../../services/reportPrompt';
+
+type MetricCardProps = {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+  hint: string;
+  variant: 'primary' | 'secondary' | 'surface';
+  colors: ColorScheme;
+  onPress?: () => void;
+};
+
+const MetricCard = ({ icon, label, value, hint, variant, colors, onPress }: MetricCardProps) => {
+  const bg =
+    variant === 'primary'
+      ? colors.primary
+      : variant === 'secondary'
+      ? colors.secondary
+      : colors.surface;
+  const textColor = variant === 'surface' ? colors.onSurface : colors.surface;
+  const hintColor = variant === 'surface' ? colors.onSurfaceVariant : colors.surface;
+
+  return (
+    <TouchableOpacity
+      style={[metricStyles.card, { backgroundColor: bg, borderColor: variant === 'surface' ? colors.outlineVariant : bg }]}
+      onPress={onPress}
+      disabled={!onPress}
+      activeOpacity={onPress ? 0.85 : 1}
+      accessibilityRole={onPress ? 'button' : 'text'}
+    >
+      <Ionicons name={icon} size={22} color={textColor} style={{ opacity: 0.9 }} />
+      <Text style={[metricStyles.label, { color: textColor }]}>{label}</Text>
+      <Text style={[metricStyles.value, { color: textColor }]}>{value}</Text>
+      <Text style={[metricStyles.hint, { color: hintColor, opacity: variant === 'surface' ? 1 : 0.85 }]}>{hint}</Text>
+    </TouchableOpacity>
+  );
+};
+
+const metricStyles = StyleSheet.create({
+  card: {
+    flex: 1,
+    borderRadius: 20,
+    padding: SPACING.md,
+    borderWidth: 1,
+    minHeight: 110,
+    gap: 2,
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    marginTop: 4,
+  },
+  value: {
+    fontSize: 28,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  hint: {
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '600',
+  },
+});
 
 export const OverviewScreen = () => {
   const { colors } = useAppTheme();
@@ -19,6 +85,8 @@ export const OverviewScreen = () => {
   const goals = useHomeStore((s) => s.goals);
   const habits = useHomeStore((s) => s.habits);
   const streak = useHomeStore((s) => s.streak);
+  const totalXp = useHomeStore((s) => s.totalXp);
+  const weeklyHistory = useHomeStore((s) => s.weeklyHistory);
   const pomodoroMinutes = usePomodoroStore((s) => s.pomodoroMinutes);
   const pomodoroSessions = usePomodoroStore((s) => s.pomodoroSessions);
 
@@ -30,6 +98,20 @@ export const OverviewScreen = () => {
   const dailyTotal = goals.length + habits.length;
   const dailyCompleted = completedGoals + completedHabits;
 
+  const achievements = useMemo(
+    () =>
+      getAchievements({
+        goalsCompleted: completedGoals,
+        goalsTotal: goals.length,
+        habitsCompleted: completedHabits,
+        habitsTotal: habits.length,
+        streak,
+        pomodoroSessions,
+        weeklyHistory,
+      }),
+    [completedGoals, goals.length, completedHabits, habits.length, streak, pomodoroSessions, weeklyHistory],
+  );
+
   const dayStats = useMemo<DayStats>(() => {
     const all = [...goals, ...habits];
     return {
@@ -39,7 +121,6 @@ export const OverviewScreen = () => {
     };
   }, [goals, habits, streak]);
 
-  // Notificación del reporte nocturno
   useEffect(() => {
     scheduleNightlyReport().catch(() => undefined);
     Notifications.getLastNotificationResponseAsync().then((response) => {
@@ -53,38 +134,61 @@ export const OverviewScreen = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      {/* Streak */}
+      <LevelCard totalXp={totalXp} />
       <StreakBadge streak={streak} />
-
-      {/* Daily progress */}
       <DailyProgress completed={dailyCompleted} total={dailyTotal} label="completados" />
 
-      {/* Metric cards */}
-      <View style={styles.metricPrimary}>
-        <Text style={styles.metricLabelLight}>Metas activas</Text>
-        <Text style={styles.metricValueLight}>{goals.length - completedGoals}</Text>
-        <Text style={styles.metricHintLight}>{completedGoals} completadas</Text>
+      <View style={styles.metricRow}>
+        <MetricCard
+          icon="flag"
+          label="Metas"
+          value={String(goals.length - completedGoals)}
+          hint={`${completedGoals} hechas`}
+          variant="primary"
+          colors={colors}
+          onPress={() => navigation.navigate('Goals')}
+        />
+        <MetricCard
+          icon="repeat"
+          label="Hábitos"
+          value={String(habits.length - completedHabits)}
+          hint={`${completedHabits} hechos`}
+          variant="secondary"
+          colors={colors}
+          onPress={() => navigation.navigate('Habits')}
+        />
       </View>
 
-      <View style={styles.metricSecondary}>
-        <Text style={styles.metricLabelLight}>Hábitos activos</Text>
-        <Text style={styles.metricValueLight}>{habits.length - completedHabits}</Text>
-        <Text style={styles.metricHintLight}>{completedHabits} marcados</Text>
-      </View>
+      <MetricCard
+        icon="timer"
+        label="Pomodoro hoy"
+        value={`${pomodoroMinutes} min`}
+        hint={`${pomodoroSessions} sesiones`}
+        variant="surface"
+        colors={colors}
+        onPress={() => navigation.navigate('Pomodoro')}
+      />
 
-      <View style={styles.metricCard}>
-        <Text style={styles.metricLabel}>Pomodoro</Text>
-        <Text style={styles.metricValue}>{pomodoroMinutes} min</Text>
-        <Text style={styles.metricHint}>{pomodoroSessions} sesiones</Text>
-      </View>
+      <AchievementGrid achievements={achievements} compact />
 
-      {/* Quick actions */}
       <View style={styles.quickActions}>
-        <TouchableOpacity style={styles.quickActionPrimary} onPress={() => navigation.navigate('Goals')} accessibilityRole="button" accessibilityLabel="Ir a metas">
-          <Text style={styles.quickActionTextLight}>Ir a metas</Text>
+        <TouchableOpacity
+          style={styles.quickActionPrimary}
+          onPress={() => navigation.navigate('Chat')}
+          accessibilityRole="button"
+          accessibilityLabel="Hablar con SUI"
+        >
+          <Ionicons name="chatbubble-ellipses" size={18} color={colors.surface} />
+          <Text style={styles.quickActionTextLight}>Apoyo emocional</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.quickActionSecondary} onPress={() => navigation.navigate('Pomodoro')} accessibilityRole="button" accessibilityLabel="Abrir pomodoro">
-          <Text style={styles.quickActionText}>Abrir pomodoro</Text>
+        <TouchableOpacity
+          style={styles.quickActionSecondary}
+          onPress={() => navigation.navigate('Summary')}
+          accessibilityRole="button"
+          accessibilityLabel="Ver estadísticas"
+        >
+          <Ionicons name="stats-chart" size={18} color={colors.primary} />
+          <Text style={styles.quickActionText}>Estadísticas</Text>
         </TouchableOpacity>
       </View>
 
@@ -94,7 +198,8 @@ export const OverviewScreen = () => {
         accessibilityRole="button"
         accessibilityLabel="Ver resumen del día"
       >
-        <Text style={styles.reportButtonText}>Ver resumen del día</Text>
+        <Ionicons name="moon" size={18} color={colors.surface} />
+        <Text style={styles.reportButtonText}>Resumen nocturno con IA</Text>
       </TouchableOpacity>
 
       <NightlyReportModal
@@ -113,61 +218,14 @@ const createStyles = (colors: ColorScheme) =>
       paddingBottom: SPACING.xl + 72,
       gap: SPACING.sm,
     },
-    metricCard: {
-      backgroundColor: colors.surface,
-      borderRadius: 22,
-      padding: SPACING.lg,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-    },
-    metricPrimary: {
-      backgroundColor: colors.primary,
-      borderRadius: 22,
-      padding: SPACING.lg,
-    },
-    metricSecondary: {
-      backgroundColor: colors.secondary,
-      borderRadius: 22,
-      padding: SPACING.lg,
-    },
-    metricLabel: {
-      fontSize: 13,
-      fontWeight: '700',
-      color: colors.onSurfaceVariant,
-      textTransform: 'uppercase',
-    },
-    metricValue: {
-      fontSize: 34,
-      fontWeight: '900',
-      color: colors.onSurface,
-      marginTop: 2,
-    },
-    metricHint: {
-      color: colors.onSurfaceVariant,
-      marginTop: 4,
-      fontSize: 13,
-    },
-    metricLabelLight: {
-      fontSize: 13,
-      fontWeight: '700',
-      color: colors.surface,
-      textTransform: 'uppercase',
-    },
-    metricValueLight: {
-      fontSize: 34,
-      fontWeight: '900',
-      color: colors.surface,
-      marginTop: 2,
-    },
-    metricHintLight: {
-      color: colors.surface,
-      marginTop: 4,
-      fontSize: 13,
-      opacity: 0.9,
+    metricRow: {
+      flexDirection: 'row',
+      gap: SPACING.sm,
     },
     quickActions: {
       flexDirection: 'row',
       gap: SPACING.sm,
+      marginTop: SPACING.xs,
     },
     quickActionPrimary: {
       flex: 1,
@@ -175,6 +233,9 @@ const createStyles = (colors: ColorScheme) =>
       padding: SPACING.md,
       borderRadius: 18,
       alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 6,
     },
     quickActionSecondary: {
       flex: 1,
@@ -182,25 +243,34 @@ const createStyles = (colors: ColorScheme) =>
       padding: SPACING.md,
       borderRadius: 18,
       alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 6,
       borderWidth: 1,
       borderColor: colors.outlineVariant,
     },
     quickActionTextLight: {
       color: colors.surface,
       fontWeight: '800',
+      fontSize: 13,
     },
     quickActionText: {
       color: colors.primary,
       fontWeight: '800',
+      fontSize: 13,
     },
     reportButton: {
       backgroundColor: colors.onSurface,
       padding: SPACING.md,
       borderRadius: 18,
       alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 8,
     },
     reportButtonText: {
       color: colors.surface,
       fontWeight: '800',
+      fontSize: 14,
     },
   });

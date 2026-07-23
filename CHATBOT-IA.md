@@ -18,11 +18,48 @@ El flujo de datos se divide en tres capas para garantizar seguridad de claves y 
 [ Proxy Seguro (Firebase Cloud Functions v2) ]
   │
   │  1. Valida el token del usuario (Firebase Auth)
-  │  2. Extrae la API Key desde Secret Manager (seguro)
-  │  3. Consume OpenRouter con stream habilitado
+  │  2. Extrae la API Key desde Secret Manager (AZURE_OPENAI_API_KEY)
+  │  3. Consume Azure OpenAI Foundry con stream habilitado
   ▼
-[ OpenRouter API ]
+[ Azure Foundry OpenAI — gpt-5-mini ]
 ```
+
+---
+
+## 🔌 Backend: Azure OpenAI Foundry
+
+El chatbot ahora opera con Azure Foundry (no OpenRouter) para mayor control de costos y privacidad.
+
+| Parámetro | Valor |
+|---|---|
+| **Proveedor** | Azure OpenAI (Foundry) |
+| **Recurso** | `Raiz` (Cognitive Services, account `raiz`) |
+| **Proyecto** | `Raiz-lifeplants` |
+| **Subscription** | Azure for Students (`f576c748-d40a-4561-8198-6c063d80c811`) |
+| **Modelo** | `gpt-5-mini` (GPT-5, reasoning enabled, reasoning_effort=low) |
+| **Endpoint** | `https://raiz.services.ai.azure.com/openai/v1/chat/completions` |
+| **Secret** | `AZURE_OPENAI_API_KEY` en Secret Manager (global) |
+| **Param** | `AZURE_MODEL=gpt-5-mini` en `.env.xsui-nica` |
+
+### Cambio de OpenRouter a Azure (historial)
+- **Antes (jun 2026):** OpenRouter API con modelo `nvidia/nemotron-3-ultra-550b-a55b:free`
+- **Ahora (jul 2026):** Azure Foundry con `gpt-5-mini`
+- **Razón:** OpenRouter free tier agotó cuota y modelos gratuitos inestables. Azure for Students ofrece $100 USD de crédito para modelos OpenAI.
+- **Rollback:** Si Azure falla, restaurar backup de `index.ts` con OpenRouter.
+
+### Rollback
+```bash
+# Restaurar backups
+cp functions/src/index.ts.azure-backup-20260714-175318 functions/src/index.ts
+cp functions/.env.xsui-nica.azure-backup-20260714-180208 functions/.env.xsui-nica
+# Re-deploy a OpenRouter (requiere OPENROUTER_API_KEY en Secret Manager)
+firebase deploy --only functions
+```
+
+### Nota sobre cuota
+Azure for Students tiene cuota limitada por modelo. Actualmente:
+- `gpt-5-mini`: 500 TPM (450 disponibles tras deploy)
+- `gpt-5.6-sol`: 0 TPM (requiere solicitud de aumento de cuota en Azure Portal → `Usage + quotas`)
 
 ---
 
@@ -71,4 +108,34 @@ Debido a que el motor Hermes de React Native rompe el flujo de streams tradicion
 
 ## ⚙️ Guía de Configuración
 
-Toda la documentación operativa para desplegar el servidor y configurar las variables de entorno se encuentra detallada paso a paso en **`work/SETUP_CHATBOT.md`**.
+### Variables de entorno (Cloud Functions)
+| Variable | Archivo | Descripción |
+|---|---|---|
+| `AZURE_MODEL` | `functions/.env.xsui-nica` | Modelo Azure a usar (default: `gpt-5-mini`) |
+| `CHAT_MIN_INSTANCES` | `functions/.env.xsui-nica` | Instancias mínimas cold start (default: 0) |
+| `AZURE_OPENAI_API_KEY` | Secret Manager (global) | Key del recurso `Raiz` en Azure Foundry |
+
+### Secrets
+```bash
+# Verificar secret actual
+firebase functions:secrets:access AZURE_OPENAI_API_KEY
+
+# Actualizar secret (si Azure renueva la key)
+printf "NUEVA_KEY_AQUI" | firebase functions:secrets:set AZURE_OPENAI_API_KEY
+```
+
+### Deploy
+```bash
+cd "/home/sma/Documentos/Proyectos_Desarrollo/SIU"
+npm --prefix functions run build        # compilar TS
+firebase deploy --only functions        # deploy a xsui-nica
+```
+
+### Monitoreo
+```bash
+# Logs recientes
+firebase functions:log --only chatProxy -n 50
+
+# Console web
+# https://console.firebase.google.com/project/xsui-nica/functions
+```

@@ -107,14 +107,23 @@
           "id": "step-4",
           "index": 4,
           "description": "Crear MD3_DARK (paleta equivalente a MD3_LIGHT pero con superficies oscuras), ThemeProvider reactivo a useColorScheme() como base, y hook useAppTheme() que devuelve los tokens del esquema activo. No integrar en App.tsx todavía (eso se hace en F3 con useSettingsStore).",
-          "status": "running",
+          "status": "verified",
           "verification": {
             "command": "grep -q 'MD3_DARK' src/theme/theme.ts && grep -q 'useColorScheme' src/theme/theme.ts && grep -q 'useAppTheme' src/theme/theme.ts && npx tsc --noEmit",
             "retries": 2,
             "retryDelayMs": 1000
           },
           "parallel": false,
-          "startedAt": "2026-07-01T05:16:56.347Z"
+          "startedAt": "2026-07-01T05:16:56.347Z",
+          "completedAt": "2026-07-01T05:18:54.279Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-07-01T05:18:54.279Z"
+          },
+          "summary": "Step 4 Fase 1 cerrado. theme.ts contiene el sistema MD3 dark completo: (1) MD3_DARK exportado línea 171 como ColorScheme con superficies oscuras equivalentes a MD3_LIGHT pero invertidas; (2) useColorScheme importado de react-native (línea 16) y usado en ThemeProvider (l.420), useAppTheme (l.455) y useThemeController (l.465); (3) useAppTheme exportado línea 453 (arrow const) que devuelve AppTheme del esquema activo, con fallback a useColorScheme() cuando no hay ThemeProvider en el árbol; (4) ThemeProvider exportado l.419 con prop `mode` opcional y suscripción a themeModeCache; (5) useThemeController exportado l.463 para mutaciones; (6) mini-store local con getThemeMode/setThemeMode/subscribeThemeMode persistido en AsyncStorage clave @sui/theme-mode. App.tsx NO integra ThemeProvider todavía (scope respetado: F3 lo hará con useSettingsStore para toggle manual). Verify command `grep -q MD3_DARK && grep -q useColorScheme && grep -q useAppTheme && npx tsc --noEmit` retorna exit 0 con VERIFY PASS."
         }
       ],
       "startedAt": "2026-07-01T04:47:58.747Z"
@@ -289,7 +298,7 @@
   "decisions": [],
   "memories": [],
   "createdAt": "2026-07-01T04:43:19.442Z",
-  "updatedAt": "2026-07-01T05:16:56.347Z",
+  "updatedAt": "2026-07-01T05:18:54.279Z",
   "goal": "Migrar SUI-2 a una UI Material Design 3 de Android, minimalista y premium, con 5 destinos en la navbar (Inicio, Metas, Hábitos, Focus, Stats) y dark mode configurable manualmente desde un menú de engranaje en la esquina del header. Resolver los 4 problemas críticos y 5 importantes del análisis UI/UX previo: sistema de diseño unificado, refactor del HomeScreen monolítico, onboarding editable, logout seguro, EmergencyOverlay pulido, toast de guardado, dark mode manual y accesibilidad básica.",
   "successCriteria": [
     "grep -rE 'COLORS\\.(primary|secondary|background|white|text|textSecondary|border|accent|error|success)' src/ --include='*.tsx' --include='*.ts' retorna 0 ocurrencias → sistema unificado en MD3_COLORS.",

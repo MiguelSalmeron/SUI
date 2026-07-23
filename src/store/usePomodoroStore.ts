@@ -1,4 +1,8 @@
 import { create } from 'zustand';
+import {
+  cancelPomodoroComplete,
+  schedulePomodoroComplete,
+} from '../services/notifications';
 
 export const DEFAULT_POMODORO_MINUTES = 25;
 
@@ -9,16 +13,14 @@ interface PomodoroState {
   pomodoroRunning: boolean;
   pomodoroFullscreen: boolean;
   targetEndTime: number | null;
-  
-  // Actions
+
   setPomodoroMinutes: (minutes: number) => void;
   setPomodoroSessions: (sessions: number | ((prev: number) => number)) => void;
   setPomodoroSeconds: (seconds: number | ((prev: number) => number)) => void;
   setPomodoroRunning: (isRunning: boolean) => void;
   setPomodoroFullscreen: (isFullscreen: boolean) => void;
   setTargetEndTime: (time: number | null) => void;
-  
-  // High-level Actions
+
   startPomodoro: () => void;
   pausePomodoro: () => void;
   resetPomodoro: () => void;
@@ -35,42 +37,51 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   targetEndTime: null,
 
   setPomodoroMinutes: (minutes) => set({ pomodoroMinutes: minutes }),
-  
-  setPomodoroSessions: (updater) => set((state) => ({ 
-    pomodoroSessions: typeof updater === 'function' ? updater(state.pomodoroSessions) : updater 
-  })),
-  
-  setPomodoroSeconds: (updater) => set((state) => ({ 
-    pomodoroSeconds: typeof updater === 'function' ? updater(state.pomodoroSeconds) : updater 
-  })),
-  
+
+  setPomodoroSessions: (updater) =>
+    set((state) => ({
+      pomodoroSessions:
+        typeof updater === 'function' ? updater(state.pomodoroSessions) : updater,
+    })),
+
+  setPomodoroSeconds: (updater) =>
+    set((state) => ({
+      pomodoroSeconds:
+        typeof updater === 'function' ? updater(state.pomodoroSeconds) : updater,
+    })),
+
   setPomodoroRunning: (isRunning) => set({ pomodoroRunning: isRunning }),
-  
+
   setPomodoroFullscreen: (isFullscreen) => set({ pomodoroFullscreen: isFullscreen }),
-  
+
   setTargetEndTime: (time) => set({ targetEndTime: time }),
 
   startPomodoro: () => {
     const { pomodoroSeconds, pomodoroMinutes } = get();
     const activeSeconds = pomodoroSeconds === 0 ? pomodoroMinutes * 60 : pomodoroSeconds;
-    
+    const targetEndTime = Date.now() + activeSeconds * 1000;
+
     set({
       pomodoroSeconds: activeSeconds,
-      targetEndTime: Date.now() + activeSeconds * 1000,
+      targetEndTime,
       pomodoroRunning: true,
       pomodoroFullscreen: true,
     });
+
+    void schedulePomodoroComplete(targetEndTime);
   },
 
   pausePomodoro: () => {
+    void cancelPomodoroComplete();
     set({
       pomodoroRunning: false,
-      targetEndTime: null, // Wipe target so it stops calculating
+      targetEndTime: null,
     });
   },
 
   resetPomodoro: () => {
     const { pomodoroMinutes } = get();
+    void cancelPomodoroComplete();
     set({
       pomodoroRunning: false,
       pomodoroFullscreen: false,
@@ -80,6 +91,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   },
 
   completeSession: () => {
+    void cancelPomodoroComplete();
     set((state) => ({
       pomodoroRunning: false,
       pomodoroFullscreen: false,
@@ -91,9 +103,8 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
 
   initFromStorage: (minutes, sessions) => {
     set((state) => {
-      // Don't reset active timer if hydrating
       if (state.pomodoroRunning) return {};
-      
+
       return {
         pomodoroMinutes: minutes,
         pomodoroSessions: sessions,
