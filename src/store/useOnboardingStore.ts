@@ -7,9 +7,11 @@ import {
   OnboardingProfile,
   OnboardingStep,
   STEP_ORDER,
+  BotPersonality,
+  Chronotype,
 } from '../types/onboarding';
 
-export const ONBOARDING_STORAGE_KEY = 'sui-onboarding-v1';
+export const ONBOARDING_STORAGE_KEY = 'sui-onboarding-v3';
 
 interface OnboardingState {
   /** true una vez que el estado fue rehidratado desde AsyncStorage. */
@@ -26,8 +28,10 @@ interface OnboardingState {
 
   // Acciones de captura
   setName: (name: string) => void;
+  setHasRoute: (hasRoute: 'yes' | 'no') => void;
   setCareer: (career: string) => void;
-  setStudyYear: (year: number) => void;
+  setBotPersonality: (personality: BotPersonality) => void;
+  setChronotype: (chronotype: Chronotype) => void;
   setBirthYear: (year: number) => void;
   toggleGoal: (id: string) => void;
 
@@ -56,11 +60,17 @@ export const useOnboardingStore = create<OnboardingState>()(
       setName: (name) =>
         set((state) => ({ profile: { ...state.profile, name: name.trim() } })),
 
+      setHasRoute: (hasRoute) =>
+        set((state) => ({ profile: { ...state.profile, hasRoute } })),
+
       setCareer: (career) =>
         set((state) => ({ profile: { ...state.profile, career: career.trim() } })),
 
-      setStudyYear: (year) =>
-        set((state) => ({ profile: { ...state.profile, studyYear: year } })),
+      setBotPersonality: (botPersonality) =>
+        set((state) => ({ profile: { ...state.profile, botPersonality } })),
+
+      setChronotype: (chronotype) =>
+        set((state) => ({ profile: { ...state.profile, chronotype } })),
 
       setBirthYear: (year) =>
         set((state) => ({ profile: { ...state.profile, birthYear: year } })),
@@ -70,7 +80,6 @@ export const useOnboardingStore = create<OnboardingState>()(
           if (state.selectedGoals.includes(id)) {
             return { selectedGoals: state.selectedGoals.filter((g) => g !== id) };
           }
-          // No permitir más de GOALS_REQUIRED selecciones.
           if (state.selectedGoals.length >= GOALS_REQUIRED) {
             return {};
           }
@@ -80,7 +89,13 @@ export const useOnboardingStore = create<OnboardingState>()(
       goToStep: (step) => set({ step }),
 
       nextStep: () => {
-        const { step } = get();
+        const { step, profile } = get();
+        // Si estamos en 'hasRoute' y la respuesta es 'no', saltamos 'career' directo a 'botPersonality'
+        if (step === 'hasRoute' && profile.hasRoute === 'no') {
+          set({ step: 'botPersonality' });
+          return;
+        }
+
         const currentIndex = STEP_ORDER.indexOf(step);
         const next = STEP_ORDER[currentIndex + 1];
         if (next) {
@@ -113,7 +128,6 @@ export const useOnboardingStore = create<OnboardingState>()(
     {
       name: ONBOARDING_STORAGE_KEY,
       storage: createJSONStorage(() => AsyncStorage),
-      // No persistimos `hydrated`: es un flag de ciclo de vida en memoria.
       partialize: (state) => ({
         step: state.step,
         profile: state.profile,
@@ -123,7 +137,6 @@ export const useOnboardingStore = create<OnboardingState>()(
         onboardingComplete: state.onboardingComplete,
       }),
       onRehydrateStorage: () => (state) => {
-        // Se ejecuta cuando termina la rehidratación (Guardián de Estado).
         state?.setHydrated(true);
       },
     }

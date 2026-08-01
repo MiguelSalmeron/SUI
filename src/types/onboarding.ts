@@ -26,6 +26,24 @@ export const WELLNESS_GOALS: WellnessGoal[] = [
 export const getGoalById = (id: string): WellnessGoal | undefined =>
   WELLNESS_GOALS.find((goal) => goal.id === id);
 
+export type BotPersonality = 'calm' | 'direct' | 'coach';
+export type Chronotype = 'morning' | 'afternoon' | 'night';
+
+export interface PopularCareer {
+  id: string;
+  label: string;
+  icon: string;
+}
+
+export const POPULAR_CAREERS: PopularCareer[] = [
+  { id: 'cs', label: 'Sistemas / TI', icon: 'desktop-outline' },
+  { id: 'med', label: 'Salud / Medicina', icon: 'medical-outline' },
+  { id: 'eng', label: 'Ingeniería', icon: 'hardware-chip-outline' },
+  { id: 'law', label: 'Derecho / Leyes', icon: 'briefcase-outline' },
+  { id: 'biz', label: 'Negocios / Admón', icon: 'bar-chart-outline' },
+  { id: 'design', label: 'Diseño / Arte', icon: 'color-palette-outline' },
+];
+
 /**
  * Pasos de la máquina de estados conversacional.
  * El orden define el avance del "Tunneling".
@@ -33,8 +51,10 @@ export const getGoalById = (id: string): WellnessGoal | undefined =>
 export type OnboardingStep =
   | 'welcome'
   | 'name'
+  | 'hasRoute'
   | 'career'
-  | 'studyYear'
+  | 'botPersonality'
+  | 'chronotype'
   | 'birthYear'
   | 'goals'
   | 'submitting'
@@ -43,8 +63,10 @@ export type OnboardingStep =
 export const STEP_ORDER: OnboardingStep[] = [
   'welcome',
   'name',
+  'hasRoute',
   'career',
-  'studyYear',
+  'botPersonality',
+  'chronotype',
   'birthYear',
   'goals',
   'submitting',
@@ -53,27 +75,21 @@ export const STEP_ORDER: OnboardingStep[] = [
 
 export interface OnboardingProfile {
   name: string;
+  hasRoute?: 'yes' | 'no' | null;
   career: string;
-  studyYear: number | null;
+  botPersonality?: BotPersonality | null;
+  chronotype?: Chronotype | null;
   birthYear: number | null;
 }
 
 export const EMPTY_PROFILE: OnboardingProfile = {
   name: '',
+  hasRoute: null,
   career: '',
-  studyYear: null,
+  botPersonality: 'calm',
+  chronotype: 'morning',
   birthYear: null,
 };
-
-// Opciones rápidas para el año de estudio.
-export const STUDY_YEAR_OPTIONS: Array<{ value: number; label: string }> = [
-  { value: 1, label: '1er año' },
-  { value: 2, label: '2do año' },
-  { value: 3, label: '3er año' },
-  { value: 4, label: '4to año' },
-  { value: 5, label: '5to año' },
-  { value: 6, label: '6to o más' },
-];
 
 // Esquemas de validación (zod) para las capturas de texto libre.
 export const nameSchema = z
@@ -90,10 +106,9 @@ export const careerSchema = z
 
 const CURRENT_YEAR = new Date().getFullYear();
 
+// Rango de edad permitido: 8 a 80 años
 export const birthYearSchema = z.coerce
-  .number({ message: 'Ingresa un año válido' })
+  .number({ message: 'Ingresa un año válido (ej. 2005)' })
   .int({ message: 'Ingresa un año válido' })
-  .gte(1940, { message: 'Ingresa un año válido' })
-  .lte(CURRENT_YEAR - 15, {
-    message: `El año debe ser anterior a ${CURRENT_YEAR - 15}`,
-  });
+  .gte(CURRENT_YEAR - 80, { message: `El año debe ser a partir de ${CURRENT_YEAR - 80}` })
+  .lte(CURRENT_YEAR - 8, { message: `El año no puede ser superior a ${CURRENT_YEAR - 8}` });

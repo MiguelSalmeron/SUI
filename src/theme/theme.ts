@@ -407,6 +407,32 @@ export const SPACING = {
 // Altura nominal de la NavigationBar MD3 (sin contar el safe-area inferior).
 export const NAV_BAR_HEIGHT = 72;
 
+import { useSettingsStore } from '../store/useSettingsStore';
+
+export const FONT_SCALE_MAP: Record<string, number> = {
+  small: 0.88,
+  medium: 1.0,
+  large: 1.15,
+};
+
+const scaleTypography = (
+  typeTokens: Record<string, TypeStyle>,
+  scale: number,
+): Record<string, TypeStyle> => {
+  if (scale === 1.0) return typeTokens;
+  const result: Record<string, TypeStyle> = {};
+  for (const key in typeTokens) {
+    const s = typeTokens[key];
+    if (!s) continue;
+    result[key] = {
+      ...s,
+      fontSize: Math.round(s.fontSize * scale),
+      lineHeight: Math.round(s.lineHeight * scale),
+    };
+  }
+  return result;
+};
+
 // ──────────────────────────────────────────────────────────────────────────
 // THEME OBJECT (light/dark)
 // ──────────────────────────────────────────────────────────────────────────
@@ -420,6 +446,7 @@ export type AppTheme = {
   spacing: typeof SPACING;
   navBarHeight: number;
   scheme: 'light' | 'dark';
+  fontScale: number;
 };
 
 const lightTheme: AppTheme = {
@@ -432,6 +459,7 @@ const lightTheme: AppTheme = {
   spacing: SPACING,
   navBarHeight: NAV_BAR_HEIGHT,
   scheme: 'light',
+  fontScale: 1.0,
 };
 
 const darkTheme: AppTheme = {
@@ -444,6 +472,7 @@ const darkTheme: AppTheme = {
   spacing: SPACING,
   navBarHeight: NAV_BAR_HEIGHT,
   scheme: 'dark',
+  fontScale: 1.0,
 };
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -498,13 +527,24 @@ export const ThemeProvider = ({ mode: modeProp, children }: ThemeProviderProps) 
 
 /**
  * Hook principal para consumir tokens. Si no hay ThemeProvider, usa el esquema
- * del SO como fallback. Nunca devuelve undefined.
+ * del SO como fallback. Aplica el escalado de tipografía según la preferencia.
  */
 export const useAppTheme = (): AppTheme => {
   const ctx = useContext(ThemeContext);
   const systemScheme = useColorScheme();
-  if (ctx) return ctx.theme;
-  return systemScheme === 'dark' ? darkTheme : lightTheme;
+  const fontSizeSetting = useSettingsStore((s) => s.fontSize);
+  const fontScale = FONT_SCALE_MAP[fontSizeSetting] ?? 1.0;
+
+  const rawTheme = ctx ? ctx.theme : systemScheme === 'dark' ? darkTheme : lightTheme;
+
+  return useMemo(
+    () => ({
+      ...rawTheme,
+      fontScale,
+      type: scaleTypography(rawTheme.type, fontScale),
+    }),
+    [rawTheme, fontScale],
+  );
 };
 
 /**
