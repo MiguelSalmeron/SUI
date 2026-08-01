@@ -65,6 +65,8 @@ export const GoalsScreen = () => {
         <TouchableOpacity
           style={styles.addBtn}
           onPress={() => setAddModalVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Añadir nueva meta"
         >
           <Ionicons name="add" size={22} color={colors.onPrimary} />
         </TouchableOpacity>
@@ -80,6 +82,8 @@ export const GoalsScreen = () => {
           <TouchableOpacity
             style={styles.createBtn}
             onPress={() => setAddModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Crear primera meta"
           >
             <Text style={styles.createBtnText}>Crear primera meta</Text>
           </TouchableOpacity>
@@ -115,7 +119,11 @@ export const GoalsScreen = () => {
                   </Text>
                 </View>
 
-                <TouchableOpacity onPress={() => removeGoal(goal.id)}>
+                <TouchableOpacity
+                  onPress={() => removeGoal(goal.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Eliminar meta ${goal.title}`}
+                >
                   <Ionicons name="trash-outline" size={18} color={colors.outline} />
                 </TouchableOpacity>
               </View>
@@ -159,6 +167,8 @@ export const GoalsScreen = () => {
                           });
                         }
                       }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${m.completed ? 'Desmarcar' : 'Marcar'} hito ${m.title}`}
                     >
                       <Ionicons
                         name={m.completed ? 'checkbox' : 'square-outline'}
@@ -181,6 +191,8 @@ export const GoalsScreen = () => {
               <TouchableOpacity
                 style={styles.addMilestoneBtn}
                 onPress={() => setAddingMilestoneGoalId(goal.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`Agregar hito a la meta ${goal.title}`}
               >
                 <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
                 <Text style={styles.addMilestoneText}>Agregar Hito / Checklist</Text>
