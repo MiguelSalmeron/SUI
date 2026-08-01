@@ -8,11 +8,18 @@ export const usePomodoroEngine = (onSessionComplete?: () => void) => {
   const appState = useRef(AppState.currentState);
   const celebrate = useCelebrationStore((s) => s.trigger);
 
+  // Estabiliza el callback externo en un ref para que los efectos del motor
+  // no se re-suscriban en cada render del padre (evita timers fantasma).
+  const onCompleteRef = useRef(onSessionComplete);
+  useEffect(() => {
+    onCompleteRef.current = onSessionComplete;
+  }, [onSessionComplete]);
+
   const handleComplete = useCallback(() => {
     celebrate({ kind: 'pomodoro', subtitle: '+25 XP · Toma un descanso' });
     void notifyPomodoroCompleteNow();
-    onSessionComplete?.();
-  }, [celebrate, onSessionComplete]);
+    onCompleteRef.current?.();
+  }, [celebrate]);
 
   const pomodoroRunning = usePomodoroStore((s) => s.pomodoroRunning);
   const targetEndTime = usePomodoroStore((s) => s.targetEndTime);
@@ -20,6 +27,8 @@ export const usePomodoroEngine = (onSessionComplete?: () => void) => {
   useEffect(() => {
     if (!pomodoroRunning || !targetEndTime) return;
 
+    // Tick más frecuente que 1s para precisión de borde y UI fluida; el costo
+    // es mínimo porque el store está basado en refs y no re-renderiza en exceso.
     const intervalId = setInterval(() => {
       const now = Date.now();
       const remainingSeconds = Math.ceil((targetEndTime - now) / 1000);
@@ -31,7 +40,7 @@ export const usePomodoroEngine = (onSessionComplete?: () => void) => {
       } else {
         usePomodoroStore.getState().setPomodoroSeconds(remainingSeconds);
       }
-    }, 1000);
+    }, 250);
 
     return () => clearInterval(intervalId);
   }, [pomodoroRunning, targetEndTime, handleComplete]);
