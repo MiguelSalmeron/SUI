@@ -12,6 +12,7 @@
 
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { useSettingsStore } from '../store/useSettingsStore';
 
 /** Identificador estable: re-programar reemplaza, no duplica. */
 export const NIGHTLY_REPORT_ID = 'sui-nightly-report';
@@ -73,21 +74,32 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
   return request.granted;
 };
 
+/** Cancela el recordatorio nocturno. */
+export const cancelNightlyReport = async (): Promise<void> => {
+  await Notifications.cancelScheduledNotificationAsync(NIGHTLY_REPORT_ID).catch(
+    () => undefined,
+  );
+};
+
 /**
  * Programa (o re-programa) el recordatorio nocturno recurrente a las 21:30.
- * Solicita permisos si hace falta. No-op silencioso si se deniegan.
+ * Solicita permisos si hace falta. No-op silencioso si se deniegan o desactivan.
  * Devuelve true si quedó programada.
  */
 export const scheduleNightlyReport = async (): Promise<boolean> => {
+  const enabled = useSettingsStore.getState().notificationsEnabled;
+  if (!enabled) {
+    await cancelNightlyReport();
+    return false;
+  }
+
   const granted = await requestNotificationPermission();
   if (!granted) return false;
 
   await ensureAndroidChannel();
 
   // Cancelar la previa para evitar duplicados al re-programar.
-  await Notifications.cancelScheduledNotificationAsync(NIGHTLY_REPORT_ID).catch(
-    () => undefined
-  );
+  await cancelNightlyReport();
 
   await Notifications.scheduleNotificationAsync({
     identifier: NIGHTLY_REPORT_ID,
@@ -119,6 +131,7 @@ export const isNightlyReportResponse = (
  */
 export const schedulePomodoroComplete = async (endTime: number): Promise<boolean> => {
   if (endTime <= Date.now()) return false;
+  if (!useSettingsStore.getState().notificationsEnabled) return false;
 
   const granted = await requestNotificationPermission();
   if (!granted) return false;
@@ -153,6 +166,8 @@ export const cancelPomodoroComplete = async (): Promise<void> => {
 
 /** Notificación inmediata si la sesión termina con la app abierta. */
 export const notifyPomodoroCompleteNow = async (): Promise<void> => {
+  if (!useSettingsStore.getState().notificationsEnabled) return;
+
   const granted = await requestNotificationPermission();
   if (!granted) return;
 

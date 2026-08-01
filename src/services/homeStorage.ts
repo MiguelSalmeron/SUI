@@ -1,20 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { DailySnapshot } from './gamification';
+import type { Goal, Habit, DayOfWeek } from '../types/models';
 
-// Clave única del estado del tablero (compartida con HomeScreen).
-export const HOME_STATE_KEY = 'sui-home-state-v5';
-
-export interface HomeListItem {
-  id: string;
-  title: string;
-  completed: boolean;
-}
+// Clave única del estado del tablero.
+export const HOME_STATE_KEY = 'sui-home-state-v6';
 
 export interface HomeState {
-  goals: HomeListItem[];
-  habits: HomeListItem[];
-  pomodoroMinutes: number;
-  pomodoroSessions: number;
+  goals: Goal[];
+  habits: Habit[];
   /** Fecha local (YYYY-MM-DD) del último reseteo diario del checklist. */
   lastResetDate?: string;
   /** Días consecutivos con al menos una meta/hábito cumplido. */
@@ -44,6 +37,22 @@ export const yesterdayKey = (date: Date = new Date()): string => {
   const prev = new Date(date);
   prev.setDate(prev.getDate() - 1);
   return localDateKey(prev);
+};
+
+/** Mapea JavaScript getDay() (0=Dom, 1=Lun...) a DayOfWeek. */
+export const getDayOfWeekKey = (date: Date = new Date()): DayOfWeek => {
+  const days: DayOfWeek[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  return days[date.getDay()];
+};
+
+/** Comprueba si un hábito corresponde al día de hoy según su frecuencia. */
+export const isHabitDueToday = (habit: Habit, date: Date = new Date()): boolean => {
+  if (habit.frequency === 'daily') return true;
+  if (Array.isArray(habit.frequency)) {
+    const todayKey = getDayOfWeekKey(date);
+    return habit.frequency.includes(todayKey);
+  }
+  return true;
 };
 
 export interface StreakState {
@@ -87,26 +96,25 @@ export const advanceStreak = (s: StreakState): StreakState => {
   };
 };
 
-/** Devuelve una copia de los items con `completed` reiniciado a false. */
-export const resetItemsCompletion = (items: HomeListItem[]): HomeListItem[] =>
-  items.map((item) => ({ ...item, completed: false }));
+/** Devuelve una copia de los hábitos con `completed` reiniciado a false para el nuevo día. */
+export const resetHabitsCompletion = (habits: Habit[]): Habit[] =>
+  habits.map((h) => ({ ...h, completed: false }));
 
 export interface DailyResetResult {
-  goals: HomeListItem[];
-  habits: HomeListItem[];
+  goals: Goal[];
+  habits: Habit[];
   todayKey: string;
   /** true si se aplicó un reseteo (cambió el día desde el último guardado). */
   didReset: boolean;
 }
 
 /**
- * Aplica el reseteo diario del checklist: si `lastResetDate` no coincide con
- * el día local actual, marca todas las metas y hábitos como no completados.
- * Idempotente dentro del mismo día.
+ * Aplica el reseteo diario del checklist de hábitos.
+ * Las Metas NO se reinician ya que son proyectos con fecha límite e hitos.
  */
 export const applyDailyReset = (
-  goals: HomeListItem[],
-  habits: HomeListItem[],
+  goals: Goal[],
+  habits: Habit[],
   lastResetDate: string | undefined
 ): DailyResetResult => {
   const todayKey = localDateKey();
@@ -114,39 +122,44 @@ export const applyDailyReset = (
     return { goals, habits, todayKey, didReset: false };
   }
   return {
-    goals: resetItemsCompletion(goals),
-    habits: resetItemsCompletion(habits),
+    goals,
+    habits: resetHabitsCompletion(habits),
     todayKey,
     didReset: true,
   };
 };
 
-const makeItem = (title: string, index: number): HomeListItem => ({
-  id: `onboarding-${index}-${title.toLowerCase().replace(/\s+/g, '-')}`,
-  title,
-  completed: false,
-});
+const makeGoal = (title: string, index: number): Goal => {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  return {
+    id: `onboarding-goal-${index}-${Date.now()}`,
+    title,
+    deadline: localDateKey(d),
+    progress: 0,
+    milestones: [],
+    impactDays: [localDateKey(d)],
+    completed: false,
+    gravity: index % 2 === 0 ? 'high' : 'low',
+    createdAt: localDateKey(),
+  };
+};
 
 /**
- * Siembra las metas elegidas en el onboarding dentro del estado local del
- * tablero, para que la selección guiada tenga efecto visible en Home.
- * Es idempotente: no duplica si ya existen metas guardadas.
+ * Siembra las metas elegidas en el onboarding dentro del estado local del tablero.
  */
 export const seedOnboardingGoals = async (goalLabels: string[]): Promise<void> => {
   try {
     const raw = await AsyncStorage.getItem(HOME_STATE_KEY);
     const existing: Partial<HomeState> = raw ? JSON.parse(raw) : {};
 
-    // Si el usuario ya tiene metas, no sobrescribimos su trabajo.
     if (existing.goals && existing.goals.length > 0) {
       return;
     }
 
     const merged: HomeState = {
-      goals: goalLabels.map(makeItem),
+      goals: goalLabels.map(makeGoal),
       habits: existing.habits ?? [],
-      pomodoroMinutes: existing.pomodoroMinutes ?? 25,
-      pomodoroSessions: existing.pomodoroSessions ?? 0,
     };
 
     await AsyncStorage.setItem(HOME_STATE_KEY, JSON.stringify(merged));

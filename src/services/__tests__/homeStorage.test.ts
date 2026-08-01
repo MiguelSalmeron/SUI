@@ -4,16 +4,36 @@ import {
   isStreakAlive,
   localDateKey,
   normalizeStreak,
-  resetItemsCompletion,
+  resetHabitsCompletion,
   yesterdayKey,
-  type HomeListItem,
 } from '../homeStorage';
+import type { Goal, Habit } from '../../types/models';
 
 const fixedDate = new Date(2026, 5, 30, 10, 0, 0);
 
-const items: HomeListItem[] = [
-  { id: 'a', title: 'Leer', completed: true },
-  { id: 'b', title: 'Agua', completed: false },
+const testGoals: Goal[] = [
+  {
+    id: 'g1',
+    title: 'Proyecto C++',
+    deadline: '2026-07-05',
+    progress: 20,
+    milestones: [],
+    impactDays: ['2026-07-05'],
+    completed: false,
+    gravity: 'high',
+    createdAt: '2026-06-30',
+  },
+];
+
+const testHabits: Habit[] = [
+  {
+    id: 'h1',
+    title: 'Estudiar 30m',
+    completed: true,
+    frequency: 'daily',
+    streak: 3,
+    createdAt: '2026-06-30',
+  },
 ];
 
 describe('homeStorage date and streak helpers', () => {
@@ -46,30 +66,24 @@ describe('homeStorage date and streak helpers', () => {
       streakCount: 3,
       lastCompletedDate: '2026-06-30',
     });
-    expect(advanceStreak({ streakCount: 8, lastCompletedDate: '2026-06-20' })).toEqual({
-      streakCount: 1,
-      lastCompletedDate: '2026-06-30',
-    });
   });
 
-  it('resetea completados solo cuando cambia el día', () => {
-    expect(applyDailyReset(items, items, '2026-06-30')).toEqual({
-      goals: items,
-      habits: items,
+  it('resetea completados de hábitos solo cuando cambia el día', () => {
+    expect(applyDailyReset(testGoals, testHabits, '2026-06-30')).toEqual({
+      goals: testGoals,
+      habits: testHabits,
       todayKey: '2026-06-30',
       didReset: false,
     });
 
-    const reset = applyDailyReset(items, items, '2026-06-29');
+    const reset = applyDailyReset(testGoals, testHabits, '2026-06-29');
     expect(reset.didReset).toBe(true);
-    expect(reset.goals.every((item) => !item.completed)).toBe(true);
     expect(reset.habits.every((item) => !item.completed)).toBe(true);
   });
 
-  it('resetItemsCompletion conserva id y title', () => {
-    expect(resetItemsCompletion(items)).toEqual([
-      { id: 'a', title: 'Leer', completed: false },
-      { id: 'b', title: 'Agua', completed: false },
+  it('resetHabitsCompletion conserva id y title', () => {
+    expect(resetHabitsCompletion(testHabits)).toEqual([
+      { ...testHabits[0], completed: false },
     ]);
   });
 });

@@ -5,8 +5,8 @@ import type { DailySnapshot } from './gamification';
 export interface UserData {
   goals: any[];
   habits: any[];
-  pomodoroMinutes: number;
-  pomodoroSessions: number;
+  pomodoroMinutes?: number;
+  pomodoroSessions?: number;
   lastResetDate?: string;
   streakCount?: number;
   lastCompletedDate?: string;
