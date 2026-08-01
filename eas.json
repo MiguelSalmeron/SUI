@@ -1,0 +1,58 @@
+{
+  "cli": {
+    "version": ">= 5.9.0",
+    "promptToConfigurePushNotifications": false
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_CHAT_PROXY_URL": "REPLACE_VIA_EAS_VARIABLE"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_CHAT_PROXY_URL": "REPLACE_VIA_EAS_VARIABLE"
+      }
+    },
+    "production": {
+      "android": { "buildType": "app-bundle" },
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "REPLACE_VIA_EAS_VARIABLE",
+        "EXPO_PUBLIC_CHAT_PROXY_URL": "REPLACE_VIA_EAS_VARIABLE"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal"
+      }
+    }
+  }
+}

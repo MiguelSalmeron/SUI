@@ -19,3 +19,11 @@ yarn-error.log*
 .kimchi/
 .opencode/
 .claude/
+# --- Hardening secrets / cache (auditoría prioridad 2, 4) ---
+functions/.env
+functions/.env.*
+!functions/.env.example
+*.azure-backup-*
+.firebase/
+google-service-account.json
+eas-cache.json
