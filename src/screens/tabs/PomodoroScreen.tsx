@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
-import { SPACING } from '../../theme/theme';
+import { SPACING, useAppTheme } from '../../theme/theme';
 import { PomodoroPanel } from '../../components/home/PomodoroPanel';
 import { PromptModal } from '../../components/ui/PromptModal';
 import { usePomodoroStore } from '../../store/usePomodoroStore';
 
 export const PomodoroScreen = () => {
+  const { colors } = useAppTheme();
   const pomodoroMinutes = usePomodoroStore((s) => s.pomodoroMinutes);
   const pomodoroSessions = usePomodoroStore((s) => s.pomodoroSessions);
   const pomodoroSeconds = usePomodoroStore((s) => s.pomodoroSeconds);
@@ -37,7 +38,11 @@ export const PomodoroScreen = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
       <PomodoroPanel
         minutes={pomodoroMinutes}
         seconds={pomodoroSeconds}

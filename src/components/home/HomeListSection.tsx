@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 
 export type HomeListItem = {
@@ -18,9 +19,79 @@ type Props = {
   accent: 'primary' | 'secondary';
   onAdd: () => void;
   onToggle: (itemId: string) => void;
+  onEdit?: (item: HomeListItem) => void;
   onRemove: (itemId: string) => void;
   onItemCompleted?: (title: string) => void;
 };
+
+type ItemRowProps = {
+  item: HomeListItem;
+  colors: ColorScheme;
+  onToggle: (itemId: string) => void;
+  onEdit?: (item: HomeListItem) => void;
+  onRemove: (itemId: string) => void;
+  onItemCompleted?: (title: string) => void;
+};
+
+const HomeListItemRow = React.memo(({ item, colors, onToggle, onEdit, onRemove, onItemCompleted }: ItemRowProps) => {
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
+    <View style={[styles.itemRow, item.completed && styles.itemRowDone]}>
+      <TouchableOpacity
+        style={[
+          styles.checkbox,
+          item.completed
+            ? { backgroundColor: colors.success, borderColor: colors.success }
+            : { borderColor: colors.outline },
+        ]}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+          if (!item.completed) {
+            onToggle(item.id);
+            onItemCompleted?.(item.title);
+            return;
+          }
+          onToggle(item.id);
+        }}
+        accessibilityRole="checkbox"
+        accessibilityLabel={`${item.completed ? 'Desmarcar' : 'Completar'} ${item.title}`}
+        accessibilityState={{ checked: item.completed }}
+      >
+        {item.completed && (
+          <Ionicons name="checkmark" size={16} color={colors.onSuccess} />
+        )}
+      </TouchableOpacity>
+
+      <Text
+        style={[styles.itemTitle, item.completed && styles.itemTitleDone]}
+        numberOfLines={2}
+      >
+        {item.title}
+      </Text>
+
+      {onEdit && (
+        <TouchableOpacity
+          onPress={() => onEdit(item)}
+          style={styles.actionBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Editar ${item.title}`}
+        >
+          <Ionicons name="create-outline" size={18} color={colors.primary} />
+        </TouchableOpacity>
+      )}
+
+      <TouchableOpacity
+        onPress={() => onRemove(item.id)}
+        style={styles.actionBtn}
+        accessibilityRole="button"
+        accessibilityLabel={`Eliminar ${item.title}`}
+      >
+        <Ionicons name="trash-outline" size={18} color={colors.error} />
+      </TouchableOpacity>
+    </View>
+  );
+});
 
 export const HomeListSection = ({
   title,
@@ -31,6 +102,7 @@ export const HomeListSection = ({
   accent,
   onAdd,
   onToggle,
+  onEdit,
   onRemove,
   onItemCompleted,
 }: Props) => {
@@ -87,47 +159,15 @@ export const HomeListSection = ({
 
         <View style={styles.list}>
           {items.map((item) => (
-            <View key={item.id} style={[styles.itemRow, item.completed && styles.itemRowDone]}>
-              <TouchableOpacity
-                style={[
-                  styles.checkbox,
-                  item.completed
-                    ? { backgroundColor: colors.success, borderColor: colors.success }
-                    : { borderColor: colors.outline },
-                ]}
-                onPress={() => {
-                  if (!item.completed) {
-                    onToggle(item.id);
-                    onItemCompleted?.(item.title);
-                    return;
-                  }
-                  onToggle(item.id);
-                }}
-                accessibilityRole="checkbox"
-                accessibilityLabel={`${item.completed ? 'Desmarcar' : 'Completar'} ${item.title}`}
-                accessibilityState={{ checked: item.completed }}
-              >
-                {item.completed && (
-                  <Ionicons name="checkmark" size={16} color={colors.onSuccess} />
-                )}
-              </TouchableOpacity>
-
-              <Text
-                style={[styles.itemTitle, item.completed && styles.itemTitleDone]}
-                numberOfLines={2}
-              >
-                {item.title}
-              </Text>
-
-              <TouchableOpacity
-                onPress={() => onRemove(item.id)}
-                style={styles.deleteBtn}
-                accessibilityRole="button"
-                accessibilityLabel={`Eliminar ${item.title}`}
-              >
-                <Ionicons name="trash-outline" size={18} color={colors.error} />
-              </TouchableOpacity>
-            </View>
+            <HomeListItemRow
+              key={item.id}
+              item={item}
+              colors={colors}
+              onToggle={onToggle}
+              onEdit={onEdit}
+              onRemove={onRemove}
+              onItemCompleted={onItemCompleted}
+            />
           ))}
         </View>
       </View>
@@ -244,7 +284,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     color: colors.onSurfaceVariant,
     textDecorationLine: 'line-through',
   },
-  deleteBtn: {
+  actionBtn: {
     padding: 6,
   },
 });

@@ -9,7 +9,6 @@ import type { OnboardingProfile } from '../../types/onboarding';
 const profile: OnboardingProfile = {
   name: 'Ana',
   career: 'Ingeniería',
-  studyYear: 3,
   birthYear: 2004,
 };
 
@@ -26,7 +25,6 @@ describe('chatPrompt', () => {
     expect(buildEmotionalProfile(profile, ['sleep', 'focus', 'unknown'])).toEqual({
       name: 'Ana',
       career: 'Ingeniería',
-      studyYear: 3,
       age: 22,
       goals: ['Dormir mejor', 'Estudiar con enfoque'],
     });

@@ -3,7 +3,6 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 import { useHomeStore } from '../../store/useHomeStore';
-import { usePomodoroStore } from '../../store/usePomodoroStore';
 import { WeeklyChart } from '../../components/home/WeeklyChart';
 import { AchievementGrid } from '../../components/home/AchievementGrid';
 import { LevelCard } from '../../components/home/LevelCard';
@@ -22,8 +21,6 @@ export const SummaryScreen = () => {
   const streak = useHomeStore((s) => s.streak);
   const totalXp = useHomeStore((s) => s.totalXp);
   const weeklyHistory = useHomeStore((s) => s.weeklyHistory);
-  const pomodoroSessions = usePomodoroStore((s) => s.pomodoroSessions);
-  const pomodoroMinutes = usePomodoroStore((s) => s.pomodoroMinutes);
 
   const completedGoals = useMemo(() => goals.filter((g) => g.completed).length, [goals]);
   const completedHabits = useMemo(() => habits.filter((h) => h.completed).length, [habits]);
@@ -33,12 +30,10 @@ export const SummaryScreen = () => {
   const weekTotals = useMemo(() => {
     const goalsDone = week.reduce((s, d) => s + d.goalsCompleted, 0);
     const habitsDone = week.reduce((s, d) => s + d.habitsCompleted, 0);
-    const pomodoros = week.reduce((s, d) => s + d.pomodoroSessions, 0);
-    const focusMin = week.reduce((s, d) => s + d.pomodoroMinutes, 0);
     const activeDays = week.filter(
-      (d) => d.goalsCompleted + d.habitsCompleted > 0 || d.pomodoroSessions > 0,
+      (d) => d.goalsCompleted + d.habitsCompleted > 0,
     ).length;
-    return { goalsDone, habitsDone, pomodoros, focusMin, activeDays };
+    return { goalsDone, habitsDone, activeDays };
   }, [week]);
 
   const todayRate = useMemo(() => {
@@ -55,19 +50,23 @@ export const SummaryScreen = () => {
         habitsCompleted: completedHabits,
         habitsTotal: habits.length,
         streak,
-        pomodoroSessions,
+        pomodoroSessions: 0,
         weeklyHistory,
       }),
-    [completedGoals, goals.length, completedHabits, habits.length, streak, pomodoroSessions, weeklyHistory],
+    [completedGoals, goals.length, completedHabits, habits.length, streak, weeklyHistory],
   );
 
   const insight = useMemo(() => getWeeklyInsight(week, streak), [week, streak]);
 
   return (
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Tu progreso</Text>
-        <Text style={styles.sectionSubtitle}>Datos de los últimos 7 días</Text>
+        <Text style={styles.sectionTitle}>Tu progreso 📊</Text>
+        <Text style={styles.sectionSubtitle}>Datos de constancia académica</Text>
       </View>
 
       <LevelCard totalXp={totalXp} />
@@ -93,9 +92,9 @@ export const SummaryScreen = () => {
           colors={colors}
         />
         <StatBox
-          icon="timer"
-          label="Pomodoros"
-          value={String(weekTotals.pomodoros)}
+          icon="flame"
+          label="Racha"
+          value={`${streak} días`}
           colors={colors}
         />
         <StatBox
@@ -107,16 +106,13 @@ export const SummaryScreen = () => {
       </View>
 
       <View style={styles.todayCard}>
-        <Text style={styles.todayTitle}>Hoy</Text>
+        <Text style={styles.todayTitle}>Resumen de Hoy</Text>
         <View style={styles.todayRow}>
           <Text style={styles.todayStat}>
             {completedGoals}/{goals.length} metas · {completedHabits}/{habits.length} hábitos
           </Text>
           <Text style={styles.todayRate}>{todayRate}%</Text>
         </View>
-        <Text style={styles.todayHint}>
-          {pomodoroSessions} pomodoros · {pomodoroMinutes} min de enfoque
-        </Text>
       </View>
 
       <AchievementGrid achievements={achievements} />
@@ -149,7 +145,7 @@ const statStyles = StyleSheet.create({
     gap: 4,
   },
   value: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '900',
   },
   label: {
@@ -230,12 +226,5 @@ const createStyles = (colors: ColorScheme) =>
       fontSize: 28,
       fontWeight: '900',
       color: colors.onPrimary,
-    },
-    todayHint: {
-      fontSize: 13,
-      color: colors.onPrimary,
-      opacity: 0.85,
-      marginTop: 6,
-      fontWeight: '600',
     },
   });

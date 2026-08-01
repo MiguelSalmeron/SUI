@@ -31,7 +31,8 @@ export const buildEmotionalProfile = (
   return {
     name: profile.name,
     career: profile.career,
-    studyYear: profile.studyYear,
+    botPersonality: profile.botPersonality,
+    chronotype: profile.chronotype,
     age,
     goals,
   };
@@ -46,20 +47,25 @@ export const buildSystemPrompt = (p: EmotionalProfile): string => {
   const facts: string[] = [];
   if (p.name) facts.push(`Nombre: ${p.name}`);
   if (p.career) facts.push(`Carrera: ${p.career}`);
-  if (p.studyYear) facts.push(`Año de estudio: ${p.studyYear}`);
   if (p.age) facts.push(`Edad aproximada: ${p.age} años`);
   if (p.goals.length) facts.push(`Objetivos de bienestar: ${p.goals.join(', ')}`);
+
+  let styleInstruction = 'Tu estilo es empático, suave, cálido y enfocado en la reducción del estrés.';
+  if (p.botPersonality === 'direct') {
+    styleInstruction = 'Tu estilo es directo, conciso, orientado a la productividad y a la acción sin rodeos.';
+  } else if (p.botPersonality === 'coach') {
+    styleInstruction = 'Tu estilo es un coach entusiasta y gamificado, motivando al usuario a mantener sus rachas y ganar XP.';
+  }
 
   const ficha = facts.length
     ? `\n\nFicha del estudiante:\n- ${facts.join('\n- ')}`
     : '';
 
   return (
-    'Eres SUI, un compañero preventivo de bienestar para estudiantes ' +
-    'universitarios. Tu rol es escuchar con empatía, validar emociones y ' +
-    'ofrecer apoyo breve, cálido y práctico. Hablas en español, en segunda ' +
-    'persona, con frases cortas y humanas. No eres un terapeuta ni das ' +
-    'diagnósticos clínicos ni medicación. Si detectas señales de crisis grave ' +
+    'Eres SUI, un compañero preventivo de bienestar para estudiantes. ' +
+    `${styleInstruction} ` +
+    'Hablas en español, en segunda persona, con frases cortas y humanas. ' +
+    'No eres un terapeuta ni das diagnósticos clínicos ni medicación. Si detectas señales de crisis grave ' +
     '(autolesión, suicidio, peligro inmediato), prioriza acompañar y anima a ' +
     'la persona a buscar ayuda profesional o líneas de emergencia de inmediato. ' +
     'Evita respuestas largas o listas extensas; prioriza la conexión humana.' +
