@@ -11,7 +11,7 @@ interface Props {
  * Mensaje estilo GPT/Gemini: sin burbujas. Prefijo de autor + texto a todo
  * el ancho, con tipografía diferenciada entre usuario y asistente.
  */
-export const ChatMessage = ({ message }: Props) => {
+export const ChatMessage = React.memo(({ message }: Props) => {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const isUser = message.role === 'user';
@@ -36,7 +36,7 @@ export const ChatMessage = ({ message }: Props) => {
       )}
     </View>
   );
-};
+});
 
 const createStyles = (colors: ColorScheme) => StyleSheet.create({
   container: {

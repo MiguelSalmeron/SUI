@@ -18,6 +18,7 @@ interface ChatComposerProps {
   placeholder: string;
   keyboardType?: KeyboardTypeOptions;
   submitLabel?: string;
+  maxLength?: number;
   onSubmitValue: (value: string | number) => void;
 }
 
@@ -26,6 +27,7 @@ export const ChatComposer = ({
   placeholder,
   keyboardType = 'default',
   submitLabel = 'Enviar',
+  maxLength = 40,
   onSubmitValue,
 }: ChatComposerProps) => {
   const { colors } = useAppTheme();
@@ -63,6 +65,7 @@ export const ChatComposer = ({
               onChangeText={onChange}
               value={value}
               keyboardType={keyboardType}
+              maxLength={maxLength}
               autoFocus
               returnKeyType="send"
               onSubmitEditing={handleSubmit(submit)}

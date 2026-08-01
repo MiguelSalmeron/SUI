@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 
 interface ChatBubbleProps {
@@ -11,11 +12,39 @@ export const ChatBubble = ({ from, text }: ChatBubbleProps) => {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const isBot = from === 'bot';
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(8)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim]);
+
   return (
-    <View style={[styles.row, isBot ? styles.rowBot : styles.rowUser]}>
+    <Animated.View
+      style={[
+        styles.row,
+        isBot ? styles.rowBot : styles.rowUser,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        },
+      ]}
+    >
       {isBot && (
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>S</Text>
+          <Ionicons name="sparkles" size={16} color={colors.onPrimary} />
         </View>
       )}
       <View
@@ -28,7 +57,7 @@ export const ChatBubble = ({ from, text }: ChatBubbleProps) => {
           {text}
         </Text>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 
@@ -48,16 +77,11 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   avatar: {
     width: 32,
     height: 32,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.sm,
-  },
-  avatarText: {
-    color: colors.onPrimary,
-    fontWeight: '900',
-    fontSize: 16,
   },
   bubble: {
     paddingVertical: SPACING.sm + 2,
