@@ -1,10 +1,11 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import type { DailySnapshot } from './gamification';
+import type { Goal, Habit } from '../types/models';
 
 export interface UserData {
-  goals: any[];
-  habits: any[];
+  goals: Goal[];
+  habits: Habit[];
   pomodoroMinutes?: number;
   pomodoroSessions?: number;
   lastResetDate?: string;
