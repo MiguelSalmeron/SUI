@@ -14,12 +14,8 @@ export const usePomodoroEngine = (onSessionComplete?: () => void) => {
     onSessionComplete?.();
   }, [celebrate, onSessionComplete]);
 
-  const {
-    pomodoroRunning,
-    targetEndTime,
-    setPomodoroSeconds,
-    completeSession,
-  } = usePomodoroStore();
+  const pomodoroRunning = usePomodoroStore((s) => s.pomodoroRunning);
+  const targetEndTime = usePomodoroStore((s) => s.targetEndTime);
 
   useEffect(() => {
     if (!pomodoroRunning || !targetEndTime) return;
@@ -30,15 +26,15 @@ export const usePomodoroEngine = (onSessionComplete?: () => void) => {
 
       if (remainingSeconds <= 0) {
         clearInterval(intervalId);
-        completeSession();
+        usePomodoroStore.getState().completeSession();
         handleComplete();
       } else {
-        setPomodoroSeconds(remainingSeconds);
+        usePomodoroStore.getState().setPomodoroSeconds(remainingSeconds);
       }
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [pomodoroRunning, targetEndTime, completeSession, setPomodoroSeconds, handleComplete]);
+  }, [pomodoroRunning, targetEndTime, handleComplete]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
