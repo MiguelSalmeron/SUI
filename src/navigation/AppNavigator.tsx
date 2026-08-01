@@ -1,5 +1,5 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
 
@@ -21,6 +21,23 @@ export const AppNavigator = () => {
   const onboardingComplete = useOnboardingStore((state) => state.onboardingComplete);
   const theme = useAppTheme();
   const [authTimedOut, setAuthTimedOut] = useState(false);
+
+  const navTheme = useMemo(
+    () => ({
+      dark: theme.scheme === 'dark',
+      colors: {
+        ...(theme.scheme === 'dark' ? DarkTheme.colors : DefaultTheme.colors),
+        primary: theme.colors.primary,
+        background: theme.colors.background,
+        card: theme.colors.surfaceContainer,
+        text: theme.colors.onSurface,
+        border: theme.colors.outlineVariant,
+        notification: theme.colors.error,
+      },
+      fonts: theme.scheme === 'dark' ? DarkTheme.fonts : DefaultTheme.fonts,
+    }),
+    [theme],
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => setAuthTimedOut(true), AUTH_READY_TIMEOUT_MS);
@@ -47,7 +64,7 @@ export const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,

@@ -13,17 +13,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthContext';
 import { ColorScheme, SPACING, useAppTheme, NAV_BAR_HEIGHT } from '../theme/theme';
 import { useHomeStore } from '../store/useHomeStore';
-import { usePomodoroStore } from '../store/usePomodoroStore';
 import { useOnboardingStore } from '../store/useOnboardingStore';
 import { Avatar } from '../components/ui/Avatar';
 
 import { OverviewScreen } from '../screens/tabs/OverviewScreen';
 import { GoalsScreen } from '../screens/tabs/GoalsScreen';
 import { HabitsScreen } from '../screens/tabs/HabitsScreen';
-import { PomodoroScreen } from '../screens/tabs/PomodoroScreen';
+import { CalendarScreen } from '../screens/tabs/CalendarScreen';
 import { SummaryScreen } from '../screens/tabs/SummaryScreen';
 import { CelebrationToast } from '../components/home/CelebrationToast';
-import { usePomodoroEngine } from '../hooks/usePomodoroEngine';
 import { useCelebrationStore } from '../store/useCelebrationStore';
 import { requestNotificationPermission } from '../services/notifications';
 
@@ -33,7 +31,7 @@ const TAB_ICONS: Record<string, { focused: keyof typeof Ionicons.glyphMap; outli
   Overview: { focused: 'home', outline: 'home-outline' },
   Goals: { focused: 'flag', outline: 'flag-outline' },
   Habits: { focused: 'repeat', outline: 'repeat-outline' },
-  Pomodoro: { focused: 'timer', outline: 'timer-outline' },
+  Calendar: { focused: 'calendar', outline: 'calendar-outline' },
   Summary: { focused: 'stats-chart', outline: 'stats-chart-outline' },
 };
 
@@ -42,10 +40,11 @@ type TabHeaderProps = {
   topInset: number;
   profileName: string;
   streak: number;
+  syncPending: boolean;
   onSettings: () => void;
 };
 
-const TabHeader = React.memo(({ colors, topInset, profileName, streak, onSettings }: TabHeaderProps) => (
+const TabHeader = React.memo(({ colors, topInset, profileName, streak, syncPending, onSettings }: TabHeaderProps) => (
   <View style={[headerStyles(colors).headerShell, { paddingTop: topInset + SPACING.sm }]}>
     <View style={headerStyles(colors).identity}>
       <Avatar name={profileName} size="md" variant="primary" />
@@ -53,12 +52,24 @@ const TabHeader = React.memo(({ colors, topInset, profileName, streak, onSetting
         <Text style={headerStyles(colors).name} numberOfLines={1}>
           {profileName}
         </Text>
-        {streak > 0 && (
-          <View style={headerStyles(colors).streakPill}>
-            <Ionicons name="flame" size={11} color={colors.flame} />
-            <Text style={headerStyles(colors).streakText}>{streak} días</Text>
+        <View style={headerStyles(colors).badgeRow}>
+          {streak > 0 && (
+            <View style={headerStyles(colors).streakPill}>
+              <Ionicons name="flame" size={11} color={colors.flame} />
+              <Text style={headerStyles(colors).streakText}>{streak} días</Text>
+            </View>
+          )}
+          <View style={headerStyles(colors).syncPill} accessibilityLabel={syncPending ? 'Sincronización pendiente' : 'Sincronizado'}>
+            <Ionicons
+              name={syncPending ? 'cloud-offline-outline' : 'cloud-done-outline'}
+              size={11}
+              color={syncPending ? colors.outline : colors.success}
+            />
+            <Text style={[headerStyles(colors).syncText, { color: syncPending ? colors.outline : colors.success }]}>
+              {syncPending ? 'Local' : 'Nube'}
+            </Text>
           </View>
-        )}
+        </View>
       </View>
     </View>
     <TouchableOpacity
@@ -87,17 +98,14 @@ export const TabNavigator = () => {
   const habits = useHomeStore((s) => s.habits);
   const streak = useHomeStore((s) => s.streak);
   const bumpStreak = useHomeStore((s) => s.bumpStreak);
-  const pomodoroSessions = usePomodoroStore((s) => s.pomodoroSessions);
-  const pomodoroMinutes = usePomodoroStore((s) => s.pomodoroMinutes);
   const celebrate = useCelebrationStore((s) => s.trigger);
-
-  usePomodoroEngine();
 
   useEffect(() => {
     requestNotificationPermission().catch(() => undefined);
   }, []);
 
   const onboardingName = useOnboardingStore((s) => s.profile.name);
+  const syncPending = useOnboardingStore((s) => s.syncPending);
   const profileName = onboardingName?.trim() || user?.email?.split('@')[0] || 'Usuario';
 
   useEffect(() => {
@@ -114,7 +122,7 @@ export const TabNavigator = () => {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [goals, habits, streak, pomodoroSessions, pomodoroMinutes, stateLoaded, saveState]);
+  }, [goals, habits, streak, stateLoaded, saveState]);
 
   const completedGoals = useMemo(() => goals.filter((g) => g.completed).length, [goals]);
   const completedHabits = useMemo(() => habits.filter((h) => h.completed).length, [habits]);
@@ -155,12 +163,15 @@ export const TabNavigator = () => {
       <CelebrationToast />
       <Tab.Navigator
         screenOptions={({ route }) => ({
+          sceneStyle: { backgroundColor: colors.background },
+          sceneContainerStyle: { backgroundColor: colors.background },
           header: () => (
             <TabHeader
               colors={colors}
               topInset={insets.top}
               profileName={profileName}
               streak={streak}
+              syncPending={syncPending}
               onSettings={() => navigation.navigate('Settings')}
             />
           ),
@@ -207,7 +218,7 @@ export const TabNavigator = () => {
         <Tab.Screen name="Overview" component={OverviewScreen} options={{ tabBarLabel: 'Inicio' }} />
         <Tab.Screen name="Goals" component={GoalsScreen} options={{ tabBarLabel: 'Metas' }} />
         <Tab.Screen name="Habits" component={HabitsScreen} options={{ tabBarLabel: 'Hábitos' }} />
-        <Tab.Screen name="Pomodoro" component={PomodoroScreen} options={{ tabBarLabel: 'Pomodoro' }} />
+        <Tab.Screen name="Calendar" component={CalendarScreen} options={{ tabBarLabel: 'Radar' }} />
         <Tab.Screen name="Summary" component={SummaryScreen} options={{ tabBarLabel: 'Resumen' }} />
       </Tab.Navigator>
 
@@ -256,16 +267,29 @@ const headerStyles = (colors: ColorScheme) =>
       fontWeight: '800',
       color: colors.onSurface,
     },
+    badgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+    },
     streakPill: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 3,
-      alignSelf: 'flex-start',
     },
     streakText: {
       fontSize: 11,
       fontWeight: '700',
       color: colors.onSurfaceVariant,
+    },
+    syncPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+    },
+    syncText: {
+      fontSize: 11,
+      fontWeight: '700',
     },
     settingsBtn: {
       width: 40,

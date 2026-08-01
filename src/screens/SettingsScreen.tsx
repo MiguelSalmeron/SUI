@@ -11,8 +11,15 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ColorScheme, SPACING, useAppTheme, useThemeController, ThemeMode } from '../theme/theme';
 import { useSettingsStore, FontSize } from '../store/useSettingsStore';
+import { useOnboardingStore } from '../store/useOnboardingStore';
+import { HOME_STATE_KEY } from '../services/homeStorage';
+import {
+  scheduleNightlyReport,
+  cancelNightlyReport,
+} from '../services/notifications';
 
 // ──────────────────────────────────────────────────────────
 // Icons MD3 para cada sección
@@ -186,6 +193,8 @@ export const SettingsScreen = ({ navigation }: any) => {
     setFontSize(order[(idx + 1) % order.length]);
   };
 
+  const resetOnboarding = useOnboardingStore((s) => s.reset);
+
   const handleLogout = () => {
     Alert.alert(
       'Cerrar sesión',
@@ -195,7 +204,15 @@ export const SettingsScreen = ({ navigation }: any) => {
         {
           text: 'Cerrar sesión',
           style: 'destructive',
-          onPress: () => signOut(auth).catch(() => undefined),
+          onPress: async () => {
+            try {
+              resetOnboarding();
+              await AsyncStorage.removeItem(HOME_STATE_KEY);
+              await signOut(auth);
+            } catch (err) {
+              console.error('Error al cerrar sesión:', err);
+            }
+          },
         },
       ],
     );
@@ -250,7 +267,14 @@ export const SettingsScreen = ({ navigation }: any) => {
             right={
               <Switch
                 value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
+                onValueChange={(enabled) => {
+                  setNotificationsEnabled(enabled);
+                  if (enabled) {
+                    void scheduleNightlyReport();
+                  } else {
+                    void cancelNightlyReport();
+                  }
+                }}
                 trackColor={{
                   false: colors.surfaceContainerHighest,
                   true: colors.primaryContainer,
