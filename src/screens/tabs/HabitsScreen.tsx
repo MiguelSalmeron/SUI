@@ -54,6 +54,8 @@ export const HabitsScreen = () => {
         <TouchableOpacity
           style={styles.addBtn}
           onPress={() => setAddModalVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Añadir nuevo hábito"
         >
           <Ionicons name="add" size={22} color={colors.onPrimary} />
         </TouchableOpacity>
@@ -69,6 +71,8 @@ export const HabitsScreen = () => {
           <TouchableOpacity
             style={styles.createBtn}
             onPress={() => setAddModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Crear primer hábito"
           >
             <Text style={styles.createBtnText}>Crear primer hábito</Text>
           </TouchableOpacity>
@@ -97,6 +101,8 @@ export const HabitsScreen = () => {
                       });
                     }
                   }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${habit.completed ? 'Desmarcar' : 'Marcar'} hábito ${habit.title}`}
                 >
                   <Ionicons
                     name={habit.completed ? 'checkmark' : 'ellipse-outline'}
@@ -142,12 +148,17 @@ export const HabitsScreen = () => {
                   <TouchableOpacity
                     style={styles.freezeBtn}
                     onPress={() => freezeStreak(habit.id)}
-                    accessibilityLabel="Modo Reducción de Daño"
+                    accessibilityRole="button"
+                    accessibilityLabel={`Congelar racha del hábito ${habit.title}`}
                   >
                     <Ionicons name="shield-checkmark-outline" size={16} color={colors.outline} />
                   </TouchableOpacity>
 
-                  <TouchableOpacity onPress={() => removeHabit(habit.id)}>
+                  <TouchableOpacity
+                    onPress={() => removeHabit(habit.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Eliminar hábito ${habit.title}`}
+                  >
                     <Ionicons name="trash-outline" size={16} color={colors.outline} />
                   </TouchableOpacity>
                 </View>
