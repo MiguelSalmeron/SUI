@@ -18,6 +18,17 @@ Además incorpora:
 
 El primer contacto es un **onboarding conversacional sin fricción** (sin correo ni contraseña): captura un perfil básico, configura 3 objetivos de bienestar y crea una sesión anónima en segundo plano. Más detalle técnico en `GUIA-DESARROLLADOR.md`.
 
+## 📛 Nomenclatura
+
+El producto se llama **SUI** en todos lados. Algunos identificadores técnicos difieren por razones históricas y NO afectan al comportamiento:
+
+| Contexto | Nombre | Nota |
+|---|---|---|
+| Producto / docs / UI | `SUI` | Nombre canónico |
+| `package.json` name | `sui` | minúsculas por convención npm |
+| Carpeta raíz del repo | `SIU` | Puede renombrarse a `sui` sin tocar código (sólo ajustar alias de shell/CI) |
+| Alias Firebase CLI | `xsui-nica` | Alias técnico del proyecto en Firebase Console; no es renombrable sin migrar el project ID |
+
 ## 🛠 Tecnologías Principales y Stack
 
 * **Framework:** [React Native](https://reactnative.dev/) a través de [Expo SDK 56](https://expo.dev/). Desarrollo multiplataforma con el mismo código base.
