@@ -34,7 +34,7 @@ export interface CrisisConfig {
  * Estos valores también sirven como plantilla para el documento de Firestore.
  */
 export const DEFAULT_CRISIS_CONFIG: CrisisConfig = {
-  version: 1,
+  version: 2,
   keywords: [
     'suicidio',
     'suicidarme',
@@ -60,7 +60,12 @@ export const DEFAULT_CRISIS_CONFIG: CrisisConfig = {
     'persona de confianza de inmediato.',
   contacts: [
     { label: 'Emergencias', phone: '911' },
-    { label: 'Cruz Roja', phone: '128' },
+    { label: 'Cruz Roja — Emergencias médicas', phone: '128' },
+    { label: 'Policía Nacional', phone: '118' },
+    { label: 'Bomberos', phone: '115' },
+    { label: 'Bomberos (alterno)', phone: '120' },
+    { label: 'Línea turística 24h', phone: '101' },
+    { label: 'Apoyo psicológico (Min. Familia)', phone: '133' },
   ],
 };
 
