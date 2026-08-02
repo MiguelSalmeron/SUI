@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import type { Ionicons } from '@expo/vector-icons';
 
 /**
  * Catálogo de objetivos de bienestar recomendados por el sistema.
@@ -32,7 +33,7 @@ export type Chronotype = 'morning' | 'afternoon' | 'night';
 export interface PopularCareer {
   id: string;
   label: string;
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
 }
 
 export const POPULAR_CAREERS: PopularCareer[] = [

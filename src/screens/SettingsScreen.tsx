@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,8 @@ import {
   ScrollView,
   Switch,
   TouchableOpacity,
-  Alert,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
@@ -20,6 +21,8 @@ import {
   scheduleNightlyReport,
   cancelNightlyReport,
 } from '../services/notifications';
+import type { RootStackParamList } from '../navigation/types';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 // ──────────────────────────────────────────────────────────
 // Icons MD3 para cada sección
@@ -173,7 +176,7 @@ const sectionStyles = (colors: ColorScheme) =>
 // ──────────────────────────────────────────────────────────
 // Pantalla principal: SettingsScreen
 // ──────────────────────────────────────────────────────────
-export const SettingsScreen = ({ navigation }: any) => {
+export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'Settings'>) => {
   const { colors } = useAppTheme();
   const { mode, setMode } = useThemeController();
   const { notificationsEnabled, fontSize, setNotificationsEnabled, setFontSize } =
@@ -195,28 +198,32 @@ export const SettingsScreen = ({ navigation }: any) => {
 
   const resetOnboarding = useOnboardingStore((s) => s.reset);
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Cerrar sesión',
-      '¿Estás seguro de que quieres cerrar sesión?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar sesión',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              resetOnboarding();
-              await AsyncStorage.removeItem(HOME_STATE_KEY);
-              await signOut(auth);
-            } catch (err) {
-              console.error('Error al cerrar sesión:', err);
-            }
-          },
-        },
-      ],
-    );
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [logoutState, setLogoutState] = useState<
+    'idle' | 'logging' | 'error'
+  >('idle');
+  const [logoutError, setLogoutError] = useState<string>('');
+
+  const performLogout = () => {
+    setConfirmVisible(false);
+    setLogoutError('');
+    setLogoutState('logging');
+    (async () => {
+      try {
+        resetOnboarding();
+        await AsyncStorage.removeItem(HOME_STATE_KEY);
+        await signOut(auth);
+      } catch (err) {
+        console.error('Error al cerrar sesión:', err);
+        setLogoutError(
+          err instanceof Error ? err.message : 'Error desconocido al cerrar sesión.',
+        );
+        setLogoutState('error');
+      }
+    })();
   };
+
+  const handleLogout = () => setConfirmVisible(true);
 
   return (
     <View style={styles.screen}>
@@ -302,6 +309,86 @@ export const SettingsScreen = ({ navigation }: any) => {
           <Text style={styles.footerText}>SUI v1.0.0</Text>
         </View>
       </ScrollView>
+
+      {/* Modal de confirmación de cierre de sesión (más confiable que Alert nativo en Expo Go) */}
+      <Modal
+        visible={confirmVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmVisible(false)}
+      >
+        <View style={modalStyles(colors).overlay}>
+          <View style={modalStyles(colors).card}>
+            <View style={modalStyles(colors).iconWrap}>
+              <Ionicons name="log-out-outline" size={28} color={colors.error} />
+            </View>
+            <Text style={modalStyles(colors).title}>Cerrar sesión</Text>
+            <Text style={modalStyles(colors).message}>
+              ¿Estás seguro de que quieres cerrar sesión? Tendrás que volver a
+              configurar tu experiencia.
+            </Text>
+            <View style={modalStyles(colors).actions}>
+              <TouchableOpacity
+                style={modalStyles(colors).cancelBtn}
+                onPress={() => setConfirmVisible(false)}
+              >
+                <Text style={modalStyles(colors).cancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={modalStyles(colors).confirmBtn}
+                onPress={performLogout}
+              >
+                <Text style={modalStyles(colors).confirmText}>
+                  Cerrar sesión
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de progreso / error de cierre de sesión */}
+      <Modal
+        visible={logoutState !== 'idle'}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLogoutState('idle')}
+      >
+        <View style={modalStyles(colors).overlay}>
+          <View style={modalStyles(colors).card}>
+            {logoutState === 'logging' ? (
+              <>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={[modalStyles(colors).title, { marginTop: 16 }]}>
+                  Cerrando sesión...
+                </Text>
+              </>
+            ) : (
+              <>
+                <View style={modalStyles(colors).iconWrap}>
+                  <Ionicons
+                    name="alert-circle-outline"
+                    size={28}
+                    color={colors.error}
+                  />
+                </View>
+                <Text style={modalStyles(colors).title}>
+                  No se pudo cerrar sesión
+                </Text>
+                <Text style={modalStyles(colors).message}>
+                  {logoutError || 'Ocurrió un error inesperado.'}
+                </Text>
+                <TouchableOpacity
+                  style={modalStyles(colors).confirmBtn}
+                  onPress={() => setLogoutState('idle')}
+                >
+                  <Text style={modalStyles(colors).confirmText}>Entendido</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -358,5 +445,79 @@ const createStyles = (colors: ColorScheme) =>
       fontSize: 12,
       color: colors.onSurfaceVariant,
       fontWeight: '600',
+    },
+  });
+
+// ──────────────────────────────────────────────────────────
+// Estilos del modal de logout (MD3)
+// ──────────────────────────────────────────────────────────
+const modalStyles = (colors: ColorScheme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: SPACING.lg,
+    },
+    card: {
+      width: '100%',
+      maxWidth: 340,
+      backgroundColor: colors.surfaceContainer,
+      borderRadius: 24,
+      padding: SPACING.xl,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+    },
+    iconWrap: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.errorContainer,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: SPACING.md,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.onSurface,
+      textAlign: 'center',
+    },
+    message: {
+      fontSize: 14,
+      color: colors.onSurfaceVariant,
+      textAlign: 'center',
+      marginTop: SPACING.sm,
+      marginBottom: SPACING.lg,
+      lineHeight: 20,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: SPACING.sm,
+    },
+    cancelBtn: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 20,
+      alignItems: 'center',
+      backgroundColor: colors.surfaceContainerHighest,
+    },
+    cancelText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.onSurface,
+    },
+    confirmBtn: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 20,
+      alignItems: 'center',
+      backgroundColor: colors.error,
+    },
+    confirmText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#ffffff',
     },
   });
