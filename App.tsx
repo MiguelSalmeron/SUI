@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from './src/context/AuthContext';
 import { AppNavigator } from './src/navigation/AppNavigator';
@@ -46,6 +47,17 @@ const useRetryPendingAuth = () => {
 
 export default function App() {
   useRetryPendingAuth();
+
+  // Preload desde assets/ (no node_modules). En PWA, Firebase ignoraba
+  // **/node_modules/** → .ttf 404 → rewrite devolvía index.html → OTS fail
+  // → @expo/vector-icons deja <Text /> vacío (badge sí, icono no).
+  const [fontsLoaded, fontError] = useFonts({
+    ionicons: require('./assets/fonts/Ionicons.ttf'),
+  });
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
 
   return (
     <SafeAreaProvider>
