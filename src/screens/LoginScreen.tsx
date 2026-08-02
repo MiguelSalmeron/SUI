@@ -16,6 +16,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { auth } from '../config/firebase';
 import { ColorScheme, SPACING, useAppTheme } from '../theme/theme';
+import type { RootStackParamList } from '../navigation/types';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 // Validation Schema with Zod
 const loginSchema = z.object({
@@ -30,8 +32,9 @@ const loginSchema = z.object({
 
 type LoginFields = z.infer<typeof loginSchema>;
 
-const getLoginErrorMessage = (error: any) => {
-  switch (error?.code) {
+const getLoginErrorMessage = (error: unknown) => {
+  const code = (error as { code?: string })?.code;
+  switch (code) {
     case 'auth/invalid-email':
       return 'Ingresa un email válido';
     case 'auth/user-not-found':
@@ -45,7 +48,7 @@ const getLoginErrorMessage = (error: any) => {
   }
 };
 
-export const LoginScreen = ({ navigation }: any) => {
+export const LoginScreen = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'Login'>) => {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
@@ -66,7 +69,7 @@ export const LoginScreen = ({ navigation }: any) => {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, data.email.trim(), data.password);
-    } catch (error: any) {
+    } catch (error: unknown) {
       Alert.alert('Error', getLoginErrorMessage(error));
     } finally {
       setLoading(false);

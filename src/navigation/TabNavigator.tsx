@@ -15,6 +15,7 @@ import { ColorScheme, SPACING, useAppTheme, NAV_BAR_HEIGHT } from '../theme/them
 import { useHomeStore } from '../store/useHomeStore';
 import { useOnboardingStore } from '../store/useOnboardingStore';
 import { Avatar } from '../components/ui/Avatar';
+import type { RootStackNavigationProp } from './types';
 
 import { OverviewScreen } from '../screens/tabs/OverviewScreen';
 import { GoalsScreen } from '../screens/tabs/GoalsScreen';
@@ -88,7 +89,7 @@ export const TabNavigator = () => {
   const { user } = useContext(AuthContext);
   const theme = useAppTheme();
   const colors = theme.colors;
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<RootStackNavigationProp>();
   const insets = useSafeAreaInsets();
 
   const stateLoaded = useHomeStore((s) => s.stateLoaded);
@@ -175,7 +176,7 @@ export const TabNavigator = () => {
               onSettings={() => navigation.navigate('Settings')}
             />
           ),
-          tabBarIcon: ({ focused, color, size }) => {
+          tabBarIcon: ({ focused, color, size = 24 }) => {
             const icons = TAB_ICONS[route.name];
             if (!icons) return null;
             const badge =
@@ -186,7 +187,11 @@ export const TabNavigator = () => {
                 : 0;
             return (
               <View>
-                <Ionicons name={focused ? icons.focused : icons.outline} size={size} color={color} />
+                <Ionicons
+                  name={focused ? icons.focused : icons.outline}
+                  size={size}
+                  color={color}
+                />
                 {badge > 0 && (
                   <View style={badgeStyles(colors).badge}>
                     <Text style={badgeStyles(colors).badgeText}>{badge > 9 ? '9+' : badge}</Text>

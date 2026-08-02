@@ -10,8 +10,9 @@ import { TabNavigator } from './TabNavigator';
 import { AuthContext } from '../context/AuthContext';
 import { useOnboardingStore } from '../store/useOnboardingStore';
 import { useAppTheme } from '../theme/theme';
+import type { RootStackParamList } from './types';
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 const AUTH_READY_TIMEOUT_MS = 8000;
 
 export const AppNavigator = () => {

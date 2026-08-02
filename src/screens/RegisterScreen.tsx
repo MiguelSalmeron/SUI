@@ -16,6 +16,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { auth } from '../config/firebase';
 import { ColorScheme, SPACING, useAppTheme } from '../theme/theme';
+import type { RootStackParamList } from '../navigation/types';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 // Validation Schema with Zod
 const registerSchema = z
@@ -38,8 +40,9 @@ const registerSchema = z
 
 type RegisterFields = z.infer<typeof registerSchema>;
 
-const getRegisterErrorMessage = (error: any) => {
-  switch (error?.code) {
+const getRegisterErrorMessage = (error: unknown) => {
+  const err = error as { code?: string; message?: string };
+  switch (err.code) {
     case 'auth/invalid-email':
       return 'Ingresa un email válido';
     case 'auth/email-already-in-use':
@@ -49,11 +52,11 @@ const getRegisterErrorMessage = (error: any) => {
     case 'auth/operation-not-allowed':
       return 'El registro con email y contraseña no está habilitado en Firebase';
     default:
-      return error?.message ?? 'No se pudo crear la cuenta';
+      return err.message ?? 'No se pudo crear la cuenta';
   }
 };
 
-export const RegisterScreen = ({ navigation }: any) => {
+export const RegisterScreen = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'Register'>) => {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
@@ -76,7 +79,7 @@ export const RegisterScreen = ({ navigation }: any) => {
     try {
       await createUserWithEmailAndPassword(auth, data.email.trim(), data.password);
       Alert.alert('Éxito', 'Cuenta creada correctamente');
-    } catch (error: any) {
+    } catch (error: unknown) {
       Alert.alert('Error', getRegisterErrorMessage(error));
     } finally {
       setLoading(false);

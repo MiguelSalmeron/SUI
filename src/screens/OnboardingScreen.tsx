@@ -286,7 +286,7 @@ export const OnboardingScreen = () => {
                     nextStep();
                   }}
                 >
-                  <Ionicons name={c.icon as any} size={16} color={colors.primary} />
+                  <Ionicons name={c.icon} size={16} color={colors.primary} />
                   <Text style={styles.careerChipText}>{c.label}</Text>
                 </TouchableOpacity>
               ))}
