@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -9,6 +10,48 @@ import { useOnboardingStore } from './src/store/useOnboardingStore';
 import { signInAnon } from './src/services/onboardingAuth';
 import { configureNotificationHandler } from './src/services/notifications';
 import { ThemeProvider, useAppTheme } from './src/theme/theme';
+
+/**
+ * PWA: html/body/#root default white → raya blanca bajo UI dark.
+ * Sincroniza chrome del browser con el theme activo.
+ */
+const useSyncWebChrome = (background: string) => {
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+
+    const root = document.documentElement;
+    const body = document.body;
+    const appRoot = document.getElementById('root');
+
+    root.style.backgroundColor = background;
+    root.style.minHeight = '100%';
+    body.style.backgroundColor = background;
+    body.style.minHeight = '100dvh';
+    if (appRoot) {
+      appRoot.style.backgroundColor = background;
+      appRoot.style.minHeight = '100dvh';
+    }
+
+    let themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (!themeMeta) {
+      themeMeta = document.createElement('meta');
+      themeMeta.setAttribute('name', 'theme-color');
+      document.head.appendChild(themeMeta);
+    }
+    themeMeta.setAttribute('content', background);
+
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+      const content = viewport.getAttribute('content') ?? '';
+      if (!content.includes('viewport-fit=cover')) {
+        viewport.setAttribute(
+          'content',
+          `${content.replace(/,\s*$/, '')}, viewport-fit=cover`,
+        );
+      }
+    }
+  }, [background]);
+};
 
 // Mantener el splash nativo visible hasta que la app esté lista. Se llama en
 // scope global (sin await) según recomendación oficial de expo-splash-screen:
@@ -72,6 +115,7 @@ export default function App() {
 
 const AppShell = () => {
   const theme = useAppTheme();
+  useSyncWebChrome(theme.colors.background);
 
   return (
     <>
