@@ -14,12 +14,16 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ChatBubble } from '../components/onboarding/ChatBubble';
 import { ChatComposer } from '../components/onboarding/ChatComposer';
+import { GoogleSignInButton } from '../components/ui/GoogleSignInButton';
 import { useOnboardingStore } from '../store/useOnboardingStore';
 import { useHomeStore } from '../store/useHomeStore';
 import { signInAnon } from '../services/onboardingAuth';
 import { seedOnboardingGoals } from '../services/homeStorage';
 import { loadCachedGoogleEvents } from '../services/googleSync';
+import { useGoogleAuth } from '../hooks/useGoogleAuth';
+import { auth } from '../config/firebase';
 import { ColorScheme, SPACING, useAppTheme } from '../theme/theme';
+import * as Haptics from 'expo-haptics';
 import {
   GOALS_REQUIRED,
   OnboardingProfile,
@@ -121,6 +125,14 @@ export const OnboardingScreen = () => {
   const nextStep = useOnboardingStore((s) => s.nextStep);
   const markComplete = useOnboardingStore((s) => s.markComplete);
   const addXp = useHomeStore((s) => s.addXp);
+  const loadState = useHomeStore((s) => s.loadState);
+  const {
+    signInWithGoogle,
+    busy: googleBusy,
+    ready: googleReady,
+    configured: googleConfigured,
+  } = useGoogleAuth();
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   const [customCareerMode, setCustomCareerMode] = useState(false);
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
@@ -206,18 +218,66 @@ export const OnboardingScreen = () => {
 
   const goalsComplete = selectedGoals.length === GOALS_REQUIRED;
 
+  const handleContinueWithGoogle = async () => {
+    setGoogleError(null);
+    if (!googleConfigured) {
+      setGoogleError(
+        'Google no configurado. Añade EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (ver todolist.md).',
+      );
+      return;
+    }
+    const result = await signInWithGoogle();
+    if (result.cancelled) return;
+    if (!result.ok) {
+      setGoogleError(result.error || 'No se pudo iniciar con Google.');
+      return;
+    }
+    const googleUser = auth.currentUser;
+    const displayName = googleUser?.displayName?.trim();
+    if (displayName) {
+      setName(displayName);
+    }
+    await loadState();
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+      () => undefined,
+    );
+    markComplete({ uid: result.uid, syncPending: false });
+  };
+
+  const googleButtonDisabled = googleBusy || (googleConfigured && !googleReady);
+  const googleButtonLabel = !googleConfigured
+    ? 'Continuar con Google'
+    : googleBusy
+      ? 'Conectando...'
+      : !googleReady
+        ? 'Preparando Google...'
+        : 'Continuar con Google';
+
   const renderInputArea = () => {
     switch (step) {
       case 'welcome':
         return (
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={nextStep}
-            accessibilityRole="button"
-            accessibilityLabel="Empezar onboarding"
-          >
-            <Text style={styles.primaryButtonText}>Empezar</Text>
-          </TouchableOpacity>
+          <View style={styles.welcomeActions}>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={nextStep}
+              accessibilityRole="button"
+              accessibilityLabel="Empezar onboarding"
+            >
+              <Text style={styles.primaryButtonText}>Empezar</Text>
+            </TouchableOpacity>
+            <GoogleSignInButton
+              label={googleButtonLabel}
+              onPress={() => void handleContinueWithGoogle()}
+              busy={googleBusy}
+              disabled={googleButtonDisabled}
+            />
+            {googleError ? (
+              <Text style={styles.googleErrorText} accessibilityRole="alert">
+                {googleError}
+              </Text>
+            ) : null}
+          </View>
         );
 
       case 'name':
@@ -529,6 +589,9 @@ const createStyles = (colors: ColorScheme) =>
       borderTopColor: colors.outlineVariant,
       backgroundColor: colors.surface,
     },
+    welcomeActions: {
+      gap: SPACING.sm,
+    },
     primaryButton: {
       backgroundColor: colors.primary,
       borderRadius: 12,
@@ -542,6 +605,13 @@ const createStyles = (colors: ColorScheme) =>
       color: colors.onPrimary,
       fontWeight: '800',
       fontSize: 16,
+    },
+    googleErrorText: {
+      color: colors.error,
+      fontSize: 13,
+      fontWeight: '600',
+      textAlign: 'center',
+      marginTop: SPACING.xs,
     },
     chipsWrap: {
       flexDirection: 'column',

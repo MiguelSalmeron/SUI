@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,13 +10,18 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ColorScheme, SPACING, useAppTheme, useThemeController, ThemeMode } from '../theme/theme';
 import { useSettingsStore, FontSize } from '../store/useSettingsStore';
 import { useOnboardingStore } from '../store/useOnboardingStore';
+import { useHomeStore } from '../store/useHomeStore';
 import { HOME_STATE_KEY } from '../services/homeStorage';
+import { userHasGoogleProvider } from '../services/googleAuth';
+import { useGoogleAuth } from '../hooks/useGoogleAuth';
+import { AuthContext } from '../context/AuthContext';
 import {
   scheduleNightlyReport,
   cancelNightlyReport,
@@ -181,8 +186,22 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
   const { mode, setMode } = useThemeController();
   const { notificationsEnabled, fontSize, setNotificationsEnabled, setFontSize } =
     useSettingsStore();
+  const { user } = useContext(AuthContext);
+  const loadState = useHomeStore((s) => s.loadState);
+  const { signInWithGoogle, busy: googleBusy, ready: googleReady, configured: googleConfigured } =
+    useGoogleAuth();
 
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const linkedGoogle = userHasGoogleProvider(user);
+  const accountLabel = linkedGoogle
+    ? user?.displayName || user?.email || 'Cuenta Google'
+    : user?.isAnonymous
+      ? 'Sesión local (anónima)'
+      : user?.email || 'Cuenta';
+  const accountDescription = linkedGoogle
+    ? user?.email || 'Vinculada con Google'
+    : 'Vincula Google para recuperar tu progreso en otros dispositivos';
 
   const cycleThemeMode = () => {
     const next: ThemeMode =
@@ -197,12 +216,27 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
   };
 
   const resetOnboarding = useOnboardingStore((s) => s.reset);
+  const setProfileName = useOnboardingStore((s) => s.setName);
+  const profileName = useOnboardingStore((s) => s.profile.name);
 
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [logoutState, setLogoutState] = useState<
     'idle' | 'logging' | 'error'
   >('idle');
   const [logoutError, setLogoutError] = useState<string>('');
+  const [googleLinkState, setGoogleLinkState] = useState<
+    'idle' | 'linking' | 'error' | 'success'
+  >('idle');
+  const [googleLinkError, setGoogleLinkError] = useState('');
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const googleLinkBusy = googleBusy || googleLinkState === 'linking';
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
 
   const performLogout = () => {
     setConfirmVisible(false);
@@ -213,6 +247,7 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
         resetOnboarding();
         await AsyncStorage.removeItem(HOME_STATE_KEY);
         await signOut(auth);
+        setLogoutState('idle');
       } catch (err) {
         console.error('Error al cerrar sesión:', err);
         setLogoutError(
@@ -224,6 +259,41 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
   };
 
   const handleLogout = () => setConfirmVisible(true);
+
+  const handleLinkGoogle = async () => {
+    if (!googleConfigured) {
+      setGoogleLinkError(
+        'Google no configurado. Añade EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (ver todolist.md).',
+      );
+      setGoogleLinkState('error');
+      return;
+    }
+    setGoogleLinkError('');
+    setGoogleLinkState('linking');
+    const result = await signInWithGoogle();
+    if (result.cancelled) {
+      setGoogleLinkState('idle');
+      return;
+    }
+    if (!result.ok) {
+      setGoogleLinkError(result.error || 'No se pudo vincular Google.');
+      setGoogleLinkState('error');
+      return;
+    }
+
+    const displayName = auth.currentUser?.displayName?.trim();
+    if (displayName && !profileName?.trim()) {
+      setProfileName(displayName);
+    }
+
+    await loadState();
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+      () => undefined,
+    );
+    setGoogleLinkState('success');
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    successTimerRef.current = setTimeout(() => setGoogleLinkState('idle'), 1200);
+  };
 
   return (
     <View style={styles.screen}>
@@ -296,6 +366,47 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
         <SectionHeader title="Cuenta" iconKey="account" colors={colors} />
         <View style={styles.card}>
           <SettingsRow
+            icon={linkedGoogle ? 'logo-google' : 'person-outline'}
+            label={accountLabel}
+            description={accountDescription}
+            colors={colors}
+            right={
+              linkedGoogle ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>Google</Text>
+                </View>
+              ) : null
+            }
+          />
+          {!linkedGoogle ? (
+            <>
+              <View style={styles.divider} />
+              <SettingsRow
+                icon="logo-google"
+                label="Vincular con Google"
+                description={
+                  !googleConfigured
+                    ? 'Falta configurar Client ID (todolist.md)'
+                    : !googleReady
+                      ? 'Preparando Google…'
+                      : 'Recupera tu progreso en web y otros dispositivos'
+                }
+                onPress={
+                  googleLinkBusy || !googleConfigured || !googleReady
+                    ? undefined
+                    : () => void handleLinkGoogle()
+                }
+                colors={colors}
+                right={
+                  googleLinkBusy ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : null
+                }
+              />
+            </>
+          ) : null}
+          <View style={styles.divider} />
+          <SettingsRow
             icon="log-out-outline"
             label="Cerrar sesión"
             description="Salir de tu cuenta actual"
@@ -318,11 +429,13 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
         onRequestClose={() => setConfirmVisible(false)}
       >
         <View style={modalStyles(colors).overlay}>
-          <View style={modalStyles(colors).card}>
-            <View style={modalStyles(colors).iconWrap}>
-              <Ionicons name="log-out-outline" size={28} color={colors.error} />
+          <View style={modalStyles(colors).card} accessibilityRole="alert">
+            <View style={modalStyles(colors).hero}>
+              <View style={modalStyles(colors).iconWrap}>
+                <Ionicons name="log-out-outline" size={26} color={colors.error} />
+              </View>
+              <Text style={modalStyles(colors).title}>Cerrar sesión</Text>
             </View>
-            <Text style={modalStyles(colors).title}>Cerrar sesión</Text>
             <Text style={modalStyles(colors).message}>
               ¿Estás seguro de que quieres cerrar sesión? Tendrás que volver a
               configurar tu experiencia.
@@ -331,12 +444,16 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
               <TouchableOpacity
                 style={modalStyles(colors).cancelBtn}
                 onPress={() => setConfirmVisible(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Cancelar cierre de sesión"
               >
                 <Text style={modalStyles(colors).cancelText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={modalStyles(colors).confirmBtn}
                 onPress={performLogout}
+                accessibilityRole="button"
+                accessibilityLabel="Confirmar cerrar sesión"
               >
                 <Text style={modalStyles(colors).confirmText}>
                   Cerrar sesión
@@ -355,32 +472,79 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
         onRequestClose={() => setLogoutState('idle')}
       >
         <View style={modalStyles(colors).overlay}>
-          <View style={modalStyles(colors).card}>
+          <View style={modalStyles(colors).card} accessibilityRole="alert">
             {logoutState === 'logging' ? (
-              <>
+              <View style={modalStyles(colors).hero}>
                 <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={[modalStyles(colors).title, { marginTop: 16 }]}>
-                  Cerrando sesión...
-                </Text>
-              </>
+                <Text style={modalStyles(colors).title}>Cerrando sesión...</Text>
+              </View>
             ) : (
               <>
-                <View style={modalStyles(colors).iconWrap}>
-                  <Ionicons
-                    name="alert-circle-outline"
-                    size={28}
-                    color={colors.error}
-                  />
+                <View style={modalStyles(colors).hero}>
+                  <View style={modalStyles(colors).iconWrap}>
+                    <Ionicons
+                      name="alert-circle-outline"
+                      size={26}
+                      color={colors.error}
+                    />
+                  </View>
+                  <Text style={modalStyles(colors).title}>
+                    No se pudo cerrar sesión
+                  </Text>
                 </View>
-                <Text style={modalStyles(colors).title}>
-                  No se pudo cerrar sesión
-                </Text>
                 <Text style={modalStyles(colors).message}>
                   {logoutError || 'Ocurrió un error inesperado.'}
                 </Text>
                 <TouchableOpacity
-                  style={modalStyles(colors).confirmBtn}
+                  style={[modalStyles(colors).confirmBtn, modalStyles(colors).fullWidthBtn]}
                   onPress={() => setLogoutState('idle')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Entendido"
+                >
+                  <Text style={modalStyles(colors).confirmText}>Entendido</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+      {/* Modal progreso / error vincular Google */}
+      <Modal
+        visible={googleLinkState === 'linking' || googleLinkState === 'error' || googleLinkState === 'success'}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setGoogleLinkState('idle')}
+      >
+        <View style={modalStyles(colors).overlay}>
+          <View style={modalStyles(colors).card} accessibilityRole="alert">
+            {googleLinkState === 'linking' ? (
+              <View style={modalStyles(colors).hero}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={modalStyles(colors).title}>Vinculando Google...</Text>
+              </View>
+            ) : googleLinkState === 'success' ? (
+              <View style={modalStyles(colors).hero}>
+                <View style={[modalStyles(colors).iconWrap, { backgroundColor: colors.primaryContainer }]}>
+                  <Ionicons name="checkmark-circle" size={26} color={colors.primary} />
+                </View>
+                <Text style={modalStyles(colors).title}>Cuenta vinculada</Text>
+              </View>
+            ) : (
+              <>
+                <View style={modalStyles(colors).hero}>
+                  <View style={modalStyles(colors).iconWrap}>
+                    <Ionicons name="alert-circle-outline" size={26} color={colors.error} />
+                  </View>
+                  <Text style={modalStyles(colors).title}>No se pudo vincular</Text>
+                </View>
+                <Text style={modalStyles(colors).message}>
+                  {googleLinkError || 'Ocurrió un error inesperado.'}
+                </Text>
+                <TouchableOpacity
+                  style={[modalStyles(colors).confirmBtn, modalStyles(colors).fullWidthBtn]}
+                  onPress={() => setGoogleLinkState('idle')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Entendido"
                 >
                   <Text style={modalStyles(colors).confirmText}>Entendido</Text>
                 </TouchableOpacity>
@@ -468,15 +632,20 @@ const modalStyles = (colors: ColorScheme) =>
       padding: SPACING.xl,
       borderWidth: 1,
       borderColor: colors.outlineVariant,
+      alignItems: 'center',
+    },
+    hero: {
+      alignItems: 'center',
+      gap: SPACING.md,
+      marginBottom: SPACING.sm,
     },
     iconWrap: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
+      width: 52,
+      height: 52,
+      borderRadius: 26,
       backgroundColor: colors.errorContainer,
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: SPACING.md,
     },
     title: {
       fontSize: 18,
@@ -488,13 +657,15 @@ const modalStyles = (colors: ColorScheme) =>
       fontSize: 14,
       color: colors.onSurfaceVariant,
       textAlign: 'center',
-      marginTop: SPACING.sm,
+      marginTop: SPACING.xs,
       marginBottom: SPACING.lg,
       lineHeight: 20,
+      alignSelf: 'stretch',
     },
     actions: {
       flexDirection: 'row',
       gap: SPACING.sm,
+      alignSelf: 'stretch',
     },
     cancelBtn: {
       flex: 1,
@@ -515,9 +686,13 @@ const modalStyles = (colors: ColorScheme) =>
       alignItems: 'center',
       backgroundColor: colors.error,
     },
+    fullWidthBtn: {
+      alignSelf: 'stretch',
+      flex: 0,
+    },
     confirmText: {
       fontSize: 15,
       fontWeight: '700',
-      color: '#ffffff',
+      color: colors.onError,
     },
   });
