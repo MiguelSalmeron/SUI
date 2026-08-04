@@ -5,7 +5,8 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
+    "scheme": "sui",
     "ios": {
       "supportsTablet": true
     },
@@ -39,7 +40,8 @@
           "imageWidth": 160,
           "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-web-browser"
     ]
   }
 }

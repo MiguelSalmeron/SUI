@@ -8,9 +8,11 @@ import { auth } from '../config/firebase';
 export interface MigrationResult {
   ok: boolean;
   uid: string;
-  /** true si la cuenta anónima se enlazó con email nuevo (preserva datos). */
+  /** true si la cuenta anónima se enlazó (preserva datos). */
   linked: boolean;
   error?: string;
+  /** true si el usuario cerró el prompt OAuth sin completar. */
+  cancelled?: boolean;
 }
 
 /**
