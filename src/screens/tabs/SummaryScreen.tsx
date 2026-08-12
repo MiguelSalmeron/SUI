@@ -50,7 +50,6 @@ export const SummaryScreen = () => {
         habitsCompleted: completedHabits,
         habitsTotal: habits.length,
         streak,
-        pomodoroSessions: 0,
         weeklyHistory,
       }),
     [completedGoals, goals.length, completedHabits, habits.length, streak, weeklyHistory],

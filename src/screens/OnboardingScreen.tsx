@@ -19,7 +19,7 @@ import { useOnboardingStore } from '../store/useOnboardingStore';
 import { useHomeStore } from '../store/useHomeStore';
 import { signInAnon } from '../services/onboardingAuth';
 import { seedOnboardingGoals } from '../services/homeStorage';
-import { loadCachedGoogleEvents } from '../services/googleSync';
+
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import { auth } from '../config/firebase';
 import { ColorScheme, SPACING, useAppTheme } from '../theme/theme';
@@ -193,10 +193,7 @@ export const OnboardingScreen = () => {
         .filter((label): label is string => Boolean(label));
 
       // Precargar eventos de Google local-first y sembrar metas en paralelo
-      await Promise.all([
-        seedOnboardingGoals(labels),
-        loadCachedGoogleEvents(),
-      ]);
+      await seedOnboardingGoals(labels);
 
       const result = await signInAnon();
 

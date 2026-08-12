@@ -10,18 +10,18 @@ El proyecto está diseñado bajo un modelo modular que separa estrictamente la c
 /src
 ├── components/chat/       # UI de asistencia emocional (ChatMessage, ChatInput, EmergencyOverlay).
 ├── components/home/       # Componentes UI: DailyProgress, StreakBadge, LevelCard, AchievementGrid,
-│                          #   WeeklyChart, CelebrationToast, NightlyReportModal, HomeListSection, PomodoroPanel.
+│                          #   WeeklyChart, CelebrationToast, NightlyReportModal, HomeListSection.
 ├── components/onboarding/ # UI conversacional del onboarding (ChatBubble, TypingIndicator, ChatComposer).
 ├── config/                # Instanciación de Firebase (Auth, Firestore).
 ├── context/               # AuthContext: Provee el estado global del usuario autenticado.
-├── hooks/                 # Custom Hooks (usePomodoroEngine). Separan la lógica del motor del timer.
+├── hooks/                 # Custom Hooks: useGoogleAuth y useGoogleCalendar.
 ├── navigation/            # AppNavigator (gate onboarding + Native Stack) y TabNavigator (Bottom Tabs de Home).
 ├── screens/               # Pantallas orquestadoras: OnboardingScreen, ChatScreen, SettingsScreen,
-│                          #   LoginScreen, RegisterScreen (dormidas) y screens/tabs/ (Overview, Goals, Habits, Pomodoro, Summary).
+│                          #   LoginScreen, RegisterScreen (dormidas) y screens/tabs/ (Overview, Goals, Habits, Calendar, Summary).
 ├── services/              # Integración externa: db.ts, homeStorage.ts, gamification.ts, celebration.ts,
 │                          #   notifications.ts, greeting.ts, reportPrompt.ts, chatStream.ts, chatPrompt.ts,
-│                          #   crisisConfig.ts, crisisDetection.ts, onboardingAuth.ts.
-├── store/                 # Stores Zustand por dominio: useHomeStore, usePomodoroStore, useOnboardingStore,
+│                          #   crisisConfig.ts, crisisDetection.ts, onboardingAuth.ts, googleSync.ts.
+├── store/                 # Stores Zustand por dominio: useHomeStore, useOnboardingStore,
 │                          #   useChatStore, useCelebrationStore, useSettingsStore.
 ├── types/                 # Tipos y esquemas Zod compartidos (onboarding.ts, chat.ts).
 └── theme/                 # theme.ts: Design System M3 con ColorScheme claro/oscuro + ThemeController (light/dark/system).
@@ -36,24 +36,25 @@ El estado de la aplicación está rigurosamente segmentado para asegurar alto re
 * **Formularios (Login/Register):** Controlados mediante `react-hook-form` acoplado al validador estricto `Zod` (`@hookform/resolvers/zod`). Previene re-renderizados innecesarios y detiene al usuario antes de hacer requests inválidos a Firebase.
 
 ### 2. Persistencia Híbrida (Offline-First + Nube)
-Metas, hábitos, sesiones Pomodoro, racha, historial semanal y XP usan una estrategia de doble capa gestionada por `useHomeStore`:
+Metas, hábitos, racha, historial semanal y XP usan una estrategia de doble capa gestionada por `useHomeStore`. Google Calendar mantiene una caché local independiente y de solo lectura:
 1.  **Carga Inmediata (AsyncStorage):** Al abrir la app, se lee el disco local (clave `sui-home-state-v4`). Si el documento local tiene `lastResetDate` distinto al día actual, el estado de hoy se **reconstruye vacío** (`applyDailyReset`) y el día anterior se congela como `DailySnapshot` en `weeklyHistory`.
 2.  **Sincronización Transparente (Firestore):** Si hay sesión y red, `loadState` descarga los datos desde `users/{uid}` (con timeout de 5s para no bloquear la UI). La nube wins en metas/hábitos; la última escritura wins en streak. Cualquier cambio en la UI dispara `saveState` (debounced 400ms), que escribe en disco y en Firebase de forma no bloqueante (`catch(() => undefined)` en fallo de red).
 3.  **Reconciliación diaria:** cada vez que cambia el día, `upsertSnapshot` guarda un `DailySnapshot` del día previo (max 14 días) y `computeTotalXp` recalcula el XP total a partir del historial.
 
-### 3. El Motor del Pomodoro (Zustand + Timestamps + AppState)
-El temporizador fue refactorizado para soportar la suspensión de hilos JS del sistema operativo móvil:
-*   **Zustand:** Mantiene un estado global del Pomodoro fuera del árbol principal de React. Evita que la pantalla entera (`HomeScreen`) se vuelva a renderizar cada segundo.
-*   **Timestamps Inmutables:** El temporizador **no resta segundos con `setInterval`**. Al iniciar, calcula un `targetEndTime` (`Date.now() + duración`).
-*   **AppState Engine:** El custom hook `usePomodoroEngine` escucha transiciones nativas. Si el usuario minimiza la aplicación (Background) y regresa 10 minutos después (Active), el motor vuelve a calcular `targetEndTime - Date.now()`, reajustando la UI al tiempo correcto y matemático al instante.
+### 3. Google Calendar y agenda unificada
+`useGoogleCalendar` separa el OAuth de Calendar del login de Firebase:
+*   **Permiso mínimo:** la primera versión solicita `calendar.readonly` y no modifica eventos.
+*   **Token efímero:** el access token se mantiene en memoria y no se persiste en AsyncStorage.
+*   **Caché offline:** `googleSync.ts` conserva eventos normalizados, última sincronización y estados de error sin crear eventos demo.
+*   **Agenda común:** `buildUnifiedTimeline()` combina eventos de Google con hábitos y metas locales, ordenándolos por timestamp.
 
 ### 4. Gamificación y Celebraciones
 Capa de motivación construida sobre `services/gamification.ts` y `services/celebration.ts`, sin librerías externas de animación:
-*   **XP (Experiencia):** cada meta cumplida da **+10 XP**, cada hábito **+5 XP**, cada Pomodoro finalizado **+25 XP**. El XP total se deriva del `weeklyHistory` (`computeTotalXp`), así es determinista y reconciliable tras reset diarios.
+*   **XP (Experiencia):** cada meta cumplida da **+10 XP** y cada hábito **+5 XP**. El XP total se deriva del `weeklyHistory` (`computeTotalXp`), así es determinista y reconciliable tras reset diarios.
 *   **Niveles:** `calculateLevel(xp)` mapea el XP a 7 niveles con títulos — *Novato → Aprendiz → Constante → Enfocado → Disciplinado → Maestro → Leyenda*. El umbral del siguiente nivel escala linealmente (`level * 100`).
-*   **Logros:** `getAchievements(ctx)` evalúa 6 logros (`first_goal`, `streak_3`, `streak_7`, `perfect_day`, `pomodoro_5`, `week_active`) a partir del estado actual + `weeklyHistory`. Se muestran en `AchievementGrid` en modo compacto (Overview) y completo (Summary).
-*   **Celebraciones:** cada vez que el contador `dailyCompleted` sube, `TabNavigator` invoca `useCelebrationStore.trigger({ kind, subtitle })`. El store dispara haptics (`expo-haptics` — `Success` para perfect_day/pomodoro, `Medium` para goal/habit) y muestra `CelebrationToast` (animación spring translateY + fade, auto-hide 2200ms). El "Día perfecto" solo se celebra una vez por sesión (`perfectDayShown` ref).
-*   **Estadísticas:** `WeeklyChart` dibuja barras de los últimos 7 días con `getCompletionRate`, coloreadas por umbral (≥80% success, ≥50% primary, resto secondary). `getWeeklyInsight` genera un mensaje textual adaptativo según promedio, pomodoros y días activos.
+*   **Logros:** `getAchievements(ctx)` evalúa logros de metas, rachas, días perfectos y actividad semanal a partir del estado actual + `weeklyHistory`. Se muestran en `AchievementGrid` en modo compacto (Overview) y completo (Summary).
+*   **Celebraciones:** cada vez que el contador `dailyCompleted` sube, `TabNavigator` invoca `useCelebrationStore.trigger({ kind, subtitle })`. El store dispara haptics (`expo-haptics` — `Success` para `perfect_day`, `Medium` para `goal/habit`) y muestra `CelebrationToast` (animación spring translateY + fade, auto-hide 2200ms). El "Día perfecto" solo se celebra una vez por sesión (`perfectDayShown` ref).
+*   **Estadísticas:** `WeeklyChart` dibuja barras de los últimos 7 días con `getCompletionRate`, coloreadas por umbral (≥80% success, ≥50% primary, resto secondary). `getWeeklyInsight` genera un mensaje textual adaptativo según cumplimiento y días activos.
 
 ## 🚪 Flujo de Onboarding (Registro sin fricción)
 
@@ -108,7 +109,7 @@ Capa de pulido visual construida solo con herramientas nativas (sin Lottie ni Re
   Si `!onboardingComplete` solo existe la ruta `Onboarding` (con `gestureEnabled:false` y `animation:'fade'`).
   Si `onboardingComplete`, montan Home (`TabNavigator`), Chat y Settings, con
   `animation: 'slide_from_right'` (280ms) homogéneo en iOS y Android.
-* **Nivel Home (`TabNavigator`):** Bottom Tabs de 5 pantallas — Overview, Goals, Habits, Pomodoro, Summary.
+* **Nivel Home (`TabNavigator`):** Bottom Tabs de 5 pantallas — Overview, Goals, Habits, Calendar/Radar, Summary.
   * Header compartido (`TabHeader`) con fecha, saludo (`buildGreeting`) y botón Settings.
   * `tabBarIcon` con badges numéricos en Goals/Habits cuando hay pendientes.
   * `animation: 'fade'` al cambiar de tab.

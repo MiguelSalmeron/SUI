@@ -5,7 +5,7 @@
 1. **Inicio (Overview):** PANEL central con nivel/XP, racha, progreso diario, métricas rápidas y accesos directos.
 2. **Metas:** Tareas puntuales del día (To-Do).
 3. **Hábitos:** Acciones repetitivas para generar constancia.
-4. **Pomodoro:** Bloques de trabajo y descanso enfocado, con "Modo Enfoque" (pantalla completa) que minimiza distracciones.
+4. **Calendario / Radar:** Agenda unificada con eventos de Google Calendar, metas y hábitos.
 5. **Resumen (Summary):** Estadísticas semanales, gráfico de los últimos 7 días, logros e insight generado por la app.
 
 Además incorpora:
@@ -36,10 +36,10 @@ El producto se llama **SUI** en todos lados. Algunos identificadores técnicos d
 * **Backend y Autenticación:** [Firebase Auth](https://firebase.google.com/) con **Anonymous Auth** silenciosa en el onboarding; email/Google queda para una fase posterior de "consolidar cuenta".
 * **Persistencia Híbrida (Offline-First + Nube):**
   * **Almacenamiento Local:** `AsyncStorage` para garantizar funcionamiento offline y carga inmediata de la interfaz (zero-latency).
-  * **Sincronización en la Nube:** Cloud Firestore. Metas, hábitos, sesiones Pomodoro, racha, historial semanal y XP se respaldan automáticamente bajo `users/{uid}`. Si cambias de dispositivo, no pierdes nada.
-* **Gestión de Estado:** [Zustand](https://zustand-demo.pmnd.rs/) con stores separados por dominio (`useHomeStore`, `usePomodoroStore`, `useOnboardingStore`, `useChatStore`, `useCelebrationStore`, `useSettingsStore`). El store de onboarding y ajustes usan el middleware `persist` sobre AsyncStorage.
+  * **Sincronización en la Nube:** Cloud Firestore. Metas, hábitos, racha, historial semanal y XP se respaldan automáticamente bajo `users/{uid}`. Los eventos de Google Calendar se consultan con permiso de solo lectura y se mantienen en caché local para uso offline.
+* **Gestión de Estado:** [Zustand](https://zustand-demo.pmnd.rs/) con stores separados por dominio (`useHomeStore`, `useOnboardingStore`, `useChatStore`, `useCelebrationStore`, `useSettingsStore`) y hooks específicos para integraciones como Google Calendar. El store de onboarding y ajustes usan el middleware `persist` sobre AsyncStorage.
 * **Validación de Formularios:** `react-hook-form` + `Zod`. Esquemas estrictos para un registro y acceso sin errores.
-* **Temporizador Resiliente:** Motor matemático basado en Timestamps y el ciclo de vida de la aplicación (`AppState`), garantizando que el Pomodoro calcule los tiempos con precisión absoluta incluso si envías la app a segundo plano.
+* **Agenda unificada:** `googleSync.ts` normaliza eventos de Google Calendar y los combina con metas y hábitos SUI, respetando caché offline, eventos de día completo y zonas horarias.
 * **Navegación y UX:** [React Navigation v7](https://reactnavigation.org/) — Native Stack en el nivel raíz (Onboarding / Home / Chat / Settings) y Bottom Tabs dentro de Home, con transiciones nativas consistentes. [`expo-splash-screen`](https://docs.expo.dev/versions/v56.0.0/sdk/splash-screen/) para una pantalla de carga nativa que se oculta (con *fade*) solo cuando Firebase Auth y el estado local terminan de cargar — sin destello blanco. Animaciones con la API nativa `Animated`.
 * **Haptics y Notificaciones:** `expo-haptics` para feedback de celebraciones y `expo-notifications` para el resumen nocturno y recordatorios.
 

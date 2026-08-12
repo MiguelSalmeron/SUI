@@ -28,8 +28,7 @@ export const WeeklyChart = ({ data }: Props) => {
         {data.map((day) => {
           const rate = getCompletionRate(day);
           const height = Math.max(8, (rate / maxRate) * 100);
-          const hasActivity =
-            day.goalsTotal + day.habitsTotal > 0 || day.pomodoroSessions > 0;
+          const hasActivity = day.goalsTotal + day.habitsTotal > 0;
           const isToday = day.date === data[data.length - 1]?.date;
 
           return (

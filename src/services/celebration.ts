@@ -1,19 +1,17 @@
 import * as Haptics from 'expo-haptics';
-import { XP_GOAL, XP_HABIT, XP_POMODORO } from './gamification';
+import { XP_GOAL, XP_HABIT } from './gamification';
 
-export type CelebrationKind = 'goal' | 'habit' | 'pomodoro' | 'perfect_day';
+export type CelebrationKind = 'goal' | 'habit' | 'perfect_day';
 
 const XP_BY_KIND: Record<CelebrationKind, number> = {
   goal: XP_GOAL,
   habit: XP_HABIT,
-  pomodoro: XP_POMODORO,
   perfect_day: 0,
 };
 
 const TITLE_BY_KIND: Record<CelebrationKind, string> = {
   goal: '¡Meta cumplida!',
   habit: '¡Hábito hecho!',
-  pomodoro: '¡Pomodoro listo!',
   perfect_day: '¡Día perfecto!',
 };
 
@@ -23,7 +21,7 @@ export const getCelebrationTitle = (kind: CelebrationKind): string => TITLE_BY_K
 
 export const playCelebrationHaptic = async (kind: CelebrationKind): Promise<void> => {
   try {
-    if (kind === 'perfect_day' || kind === 'pomodoro') {
+    if (kind === 'perfect_day') {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       return;
     }

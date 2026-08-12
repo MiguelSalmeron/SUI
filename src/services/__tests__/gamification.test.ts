@@ -16,13 +16,11 @@ const sample: DailySnapshot = {
   goalsTotal: 3,
   habitsCompleted: 1,
   habitsTotal: 2,
-  pomodoroSessions: 2,
-  pomodoroMinutes: 50,
 };
 
 describe('gamification', () => {
   it('calcula XP por snapshot', () => {
-    expect(snapshotXp(sample)).toBe(2 * 10 + 1 * 5 + 2 * 25);
+    expect(snapshotXp(sample)).toBe(2 * 10 + 1 * 5);
   });
 
   it('calcula nivel a partir de XP', () => {
@@ -69,7 +67,6 @@ describe('gamification', () => {
       habitsCompleted: 0,
       habitsTotal: 0,
       streak: 0,
-      pomodoroSessions: 0,
       weeklyHistory: [],
     });
     expect(achievements.find((a) => a.id === 'first_goal')?.unlocked).toBe(true);
@@ -84,12 +81,9 @@ describe('gamification', () => {
     const snap = makeSnapshot(
       [{ completed: true }, { completed: false }],
       [{ completed: true }],
-      3,
-      75,
       '2026-06-30',
     );
     expect(snap.goalsCompleted).toBe(1);
     expect(snap.habitsCompleted).toBe(1);
-    expect(snap.pomodoroSessions).toBe(3);
   });
 });

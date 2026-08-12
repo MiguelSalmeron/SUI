@@ -6,8 +6,6 @@ import type { Goal, Habit } from '../types/models';
 export interface UserData {
   goals: Goal[];
   habits: Habit[];
-  pomodoroMinutes?: number;
-  pomodoroSessions?: number;
   lastResetDate?: string;
   streakCount?: number;
   lastCompletedDate?: string;

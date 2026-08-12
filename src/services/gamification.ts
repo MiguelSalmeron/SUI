@@ -6,8 +6,6 @@ export interface DailySnapshot {
   goalsTotal: number;
   habitsCompleted: number;
   habitsTotal: number;
-  pomodoroSessions: number;
-  pomodoroMinutes: number;
 }
 
 export type AchievementId =
@@ -15,7 +13,6 @@ export type AchievementId =
   | 'streak_3'
   | 'streak_7'
   | 'perfect_day'
-  | 'pomodoro_5'
   | 'week_active';
 
 export interface Achievement {
@@ -28,12 +25,10 @@ export interface Achievement {
 
 export const XP_GOAL = 10;
 export const XP_HABIT = 5;
-export const XP_POMODORO = 25;
 
 export const snapshotXp = (s: DailySnapshot): number =>
   s.goalsCompleted * XP_GOAL +
-  s.habitsCompleted * XP_HABIT +
-  s.pomodoroSessions * XP_POMODORO;
+  s.habitsCompleted * XP_HABIT;
 
 export const computeTotalXp = (history: DailySnapshot[]): number =>
   history.reduce((sum, s) => sum + snapshotXp(s), 0);
@@ -86,9 +81,7 @@ export const snapshotsEqual = (a: DailySnapshot, b: DailySnapshot): boolean =>
   a.goalsCompleted === b.goalsCompleted &&
   a.goalsTotal === b.goalsTotal &&
   a.habitsCompleted === b.habitsCompleted &&
-  a.habitsTotal === b.habitsTotal &&
-  a.pomodoroSessions === b.pomodoroSessions &&
-  a.pomodoroMinutes === b.pomodoroMinutes;
+  a.habitsTotal === b.habitsTotal;
 
 export const upsertSnapshot = (
   history: DailySnapshot[],
@@ -123,8 +116,6 @@ export const buildWeeklyView = (
         goalsTotal: 0,
         habitsCompleted: 0,
         habitsTotal: 0,
-        pomodoroSessions: 0,
-        pomodoroMinutes: 0,
       },
     );
   }
@@ -134,8 +125,6 @@ export const buildWeeklyView = (
 export const makeSnapshot = (
   goals: { completed: boolean }[],
   habits: { completed: boolean }[],
-  pomodoroSessions: number,
-  pomodoroMinutes: number,
   date?: string,
 ): DailySnapshot => ({
   date: date ?? localDateKey(),
@@ -143,8 +132,6 @@ export const makeSnapshot = (
   goalsTotal: goals.length,
   habitsCompleted: habits.filter((h) => h.completed).length,
   habitsTotal: habits.length,
-  pomodoroSessions,
-  pomodoroMinutes,
 });
 
 export interface AchievementContext {
@@ -153,7 +140,6 @@ export interface AchievementContext {
   habitsCompleted: number;
   habitsTotal: number;
   streak: number;
-  pomodoroSessions: number;
   weeklyHistory: DailySnapshot[];
 }
 
@@ -161,20 +147,14 @@ export const getAchievements = (ctx: AchievementContext): Achievement[] => {
   const allHistory = ctx.weeklyHistory;
   const totalGoalsEver = allHistory.reduce((s, d) => s + d.goalsCompleted, 0) + ctx.goalsCompleted;
   const activeDays = allHistory.filter(
-    (d) => d.goalsCompleted + d.habitsCompleted > 0 || d.pomodoroSessions > 0,
+    (d) => d.goalsCompleted + d.habitsCompleted > 0,
   ).length;
-  const todayActive =
-    ctx.goalsCompleted + ctx.habitsCompleted > 0 || ctx.pomodoroSessions > 0;
+  const todayActive = ctx.goalsCompleted + ctx.habitsCompleted > 0;
   const activeDaysCount = activeDays + (todayActive ? 1 : 0);
 
   const total = ctx.goalsTotal + ctx.habitsTotal;
   const completed = ctx.goalsCompleted + ctx.habitsCompleted;
   const perfectDay = total > 0 && completed === total;
-
-  const maxPomodoros = Math.max(
-    ctx.pomodoroSessions,
-    ...allHistory.map((d) => d.pomodoroSessions),
-  );
 
   return [
     {
@@ -205,13 +185,7 @@ export const getAchievements = (ctx: AchievementContext): Achievement[] => {
       icon: 'star',
       unlocked: perfectDay || allHistory.some((d) => getCompletionRate(d) === 100 && d.goalsTotal + d.habitsTotal > 0),
     },
-    {
-      id: 'pomodoro_5',
-      title: 'Maratonista',
-      description: '5 pomodoros en un día',
-      icon: 'timer',
-      unlocked: maxPomodoros >= 5,
-    },
+
     {
       id: 'week_active',
       title: 'Semana fuerte',
@@ -228,9 +202,8 @@ export const getWeeklyInsight = (
 ): string => {
   const rates = week.map(getCompletionRate).filter((r) => r > 0);
   const avgRate = rates.length ? Math.round(rates.reduce((a, b) => a + b, 0) / rates.length) : 0;
-  const totalPomodoros = week.reduce((s, d) => s + d.pomodoroSessions, 0);
   const activeDays = week.filter(
-    (d) => d.goalsCompleted + d.habitsCompleted > 0 || d.pomodoroSessions > 0,
+    (d) => d.goalsCompleted + d.habitsCompleted > 0,
   ).length;
 
   if (activeDays === 0) {
@@ -239,9 +212,7 @@ export const getWeeklyInsight = (
   if (avgRate >= 80 && streak >= 3) {
     return `Semana excelente: ${avgRate}% de cumplimiento promedio y racha de ${streak} días. Sigue así.`;
   }
-  if (totalPomodoros >= 10) {
-    return `${totalPomodoros} pomodoros esta semana. Tu enfoque profundo está dando frutos.`;
-  }
+
   if (activeDays >= 5) {
     return `${activeDays} días activos de 7. La constancia es tu superpoder.`;
   }
