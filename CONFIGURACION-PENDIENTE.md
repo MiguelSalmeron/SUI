@@ -1,6 +1,6 @@
 # SUI — Configuración de Firebase y Azure Foundry Pendientes
 
-Esta guía contiene el checklist para conectar la aplicación móvil y el servidor (Cloud Functions) con los servicios reales en la nube. Hasta completarla, la app usa credenciales de ejemplo y fallará al contactar la red.
+Esta guía contiene el checklist para conectar y verificar la aplicación móvil y el servidor con los servicios reales en la nube. La base ya está desplegada en `xsui-nica`; quedan pendientes algunas configuraciones manuales y pruebas multiplataforma.
 
 > **Nota** (jul 2026): el chatbot migró de OpenRouter a **Azure OpenAI Foundry** (modelo `gpt-5-mini`) vía Azure for Students. Esta guía refleja el stack actual. Si en algún momento quieres reverter a OpenRouter, en `CHATBOT-IA.md` → "Rollback" está el procedimiento.
 
@@ -65,7 +65,19 @@ Esta guía contiene el checklist para conectar la aplicación móvil y el servid
 1. [ ] Al finalizar el despliegue en el Paso 4, la terminal imprimirá una URL para `chatProxy`.
    *Ejemplo: `https://chatproxy-xxxxxxxxxx-uc.a.run.app`*
 2. [ ] Copiar esa URL.
-3. [ ] Pegarla en el `.env` de la app móvil como `EXPO_PUBLIC_CHAT_PROXY_URL` (ver Paso 2).
+2. [ ] Pegarla en el `.env` de la app móvil como `EXPO_PUBLIC_CHAT_PROXY_URL` (ver Paso 2).
+
+### Paso 6: Google Calendar — autorización de solo lectura
+1. [ ] Activar **Google Calendar API** en el proyecto `xsui-nica` de Google Cloud.
+2. [ ] Añadir el scope `https://www.googleapis.com/auth/calendar.readonly` en la pantalla de consentimiento OAuth.
+3. [ ] Verificar Client IDs Web, Android e iOS y sus redirect URIs.
+4. [ ] Probar en `https://xsui.web.app`: Calendar/Radar → Conectar → aceptar permiso → Actualizar.
+5. [ ] Verificar caché offline, cancelación del consentimiento, token caducado y Desconectar.
+
+### Paso 7: Mantenimiento pendiente
+- [ ] Actualizar Cloud Functions de Node.js 20 a Node.js 22 antes del 30/10/2026.
+- [ ] Actualizar `firebase-functions` después de revisar breaking changes.
+- [ ] Ejecutar una build release Android/iOS y validar OAuth en dispositivo real.
 
 ---
 
