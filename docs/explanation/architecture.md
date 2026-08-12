@@ -12,7 +12,7 @@ El proyecto está diseñado bajo un modelo modular estricto que separa la interf
 /src
 ├── components/            # UI modular pura sin estado complejo.
 │   ├── chat/              # Componentes de interacción con la IA.
-│   ├── home/              # Paneles del Dashboard, Pomodoro y Listas.
+│   ├── home/              # Paneles del Dashboard y Listas.
 │   └── onboarding/        # Componentes del chat del onboarding conversacional.
 ├── config/                # Instanciación y exportación de Firebase.
 ├── context/               # AuthContext (Sesión activa e ID Token).
@@ -53,44 +53,32 @@ graph TD;
 
 ---
 
-## 🍅 El Motor Resiliente del Pomodoro
+## 🗓️ Google Calendar y agenda unificada
 
-Uno de los grandes desafíos al programar en React Native es la suspensión de hilos del sistema operativo: cuando el usuario minimiza la app o bloquea la pantalla, iOS y Android suspenden el motor de JavaScript, deteniendo cualquier temporizador basado en `setInterval` o `setTimeout`.
+Calendar/Radar integra eventos de Google Calendar con metas y hábitos SUI sin convertir los eventos externos en tareas editables dentro de la app.
 
-Para solucionar esto de manera matemática y precisa, SUI-2 adopta un **enfoque basado en timestamps inmutables en el futuro**:
-
-### Diagrama de Flujo del Pomodoro
+### Flujo de datos
 
 ```mermaid
-sequenceDiagram
-    participant U as Usuario
-    participant Z as Zustand (Store)
-    participant E as Engine (usePomodoroEngine)
-    participant OS as S.O. Móvil
-
-    U->>Z: Iniciar Pomodoro (25 min)
-    Z->>Z: Calcular targetEndTime = Date.now() + 25m
-    Z->>Z: setRunning(true)
-    Z->>E: Tick cada segundo (setInterval alternativo)
-    U->>OS: Minimizar App (Fondo)
-    Note over OS, Z: S.O. suspende Javascript. setInterval se CONGELA
-    Note over OS, Z: Pasan 10 minutos reales en el mundo exterior...
-    U->>OS: Abrir App (Volver al primer plano)
-    OS->>E: Evento AppState transiciona a "active"
-    E->>Z: Leer targetEndTime inmutable
-    E->>E: Calcular segundos restantes = targetEndTime - Date.now()
-    E->>Z: setPomodoroSeconds(restante)
-    E->>Z: UI actualizada instantáneamente al tiempo real exacto
+graph TD
+    A[Usuario abre Calendar/Radar] --> B[Leer caché local]
+    B --> C[Mostrar eventos disponibles offline]
+    A --> D[Solicitar OAuth calendar.readonly]
+    D --> E[Obtener access token efímero]
+    E --> F[Consultar Google Calendar API]
+    F --> G[Normalizar fechas, zonas horarias y eventos]
+    G --> H[Guardar caché local]
+    H --> I[Construir agenda Google + SUI]
 ```
 
-### Explicación del Algoritmo:
-1.  **Inicio:** Al hacer clic en comenzar, calculamos un timestamp inmutable de finalización: `targetEndTime = Date.now() + segundos_restantes * 1000`. El flag `pomodoroRunning` pasa a ser `true`.
-2.  **Suspensión:** Al pasar la aplicación a segundo plano (*background*), el hilo de render se detiene. El cronómetro se pausa visualmente.
-3.  **Despertar:** Al abrir la aplicación nuevamente (*foreground*), el listener nativo `AppState` dispara una rutina de re-sincronización. El sistema compara el timestamp actual con el `targetEndTime`:
-    *   Si `targetEndTime > Date.now()`, el temporizador continúa restando basándose en la diferencia real: `pomodoroSeconds = Math.round((targetEndTime - Date.now()) / 1000)`.
-    *   Si `targetEndTime <= Date.now()`, el temporizador detecta que el bloque de trabajo finalizó durante la suspensión, dispara el fin de ciclo e incrementa la sesión (`pomodoroSessions = pomodoroSessions + 1`).
+Principios:
 
-Gracias a esta arquitectura basada en Zustand, la lógica de conteo no renderiza todo el árbol de React en cada segundo transcurrido, optimizando el rendimiento de la batería y la CPU del dispositivo.
+1. La autorización de Google Calendar es independiente del `id_token` usado para Firebase Auth.
+2. La primera versión solicita solo lectura (`calendar.readonly`).
+3. El access token no se persiste en AsyncStorage.
+4. La caché no crea eventos demo y muestra su fecha de última sincronización.
+5. Si falla la red, se conserva la última caché y se informa al usuario.
+6. La agenda ordena por timestamps normalizados, no por texto visible `AM/PM`.
 
 ---
 
@@ -99,7 +87,7 @@ Gracias a esta arquitectura basada en Zustand, la lógica de conteo no renderiza
 Para ofrecer una experiencia de usuario impecable (UX premium), similar a la de las aplicaciones nativas más robustas, la navegación de la aplicación principal ha sido refactorizada para desacoplarse del flujo general de ScrollView:
 
 ### 1. Desacoplamiento de la Barra de Navegación (`DashboardNavbar`)
-Anteriormente, el selector de pestañas residía dentro de la vista principal con scroll. Esto causaba fatiga visual y obligaba al usuario a deslizarse hacia arriba para cambiar de sección. Ahora, `DashboardNavbar` es una capa flotante de posición fija al borde inferior de la pantalla. Esto garantiza que las secciones críticas (**Overview**, **Metas**, **Hábitos**, **Pomodoro**) estén siempre accesibles con un solo toque desde cualquier pantalla.
+Anteriormente, el selector de pestañas residía dentro de la vista principal con scroll. Esto causaba fatiga visual y obligaba al usuario a deslizarse hacia arriba para cambiar de sección. Ahora, `DashboardNavbar` es una capa flotante de posición fija al borde inferior de la pantalla. Esto garantiza que las secciones críticas (**Overview**, **Metas**, **Hábitos**, **Calendar/Radar**) estén siempre accesibles con un solo toque desde cualquier pantalla.
 
 ### 2. Integración de Insets de Safe Area (`react-native-safe-area-context`)
 Diferentes terminales móviles tienen configuraciones físicas de pantalla muy distintas (por ejemplo, el "Notch" de iOS, los bordes curvos o los "Home Indicators" de deslizamiento nativo). 

@@ -274,7 +274,7 @@ export const useHomeStore = create<HomeState>((set, get) => ({
       const todayKey = localDateKey();
 
       if (lastReset && lastReset !== todayKey) {
-        const prevSnapshot = makeSnapshot(localGoals, localHabits, 0, 0, lastReset);
+        const prevSnapshot = makeSnapshot(localGoals, localHabits, lastReset);
         weeklyHistory = upsertSnapshot(weeklyHistory, prevSnapshot);
       }
 
@@ -284,7 +284,7 @@ export const useHomeStore = create<HomeState>((set, get) => ({
         lastCompletedDate: lastCompleted,
       });
 
-      const todaySnapshot = makeSnapshot(reset.goals, reset.habits, 0, 0, todayKey);
+      const todaySnapshot = makeSnapshot(reset.goals, reset.habits, todayKey);
       weeklyHistory = upsertSnapshot(weeklyHistory, todaySnapshot);
       const totalXp = computeTotalXp(weeklyHistory);
 
@@ -329,7 +329,7 @@ export const useHomeStore = create<HomeState>((set, get) => ({
       const { goals, habits, streak, lastCompletedDate, lastResetDate, weeklyHistory } = get();
       const user = auth.currentUser;
 
-      const todaySnapshot = makeSnapshot(goals, habits, 0, 0);
+      const todaySnapshot = makeSnapshot(goals, habits);
       const updatedHistory = upsertSnapshot(weeklyHistory, todaySnapshot);
       const totalXp = computeTotalXp(updatedHistory);
 

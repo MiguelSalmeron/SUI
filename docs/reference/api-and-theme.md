@@ -70,7 +70,7 @@ Controlado por `useChatStore`. Excluye estados efímeros de streaming y aplica u
 }
 ```
 
-### 3. Estado del Tablero de Productividad (`sui-home-state-v4`)
+### 3. Estado del Tablero de Productividad (`sui-home-state-v6`)
 Representa el tablero diario de metas y hábitos.
 ```json
 {
@@ -78,10 +78,8 @@ Representa el tablero diario de metas y hábitos.
     { "id": "goal-1", "title": "Tomar 2L de agua", "completed": true }
   ],
   "habits": [
-    { "id": "habit-1", "title": "Estudiar 1 Pomodoro", "completed": false }
+    { "id": "habit-1", "title": "Revisar apuntes", "completed": false }
   ],
-  "pomodoroMinutes": 25,
-  "pomodoroSessions": 2,
   "lastResetDate": "2026-06-18",
   "streakCount": 4,
   "lastCompletedDate": "2026-06-17"
@@ -109,9 +107,6 @@ interface FirestoreUserDocument {
     title: string;
     completed: boolean;
   }>;
-  /** Parámetros y contador del Pomodoro */
-  pomodoroMinutes: number;
-  pomodoroSessions: number;
   /** Fecha local (YYYY-MM-DD) del último reseteo de checklist */
   lastResetDate?: string;
   /** Número de racha de días consecutivos cumpliendo metas/habits */
@@ -199,7 +194,7 @@ Las sombras se computan matemáticamente para simular profundidad nativa sobre e
 *   **`xs`:** `4px` (Ej. indicadores compactos).
 *   **`sm`:** `8px` (Ej. botones compactos, chips de objetivos).
 *   **`md`:** `12px` (Ej. inputs de texto, checklist del dashboard).
-*   **`lg`:** `16px` (Ej. tarjetas del Pomodoro, paneles flotantes de metas).
+*   **`lg`:** `16px` (Ej. tarjetas de Calendar/Radar, paneles flotantes de metas).
 *   **`xl`:** `28px` (Ej. modales, bottom-sheets y bordes superiores de hojas deslizantes).
 *   **`full`:** `9999px` (Círculo perfecto, ej. avatares, píldora de racha y botones flotantes).
 
@@ -211,8 +206,8 @@ Se define una escala proporcional y armonizada de tamaños de fuente, espaciado 
 
 | Token | Tamaño (fontSize) | Altura (lineHeight) | Peso (fontWeight) | Propósito / Ejemplo |
 | :--- | :--- | :--- | :--- | :--- |
-| `displayLg` | `52px` | `60px` | `900` | Números gigantes (ej. cronómetro Pomodoro) |
-| `displayMd` | `40px` | `48px` | `900` | Cronómetros secundarios o métricas principales |
+| `displayLg` | `52px` | `60px` | `900` | Métricas principales y destacados |
+| `displayMd` | `40px` | `48px` | `900` | Métricas secundarias o indicadores destacados |
 | `headlineMd`| `28px` | `36px` | `800` | Títulos principales de pantallas |
 | `headlineSm`| `24px` | `32px` | `800` | Títulos de secciones o modales |
 | `titleLg` | `22px` | `28px` | `700` | Títulos destacados en tarjetas |

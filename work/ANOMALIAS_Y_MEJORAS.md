@@ -183,7 +183,7 @@ Integrar **Sentry** (`@sentry/react-native`) o **Firebase Crashlytics** para mon
 ## 🟢 Prioridad 7: Tests insuficientes
 
 ### Hallazgo
-Solo 6 archivos de test (397 líneas total), todos en servicios puros:
+La cobertura actual incluye tests de servicios, store de onboarding y sincronización de Google Calendar; todavía faltan pruebas de UI y navegación:
 
 | Archivo | Lines |
 |---|---|
@@ -191,10 +191,13 @@ Solo 6 archivos de test (397 líneas total), todos en servicios puros:
 | `crisisDetection.test.ts` | 41 |
 | `gamification.test.ts` | 95 |
 | `homeStorage.test.ts` | 89 |
-| `notifications.test.ts` | 83 |
-| `PomodoroPanel.test.tsx` | 20 |
+| `notifications.test.ts` | — |
+| `googleSync.test.ts` | — |
+| `googleAuth.test.ts` | — |
+| `accountMigration.test.ts` | — |
+| `chatStream.test.ts` | — |
 
-**Cero tests para**: stores Zustand (6), navegación, screens, AuthContext, chatStream, db service, Cloud Function.
+**Aún faltan tests para**: la mayoría de stores Zustand, navegación, screens, AuthContext, db service y Cloud Function.
 
 ### Acción
 Priorizar tests para:

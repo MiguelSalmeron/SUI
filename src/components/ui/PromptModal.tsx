@@ -1,7 +1,7 @@
 /**
  * PromptModal — Modal reusable para prompts de texto/numéricos.
  *
- * Reemplaza los modales duplicados de GoalsScreen y PomodoroScreen.
+ * Reemplaza los modales duplicados de GoalsScreen y CalendarScreen.
  * - Tipado estricto, cero `any`.
  * - Validación delegada al caller vía `validate`.
  * - Compatible dark/light.

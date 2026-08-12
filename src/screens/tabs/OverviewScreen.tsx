@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { ColorScheme, SPACING, useAppTheme } from '../../theme/theme';
 import { LevelCard } from '../../components/home/LevelCard';
@@ -34,9 +35,19 @@ export const OverviewScreen = () => {
   const [selectedDate, setSelectedDate] = useState<string>(localDateKey());
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
 
-  useEffect(() => {
-    loadCachedGoogleEvents().then(setGoogleEvents).catch(() => undefined);
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      loadCachedGoogleEvents()
+        .then((events) => {
+          if (active) setGoogleEvents(events);
+        })
+        .catch(() => undefined);
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   // Generar la franja horizontal de minicalendario (7 días centrados en hoy)
   const weekDays = useMemo(() => {

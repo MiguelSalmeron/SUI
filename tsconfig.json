@@ -5,6 +5,6 @@
     "rootDir": ".",
     "ignoreDeprecations": "6.0"
   },
-  "include": ["src/**/*", "index.ts"],
+  "include": ["App.tsx", "src/**/*", "index.ts"],
   "exclude": ["functions", "node_modules", "dist", "**/__tests__/**", "src/**/__tests__/**"]
 }
