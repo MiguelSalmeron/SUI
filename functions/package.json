@@ -1,8 +1,9 @@
 {
   "name": "sui-functions",
-  "description": "Cloud Functions for the SUI app (chatProxy: OpenRouter secure proxy with SSE streaming).",
+  "description": "Cloud Functions for SUI, including an authenticated Azure OpenAI SSE proxy.",
   "scripts": {
     "build": "tsc",
+    "test": "npm run build && node --test test/*.test.js",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",

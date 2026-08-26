@@ -5,6 +5,9 @@ functions/lib/
 android/
 dist/
 web-build/
+coverage/
+*.tsbuildinfo
+.DS_Store
 .env
 .env.local
 .env.*.local
@@ -15,10 +18,37 @@ yarn-error.log*
 .expo-shared/
 .metro/
 /*.pdf
+# --- AI助手工具目录 / AI assistant tool directories ---
+.claude/
+.opencode/
 .commandcode/
 .kimchi/
-.opencode/
-.claude/
+.cursor/
+.copilot/
+.aider/
+.continue/
+.windsurf/
+.codeium/
+.tabnine/
+.amazonq/
+.cline/
+.roo/
+.bolt/
+.v0/
+.genie/
+.ai/
+.llm/
+
+# AI config/rule files
+.cursorrules
+.clinerules
+.windsurfrules
+.copilot-instructions.md
+.github/copilot-instructions.md
+AGENTS.md
+CLAUDE.md
+CLAUDE.local.md
+
 # --- Hardening secrets / cache (auditoría prioridad 2, 4) ---
 functions/.env
 functions/.env.*
