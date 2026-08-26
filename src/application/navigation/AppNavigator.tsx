@@ -1,0 +1,117 @@
+import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import * as SplashScreen from 'expo-splash-screen';
+
+import { OnboardingScreen } from '@/features/onboarding/screens/OnboardingScreen';
+import { ChatScreen } from '@/features/chat/screens/ChatScreen';
+import { SettingsScreen } from '@/features/settings/screens/SettingsScreen';
+import { TabNavigator } from './TabNavigator';
+import { AuthContext } from '@/features/auth/context/AuthContext';
+import { useOnboardingStore } from '@/features/onboarding/store/useOnboardingStore';
+import { useAppTheme } from '@/shared/theme/theme';
+import type { RootStackParamList } from './types';
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+const AUTH_READY_TIMEOUT_MS = 8000;
+
+export const AppNavigator = () => {
+  const { loading } = useContext(AuthContext);
+  const hydrated = useOnboardingStore((state) => state.hydrated);
+  const setHydrated = useOnboardingStore((state) => state.setHydrated);
+  const onboardingComplete = useOnboardingStore((state) => state.onboardingComplete);
+  const theme = useAppTheme();
+  const [authTimedOut, setAuthTimedOut] = useState(false);
+
+  const navTheme = useMemo(
+    () => ({
+      dark: theme.scheme === 'dark',
+      colors: {
+        ...(theme.scheme === 'dark' ? DarkTheme.colors : DefaultTheme.colors),
+        primary: theme.colors.primary,
+        background: theme.colors.background,
+        card: theme.colors.surfaceContainer,
+        text: theme.colors.onSurface,
+        border: theme.colors.outlineVariant,
+        notification: theme.colors.error,
+      },
+      fonts: theme.scheme === 'dark' ? DarkTheme.fonts : DefaultTheme.fonts,
+    }),
+    [theme],
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAuthTimedOut(true), AUTH_READY_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Evita quedarse en splash si la rehidratación de Zustand no responde.
+  useEffect(() => {
+    if (hydrated) return;
+    const timer = setTimeout(() => setHydrated(true), 4000);
+    return () => clearTimeout(timer);
+  }, [hydrated, setHydrated]);
+
+  const ready = hydrated && (!loading || authTimedOut);
+
+  useEffect(() => {
+    if (ready) {
+      SplashScreen.hideAsync().catch(() => undefined);
+    }
+  }, [ready]);
+
+  if (!ready) {
+    return null;
+  }
+
+  return (
+    <NavigationContainer theme={navTheme}>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+          animationDuration: 280,
+          contentStyle: { backgroundColor: theme.colors.background },
+        }}
+      >
+        {!onboardingComplete ? (
+          <Stack.Screen
+            name="Onboarding"
+            component={OnboardingScreen}
+            options={{ gestureEnabled: false, animation: 'fade' }}
+          />
+        ) : (
+          <>
+            <Stack.Screen name="Home" component={TabNavigator} />
+            <Stack.Screen
+              name="Chat"
+              component={ChatScreen}
+              options={{
+                headerShown: true,
+                title: 'SUI',
+                headerBackTitle: 'Inicio',
+                headerTintColor: theme.colors.primary,
+                headerStyle: { backgroundColor: theme.colors.surfaceContainer },
+                headerTitleStyle: { color: theme.colors.onSurface, fontWeight: '900' },
+                headerShadowVisible: true,
+              }}
+            />
+            <Stack.Screen
+              name="Settings"
+              component={SettingsScreen}
+              options={{
+                headerShown: true,
+                title: 'Ajustes',
+                headerBackTitle: 'Inicio',
+                headerTintColor: theme.colors.primary,
+                headerStyle: { backgroundColor: theme.colors.surfaceContainer },
+                headerTitleStyle: { color: theme.colors.onSurface, fontWeight: '900' },
+                headerShadowVisible: true,
+              }}
+            />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+};
