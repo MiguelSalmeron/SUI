@@ -1,0 +1,266 @@
+import React, { useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
+} from 'react-native';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { auth } from '@/shared/infrastructure/firebase/firebase';
+import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import type { RootStackParamList } from '@/application/navigation/types';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+
+// Validation Schema with Zod
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, { message: 'Por favor ingresa tu email' })
+    .email({ message: 'Ingresa un email válido' }),
+  password: z
+    .string()
+    .min(6, { message: 'La contraseña debe tener al menos 6 caracteres' }),
+});
+
+type LoginFields = z.infer<typeof loginSchema>;
+
+const getLoginErrorMessage = (error: unknown) => {
+  const code = (error as { code?: string })?.code;
+  switch (code) {
+    case 'auth/invalid-email':
+      return 'Ingresa un email válido';
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'Credenciales inválidas';
+    case 'auth/too-many-requests':
+      return 'Demasiados intentos. Intenta nuevamente más tarde';
+    default:
+      return 'Credenciales inválidas o problema de conexión';
+  }
+};
+
+export const LoginScreen = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'Login'>) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const [loading, setLoading] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFields>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  const handleLogin = async (data: LoginFields) => {
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, data.email.trim(), data.password);
+    } catch (error: unknown) {
+      Alert.alert('Error', getLoginErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <View style={styles.logoContainer}>
+            <Text style={styles.logoText}>S</Text>
+          </View>
+          <Text style={styles.title}>Sui</Text>
+          <Text style={styles.subtitle}>Tu compañero de productividad</Text>
+        </View>
+
+        <View style={styles.form}>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Email</Text>
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, errors.email && styles.inputError]}
+                  placeholder="tu@email.com"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              )}
+            />
+            {errors.email && (
+              <Text style={styles.errorText}>{errors.email.message}</Text>
+            )}
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Contraseña</Text>
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, errors.password && styles.inputError]}
+                  placeholder="••••••••"
+                  secureTextEntry
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              )}
+            />
+            {errors.password && (
+              <Text style={styles.errorText}>{errors.password.message}</Text>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleSubmit(handleLogin)}
+            disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel="Iniciar sesión"
+            accessibilityState={{ disabled: loading }}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? 'Entrando...' : 'Iniciar Sesión'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() => navigation.navigate('Register')}
+            accessibilityRole="button"
+            accessibilityLabel="Ir a registro"
+          >
+            <Text style={styles.linkText}>
+              ¿No tienes cuenta? <Text style={styles.linkTextBold}>Regístrate</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+};
+
+const createStyles = (colors: ColorScheme) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: SPACING.lg,
+    justifyContent: 'center',
+  },
+  header: {
+    marginBottom: SPACING.xl,
+    alignItems: 'center',
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    backgroundColor: colors.primary,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  logoText: {
+    color: colors.onPrimary,
+    fontSize: 48,
+    fontWeight: 'bold',
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: SPACING.xs,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: colors.onSurfaceVariant,
+    textAlign: 'center',
+  },
+  form: {
+    backgroundColor: colors.surfaceContainer,
+    padding: SPACING.lg,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
+  },
+  inputContainer: {
+    marginBottom: SPACING.md,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.onSurface,
+    marginBottom: SPACING.xs,
+  },
+  input: {
+    backgroundColor: colors.surfaceContainerLow,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
+    borderRadius: 12,
+    padding: SPACING.md,
+    fontSize: 16,
+    color: colors.onSurface,
+  },
+  inputError: {
+    borderColor: colors.error,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  button: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    padding: SPACING.md,
+    alignItems: 'center',
+    marginTop: SPACING.md,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  buttonText: {
+    color: colors.onPrimary,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  linkButton: {
+    marginTop: SPACING.lg,
+    alignItems: 'center',
+  },
+  linkText: {
+    color: colors.onSurfaceVariant,
+    fontSize: 14,
+  },
+  linkTextBold: {
+    color: colors.primary,
+    fontWeight: 'bold',
+  },
+});
