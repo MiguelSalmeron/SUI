@@ -1,6 +1,6 @@
 # Especificaciones de Datos & Sistema de Diseño 📐🎨
 
-Este documento de referencia detalla la estructura formal de las variables de entorno, claves de almacenamiento local, esquemas de documentos de base de datos y la especificación de los tokens visuales del sistema de diseño (Material Design v3) de **SUI-2**.
+Este documento detalla variables de entorno, claves de almacenamiento, documentos de base de datos y tokens visuales de **SUI**.
 
 ---
 
@@ -23,7 +23,7 @@ La aplicación utiliza variables prefijadas con `EXPO_PUBLIC_` para que Metro la
 
 ## 💾 Persistencia Local (AsyncStorage)
 
-SUI-2 guarda tres estructuras clave en el disco físico del teléfono móvil para garantizar el funcionamiento sin conexión:
+SUI guarda estructuras clave en el dispositivo para garantizar funcionamiento sin conexión:
 
 ### 1. Estado del Onboarding (`sui-onboarding-v1`)
 Controlado por `useOnboardingStore`. Determina el gate visual.
@@ -138,7 +138,7 @@ Controla los parámetros globales de la detección de crisis en el chat. Su estr
 
 ## 🎨 Sistema de Diseño (Material Design v3)
 
-SUI-2 adopta los esquemas semánticos y de accesibilidad de **Material Design v3** (MD3) de Google, facilitando una futura implementación del modo oscuro. Los tokens se definen en `src/theme/theme.ts`:
+SUI adopta los esquemas semánticos y de accesibilidad de **Material Design v3**. Los tokens se definen en `src/shared/theme/theme.ts`:
 
 ### 1. Colores MD3 (Light Scheme)
 
@@ -224,7 +224,7 @@ Se define una escala proporcional y armonizada de tamaños de fuente, espaciado 
 
 ### 5. Rejilla de Espaciado (Spacing)
 
-SUI-2 utiliza una rejilla de espaciado estricta basada en incrementos de 4dp/8dp para estructurar márgenes y rellenos:
+SUI utiliza una rejilla de espaciado basada en incrementos de 4dp/8dp:
 
 *   **`xs`:** `4px` (Espaciados ultra compactos, ej. gap entre íconos y textos).
 *   **`sm`:** `8px` (Márgenes internos pequeños o gaps de listas).
@@ -237,12 +237,12 @@ SUI-2 utiliza una rejilla de espaciado estricta basada en incrementos de 4dp/8dp
 ### 6. Garantía de Accesibilidad (Touch Targets de 48dp)
 
 Siguiendo las pautas de accesibilidad para móviles de Apple e iOS/Android:
-*   Todos los botones y áreas interactivas de SUI-2 (incluidos los destinos de `DashboardNavbar`, botones de acción rápida, modales y checkbox de checklists) garantizan una **altura o ancho mínimo interactivo de `48dp`** (`minHeight: 48` con `justifyContent: 'center'`).
+*   Botones y áreas interactivas deben garantizar una **altura o ancho mínimo interactivo de `48dp`** (`minHeight: 48` con `justifyContent: 'center'`).
 *   Esto elimina la fatiga de pulsación errónea y asegura un uso óptimo para usuarios con problemas motores o en entornos con vibración.
 
 ---
 
 ### 7. Navegación e Insets Seguros
 
-La barra inferior de navegación `DashboardNavbar` (`NAV_BAR_HEIGHT = 72`) se desacopla del flujo del ScrollView para permanecer fija. Incorpora:
+La barra inferior de `TabNavigator` usa `NAV_BAR_HEIGHT = 72` y permanece fuera del flujo de las pantallas con scroll. Incorpora:
 *   **`useSafeAreaInsets()`:** Lectura nativa de los insets del dispositivo para añadir padding inferior de forma automática en terminales con "home indicators" (iPhone modernos) sin romper la consistencia visual en pantallas tradicionales de Android.

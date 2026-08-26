@@ -1,12 +1,12 @@
 # Privacidad Local-First & Protocolo de Crisis 🛡️🚨
 
-La salud mental y el bienestar emocional de los estudiantes universitarios requiere un estándar de confidencialidad absoluto. Este documento explica las decisiones de ingeniería detrás del **flujo local de datos conversacionales** y la arquitectura de protección inmediata (Protocolo de Crisis) implementada en SUI-2.
+La salud mental y el bienestar emocional requieren un estándar elevado de confidencialidad. Este documento explica el flujo local de datos conversacionales y el protocolo de crisis implementado en SUI.
 
 ---
 
 ## 🔒 Privacidad Local-First y Auto-limpieza (48h TTL)
 
-A diferencia de los asistentes comerciales tradicionales de IA que almacenan de forma permanente las conversaciones en la nube, SUI-2 utiliza una **política estricta de aislamiento de datos sensibles**:
+SUI utiliza una **política estricta de aislamiento de datos sensibles**:
 
 *   **Cero persistencia en la nube para Chat:** El historial de conversaciones **nunca** se respalda en Firebase Cloud Firestore ni en bases de datos externas. No existen tablas de chat en el servidor.
 *   **Persistencia Temporal Local:** El historial conversacional reside únicamente en el almacenamiento local del dispositivo del usuario (`AsyncStorage` en la app móvil bajo la clave `sui-chat-v1`).
@@ -27,7 +27,7 @@ graph TD;
 Para garantizar la seguridad física y emocional de los estudiantes en situaciones de alta criticidad (manifestación de ideaciones suicidas, autolesión u otras crisis de salud mental), la aplicación cuenta con un protocolo preventivo de doble validación:
 
 ### 1. Validación Previa en el Cliente (Regex Robustas)
-Antes de despachar cualquier entrada de texto libre hacia el backend proxy de OpenRouter, el cliente móvil evalúa el mensaje de forma síncrona:
+Antes de despachar cualquier entrada de texto libre hacia el proxy de Azure OpenAI, el cliente móvil evalúa el mensaje de forma síncrona:
 
 *   **Normalización Estricta:** Se eliminan mayúsculas, acentos, diacríticos y caracteres especiales para evitar evasiones de coincidencia (ej. `"SUICIDARME"`, `"suícidarmé"` y `"s-u-i-c-i-d-a-r-m-e"` son convertidos a una base común normalizada).
 *   ** Regex de Frontera de Palabra:** Se compila dinámicamente un RegExp utilizando límites de palabra (`\b` o exclusión de letras unicode `[^\p{L}]`). Esto evita falsos positivos parciales (ej. evitar que la palabra `"matarme"` se active erróneamente con `"matarmela"` en otros contextos o modismos).

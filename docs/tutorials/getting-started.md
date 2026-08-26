@@ -1,119 +1,91 @@
-# Guía de Inicio Rápido (Getting Started) 🚀
+# Primeros pasos
 
-¡Bienvenido al desarrollo de **SUI-2**! Esta guía te llevará paso a paso desde la clonación del repositorio hasta la ejecución de la aplicación en tu propio dispositivo de desarrollo, asegurando que todo funcione con un flujo impecable.
+Este tutorial deja SUI ejecutándose localmente y explica dónde comenzar a modificar código.
 
----
+## 1. Instalar dependencias
 
-## 📋 Requisitos Previos
-
-Antes de comenzar, asegúrate de tener instalado lo siguiente en tu máquina de desarrollo:
-
-*   **Node.js** (Versión 20 recomendada LTS).
-*   **npm** (Viene con Node.js) o tu gestor de paquetes favorito.
-*   **Firebase CLI** (Instalación global: `npm install -g firebase-tools`).
-*   **EAS CLI** (Instalación global para compilar APKs: `npm install -g eas-cli`).
-*   **Expo Go** en tu dispositivo físico (Android o iOS) o emulador configurado.
-
----
-
-## 🛠️ Paso 1: Clonación e Instalación de Dependencias
-
-1.  **Clona el repositorio** en tu máquina local:
-    ```bash
-    git clone <url-del-repositorio>
-    cd SIU
-    ```
-
-2.  **Instala las dependencias del proyecto**:
-    ```bash
-    npm install
-    ```
-
-    > 💡 **Nota de robustez:** El script `postinstall` ejecutará automáticamente `patch-package` para aplicar el fix de toolchain en `@react-native/gradle-plugin` (resuelve incompatibilidad de Gradle 9 con la JVM). Si ves que se ejecuta `patch-package` en tu terminal, ¡está funcionando perfectamente!
-
----
-
-## 🔑 Paso 2: Variables de Entorno Locales
-
-La aplicación utiliza variables de entorno mediante archivos `.env` (el cual está protegido en `.gitignore` para no subir credenciales al repositorio público).
-
-1.  Crea un archivo llamado `.env` en la raíz del proyecto.
-2.  Agrega el siguiente contenido base (reemplaza los marcadores con tus llaves reales de Firebase):
-
-```env
-# Configuración del Cliente Web de Firebase
-EXPO_PUBLIC_FIREBASE_API_KEY=tu_api_key_real
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=tu_proyecto.firebaseapp.com
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=tu_proyecto
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=tu_proyecto.firebasestorage.app
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=tu_sender_id
-EXPO_PUBLIC_FIREBASE_APP_ID=tu_app_id
-EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=tu_measurement_id
-
-# Endpoint del Proxy del Chat de IA (SSE Cloud Function)
-# Deja esto vacío hasta completar la guía de "Despliegue del Proxy de Chat"
-EXPO_PUBLIC_CHAT_PROXY_URL=https://chatproxy-xxxxxxxxxx-uc.a.run.app
+```bash
+git clone https://github.com/MiguelSalmeron/SUI.git
+cd SUI
+npm install
+npm --prefix functions install
 ```
 
----
+## 2. Configurar entorno móvil
 
-## 📱 Paso 3: Ejecución de la Aplicación en Desarrollo
+```bash
+cp .env.example .env
+```
 
-Tienes dos metodologías principales para interactuar y programar con tu app de forma inmediata usando Fast Refresh:
+Completa las variables públicas de Firebase. Para probar el chat también necesitas `EXPO_PUBLIC_CHAT_PROXY_URL`.
 
-### Método A: Depuración por USB (Altamente Recomendado ⭐)
-Es el método más rápido, robusto y eficiente en el día a día.
+No añadas claves privadas de Azure, cuentas de servicio ni client secrets al `.env` móvil.
 
-1.  Conecta tu celular a la PC mediante cable USB.
-2.  Habilita las **Opciones de Desarrollador** en tu teléfono (tocando 7 veces "Número de compilación" en Ajustes > Acerca del teléfono).
-3.  Enciende la opción **Depuración por USB**.
-4.  Inicia la app ejecutando en tu terminal:
-    ```bash
-    npx expo start --android
-    ```
-5.  La aplicación se instalará e iniciará sola en tu teléfono vía Expo Go. Los `console.log()` del celular se imprimirán directamente en la consola de tu computadora.
+## 3. Configurar Firebase
 
-### Método B: Conexión por Wi-Fi (Expo Go)
-Ideal para pruebas rápidas de interfaz o demostraciones.
+Habilita Anonymous Authentication y configura Firestore. Sigue la [guía de Firebase](../how-to/firebase-config.md).
 
-1.  Asegúrate de que tu computadora y tu celular estén conectados a la **misma red Wi-Fi**.
-2.  Abre la aplicación **Expo Go** en tu celular.
-3.  Inicia el servidor local:
-    ```bash
-    npx expo start
-    ```
-4.  Escanea el código QR que se imprime en tu terminal con la cámara de tu celular (o con el lector de Expo Go si usas Android).
+## 4. Validar instalación
 
----
+```bash
+npm run check
+```
 
-## 🐛 Menú de Desarrollo y Depuración
+Debes obtener:
 
-*   **Recargar Código (Reload):** Guarda tu archivo de código y el Fast Refresh actualizará la UI al instante. Si hay un bloqueo, agita el dispositivo y pulsa **"Reload"** en el menú flotante de Expo.
-*   **Ver Logs de Consola:** Cualquier log o advertencia nativa de JS aparecerá en la terminal donde corre el comando `npx expo start`.
+- TypeScript móvil sin errores.
+- Tests unitarios aprobados.
+- Cloud Functions compiladas.
 
----
+## 5. Iniciar aplicación
 
-## 🏗️ Paso 4: Compilación local de un APK (Alternativa Release)
+```bash
+npm start
+```
 
-Si deseas probar la aplicación de forma totalmente autónoma en tu celular Android sin depender del servidor Metro o de Expo Go, puedes realizar un compilado nativo debug/release local:
+Opciones habituales:
 
-1.  **Precompila el entorno nativo** (genera la carpeta nativa `/android` temporal):
-    ```bash
-    npx expo prebuild --platform android
-    ```
-2.  **Compila el instalable APK** usando el wrapper nativo de Gradle:
-    ```bash
-    cd android && ./gradlew assembleRelease
-    ```
-3.  El archivo generado quedará listo para ser transferido o instalado por USB en:
-    `android/app/build/outputs/apk/release/app-release.apk`
-4.  **Instala directamente vía USB usando ADB**:
-    ```bash
-    adb install -r app/build/outputs/apk/release/app-release.apk
-    ```
+```bash
+npm run android
+npm run ios
+npm run web
+```
 
----
+Expo Go no reproduce todas las capacidades nativas. Para notificaciones, splash y builds finales, utiliza un development build o build de producción.
 
-### 🎉 ¡Listo!
-Has inicializado con éxito tu entorno de desarrollo para SUI-2.
-*   *Siguiente paso recomendado:* Visita la guía [Configuración del Entorno de Firebase](../how-to/firebase-config.md) para sincronizar tu base de datos y dar de alta el Onboarding Conversacional en la nube.
+## 6. Recorrer flujo principal
+
+1. Completa onboarding.
+2. Confirma entrada al dashboard.
+3. Crea una meta y un hábito.
+4. Marca ambos como completados.
+5. Abre Radar y revisa la agenda unificada.
+6. Abre el chat y confirma streaming si el proxy está configurado.
+
+## 7. Localizar código
+
+```text
+src/application         bootstrap y navegación
+src/features            funcionalidades de producto
+src/shared              UI, infraestructura y dominio compartido
+functions/src           backend Firebase
+docs                    documentación
+```
+
+Ejemplos:
+
+- Cambio de onboarding: `src/features/onboarding`.
+- Cambio de chat: `src/features/chat`.
+- Regla de XP o persistencia: `src/shared/domain/productivity`.
+- Componente reutilizable: `src/shared/ui`.
+- Proxy de IA: `functions/src/chat`.
+
+## 8. Realizar primer cambio seguro
+
+1. Modifica el módulo propietario.
+2. Añade o actualiza el test colocado junto al código.
+3. Ejecuta la prueba específica.
+4. Ejecuta `npm run check`.
+5. Actualiza documentación si cambian contratos, configuración o arquitectura.
+
+Continúa con la [guía del desarrollador](../reference/developer-guide.md).

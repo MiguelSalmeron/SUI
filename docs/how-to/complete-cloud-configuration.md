@@ -2,7 +2,7 @@
 
 Esta guía contiene el checklist para conectar y verificar la aplicación móvil y el servidor con los servicios reales en la nube. La base ya está desplegada en `xsui-nica`; quedan pendientes algunas configuraciones manuales y pruebas multiplataforma.
 
-> **Nota** (jul 2026): el chatbot migró de OpenRouter a **Azure OpenAI Foundry** (modelo `gpt-5-mini`) vía Azure for Students. Esta guía refleja el stack actual. Si en algún momento quieres reverter a OpenRouter, en `CHATBOT-IA.md` → "Rollback" está el procedimiento.
+> El chatbot usa **Azure OpenAI Foundry** mediante Firebase Functions. Consulta [despliegue del proxy](deploy-chat-proxy.md) para la configuración vigente.
 
 ---
 
@@ -40,7 +40,7 @@ Esta guía contiene el checklist para conectar y verificar la aplicación móvil
    npm install -g firebase-tools
    firebase login
    ```
-2. [ ] Vincular el CLI con tu proyecto (desde la raíz `/SIU` donde está `firebase.json`):
+2. [ ] Vincular el CLI con tu proyecto desde la raíz del repositorio, donde está `firebase.json`:
    ```bash
    firebase use --add
    ```
