@@ -1,6 +1,6 @@
 # Guía de Configuración: Firebase & Firestore 📁🔥
 
-Esta guía cubre el proceso detallado para conectar tu aplicación móvil SUI-2 con los servicios de Firebase en la nube. El correcto seguimiento de estos pasos habilitará el **registro anónimo en segundo plano**, la **sincronización automática de metas y hábitos** y el **diccionario dinámico del protocolo de crisis**.
+Esta guía cubre el proceso para conectar SUI con Firebase. Habilita el registro anónimo, la sincronización de metas y hábitos y el diccionario dinámico del protocolo de crisis.
 
 ---
 
@@ -14,7 +14,7 @@ Esta guía cubre el proceso detallado para conectar tu aplicación móvil SUI-2 
 
 ## 🔒 Paso 2: Habilitación de la Autenticación Anónima
 
-SUI-2 utiliza un flujo de onboarding sin fricción basado en inicios de sesión silenciosos y anónimos. Para habilitarlo:
+SUI utiliza un flujo de onboarding sin fricción basado en inicios de sesión silenciosos y anónimos. Para habilitarlo:
 
 1.  En el menú lateral de tu consola de Firebase, navega a **Build (Construcción) > Authentication**.
 2.  Haz clic en la pestaña **Sign-in method (Método de inicio de sesión)**.
@@ -60,7 +60,7 @@ Haz clic en **"Publicar"** para guardar los cambios.
 
 ## 🚨 Paso 4: Creación del Diccionario de Crisis en Firestore
 
-Para evitar recompilar la aplicación móvil cada vez que desees cambiar un número telefónico o agregar palabras de alarma en el protocolo preventivo de salud mental, SUI-2 sincroniza esta configuración en tiempo real desde Firestore:
+Para evitar recompilar la aplicación cada vez que cambie un contacto o una palabra de alarma, SUI sincroniza esta configuración desde Firestore:
 
 1.  En la consola de Firestore, haz clic en **"Iniciar colección"**.
 2.  En el campo de ID de colección, ingresa: `app_config` y haz clic en Siguiente.
@@ -84,7 +84,7 @@ Para obtener las llaves de acceso de tu servidor de Firebase y colocarlas en el 
 1.  En la página de inicio del proyecto en Firebase Console, haz clic en el ícono de Web (`</>`).
 2.  Registra la app con el nombre `sui-web-client` (no es necesario activar Firebase Hosting).
 3.  Firebase te mostrará un bloque de código JSON con tu `firebaseConfig`. Copia estos valores.
-4.  Abre tu archivo `.env` en la raíz de tu proyecto móvil SUI-2 y actualízalo:
+4.  Abre `.env` en la raíz del repositorio y actualízalo:
 
 ```env
 EXPO_PUBLIC_FIREBASE_API_KEY=tu_apiKey_de_firebase

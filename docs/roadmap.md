@@ -1,4 +1,4 @@
-# Todolist — Google Sign-In (configuración manual)
+# Roadmap operativo
 
 Checklist **humano** (consolas Firebase / Google Cloud). El código de la app ya está en el repo.
 
@@ -13,8 +13,8 @@ Marca cada ítem al completarlo.
 ## 0. Ya hecho en código (no tocar consola)
 
 - [x] `expo-auth-session` / `expo-web-browser` / `expo-crypto`
-- [x] `src/services/googleAuth.ts` — link anónimo o `signInWithCredential`
-- [x] `src/hooks/useGoogleAuth.ts` — id_token + anti doble-tap + fallback clientId
+- [x] `src/features/auth/services/googleAuth.ts` — link anónimo o `signInWithCredential`
+- [x] `src/features/auth/hooks/useGoogleAuth.ts` — id_token + anti doble-tap + fallback clientId
 - [x] Settings: Vincular / badge Google / modales
 - [x] Onboarding welcome: Continuar con Google + `GoogleSignInButton`
 - [x] `.env.example` con `EXPO_PUBLIC_GOOGLE_*`
@@ -66,7 +66,7 @@ Marca cada ítem al completarlo.
 
 ## 6. Variables de entorno
 
-Plantilla: [`.env.example`](.env.example)
+Plantilla: [`.env.example`](../.env.example)
 
 - [ ] Rellenar en `.env` local:
   - `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=`

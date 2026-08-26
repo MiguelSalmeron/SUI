@@ -21,7 +21,7 @@ Complementa el flujo con un **chatbot de asistencia emocional**, un **resumen no
 * **Zustand (Gestión de Estado):**
   * *¿Por qué?* Stores pequeños por dominio sin el boilerplate de Redux. Mantiene el tablero, onboarding, chat y ajustes aislados; Google Calendar se coordina mediante un hook y caché local.
 * **Azure Foundry (gpt-5-mini):**
-  * *¿Por qué?* Crédito de Azure for Students ($100 USD) con modelos OpenAI estables. Reemplazó a OpenRouter (free tier agotado). Detalle en `CHATBOT-IA.md`.
+  * *¿Por qué?* Permite mantener la clave fuera del cliente y controlar el deployment del modelo. Detalle en [chatbot](chatbot.md).
 
 ## 📈 Estado Actual
 
