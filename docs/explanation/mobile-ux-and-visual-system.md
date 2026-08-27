@@ -139,8 +139,10 @@ reservada para bienvenida, hitos, niveles y celebraciones. Las pantallas usan:
 - `bodyMd` y `bodySm` para descripción y metadatos;
 - `labelLg`, `labelMd` y `labelSm` para acciones y estados.
 
-El ajuste de tamaño de texto continúa aplicándose desde `useSettingsStore`. La
-guía completa de marca vive en
+La escala completa vive en `src/shared/theme/typography.ts`. Componentes toman
+estilos desde `theme.type`; no declaran tamaños, interlineados, pesos ni familias
+directamente. El ajuste Pequeño/Mediano/Grande se aplica globalmente desde
+`useSettingsStore`. La guía completa de marca vive en
 [`product-brand-identity.md`](product-brand-identity.md).
 
 ### Formas y superficies
