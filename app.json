@@ -13,7 +13,7 @@
     "android": {
       "package": "com.sui.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0B132B",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -22,8 +22,8 @@
       "softwareKeyboardLayoutMode": "pan"
     },
     "androidStatusBar": {
-      "barStyle": "dark-content",
-      "backgroundColor": "#F8FBFF",
+      "barStyle": "light-content",
+      "backgroundColor": "#0B132B",
       "translucent": false
     },
     "web": {
@@ -35,9 +35,9 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/icon.png",
-          "backgroundColor": "#0047AB",
-          "imageWidth": 160,
+          "image": "./assets/splash-icon.png",
+          "backgroundColor": "#0B132B",
+          "imageWidth": 220,
           "resizeMode": "contain"
         }
       ],

@@ -24,6 +24,7 @@ import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
 import { localDateKey } from '@/shared/domain/productivity/homeStorage';
 import type { RootStackNavigationProp } from '@/application/navigation/types';
+import { SuiDoodle } from '@/shared/ui/SuiDoodle';
 
 const originPresentation = (
   item: TimelineItem,
@@ -230,7 +231,7 @@ export const OverviewScreen = () => {
       <View style={styles.timelineList}>
         {timelineItems.length === 0 ? (
           <View style={styles.emptyDayBox}>
-            <Ionicons name="leaf-outline" size={25} color={colors.secondary} />
+            <SuiDoodle variant="sprout" size={62} color={colors.secondary} />
             <Text style={styles.emptyDayText}>No tienes actividades programadas para hoy.</Text>
           </View>
         ) : (

@@ -14,6 +14,7 @@ import {
   useAppTheme,
 } from '@/shared/theme/theme';
 import { ScreenIntro } from '@/shared/ui/ScreenIntro';
+import { SuiDoodle } from '@/shared/ui/SuiDoodle';
 import { PromptModal } from '@/shared/ui/PromptModal';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
@@ -141,13 +142,7 @@ export const GoalsScreen = () => {
 
       {visibleGoals.length === 0 ? (
         <View style={styles.emptyCard}>
-          <View style={styles.emptyIcon}>
-            <Ionicons
-              name={filter === 'active' ? 'flag-outline' : 'checkmark-done-outline'}
-              size={27}
-              color={colors.primary}
-            />
-          </View>
+          <SuiDoodle variant="path" size={76} />
           <Text style={styles.emptyTitle}>
             {filter === 'active' ? 'Aún no tienes metas activas' : 'Todavía no hay metas completadas'}
           </Text>

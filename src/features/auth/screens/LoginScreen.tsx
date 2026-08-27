@@ -18,6 +18,8 @@ import { auth } from '@/shared/infrastructure/firebase/firebase';
 import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import type { RootStackParamList } from '@/application/navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { SUI_FONTS } from '@/shared/theme/brand';
+import { SuiMark } from '@/shared/ui/SuiMark';
 
 // Validation Schema with Zod
 const loginSchema = z.object({
@@ -83,11 +85,9 @@ export const LoginScreen = ({ navigation }: NativeStackScreenProps<RootStackPara
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>S</Text>
-          </View>
-          <Text style={styles.title}>Sui</Text>
-          <Text style={styles.subtitle}>Tu compañero de productividad</Text>
+          <SuiMark variant="isologo" size={72} accessible />
+          <Text style={styles.title}>Cultiva tu vida</Text>
+          <Text style={styles.subtitle}>Organiza tu ritmo con claridad.</Text>
         </View>
 
         <View style={styles.form}>
@@ -177,28 +177,16 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     marginBottom: SPACING.xl,
     alignItems: 'center',
   },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    backgroundColor: colors.primary,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-  logoText: {
-    color: colors.onPrimary,
-    fontSize: 48,
-    fontWeight: 'bold',
-  },
   title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: colors.primary,
+    fontSize: 30,
+    fontFamily: SUI_FONTS.display,
+    color: colors.onSurface,
+    marginTop: SPACING.md,
     marginBottom: SPACING.xs,
   },
   subtitle: {
     fontSize: 16,
+    fontFamily: SUI_FONTS.regular,
     color: colors.onSurfaceVariant,
     textAlign: 'center',
   },
@@ -215,6 +203,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
+    fontFamily: SUI_FONTS.semibold,
     color: colors.onSurface,
     marginBottom: SPACING.xs,
   },
@@ -225,6 +214,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     borderRadius: 12,
     padding: SPACING.md,
     fontSize: 16,
+    fontFamily: SUI_FONTS.regular,
     color: colors.onSurface,
   },
   inputError: {
@@ -235,6 +225,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
     fontWeight: '600',
+    fontFamily: SUI_FONTS.semibold,
   },
   button: {
     backgroundColor: colors.primary,
@@ -250,6 +241,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     color: colors.onPrimary,
     fontSize: 18,
     fontWeight: 'bold',
+    fontFamily: SUI_FONTS.bold,
   },
   linkButton: {
     marginTop: SPACING.lg,
@@ -258,9 +250,11 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   linkText: {
     color: colors.onSurfaceVariant,
     fontSize: 14,
+    fontFamily: SUI_FONTS.regular,
   },
   linkTextBold: {
     color: colors.primary,
     fontWeight: 'bold',
+    fontFamily: SUI_FONTS.bold,
   },
 });

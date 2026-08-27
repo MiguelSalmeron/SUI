@@ -89,7 +89,7 @@ export const AppNavigator = () => {
               component={ChatScreen}
               options={{
                 headerShown: true,
-                title: 'SUI',
+                title: 'Sui',
                 headerBackTitle: 'Inicio',
                 headerTintColor: theme.colors.primary,
                 headerStyle: { backgroundColor: theme.colors.surfaceContainer },

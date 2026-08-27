@@ -23,6 +23,8 @@ import { seedOnboardingGoals } from '@/shared/domain/productivity/homeStorage';
 import { useGoogleAuth } from '@/features/auth/hooks/useGoogleAuth';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
 import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { SUI_FONTS } from '@/shared/theme/brand';
+import { SuiMark } from '@/shared/ui/SuiMark';
 import { buildConversation } from '../model/conversation';
 import * as Haptics from 'expo-haptics';
 import {
@@ -422,7 +424,7 @@ export const OnboardingScreen = () => {
       <View style={[styles.loadingScreen, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={styles.loadingBox}>
           <View style={styles.loadingLogoBadge}>
-            <Ionicons name="sparkles" size={32} color={colors.primary} />
+            <SuiMark variant="isotype" size={34} />
           </View>
           <Text style={styles.loadingTitle}>Personalizando tu experiencia...</Text>
           <Text style={styles.loadingPhrase}>{loadingPhrases[loadingPhraseIndex]}</Text>
@@ -441,8 +443,11 @@ export const OnboardingScreen = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
     >
-      <View style={[styles.header, { paddingTop: insets.top + SPACING.sm }]}>
-        <Text style={styles.headerTitle}>Bienvenido a SUI</Text>
+      <View style={[styles.header, { paddingTop: insets.top + SPACING.sm }]}> 
+        <View style={styles.headerBrand}>
+          <SuiMark variant="isologo" size={34} accessible />
+          <Text style={styles.headerTitle}>Cultiva tu vida</Text>
+        </View>
         <Text style={styles.headerSubtitle}>Configuremos tu espacio preventivo</Text>
       </View>
 
@@ -478,9 +483,14 @@ const createStyles = (colors: ColorScheme) =>
       borderBottomColor: colors.outlineVariant,
       backgroundColor: colors.background,
     },
+    headerBrand: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+    },
     headerTitle: {
-      fontSize: 22,
-      fontWeight: '900',
+      fontSize: 21,
+      fontFamily: SUI_FONTS.display,
       color: colors.onSurface,
     },
     headerSubtitle: {
@@ -652,7 +662,7 @@ const createStyles = (colors: ColorScheme) =>
     },
     loadingTitle: {
       fontSize: 20,
-      fontWeight: '900',
+      fontFamily: SUI_FONTS.display,
       color: colors.onSurface,
       marginBottom: SPACING.xs,
     },
