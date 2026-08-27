@@ -8,7 +8,11 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SPACING, useAppTheme } from '@/shared/theme/theme';
+import {
+  SCREEN_CONTENT_BOTTOM_PADDING,
+  SPACING,
+  useAppTheme,
+} from '@/shared/theme/theme';
 import { ScreenIntro } from '@/shared/ui/ScreenIntro';
 import { PromptModal } from '@/shared/ui/PromptModal';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
@@ -319,7 +323,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     content: {
       paddingHorizontal: SPACING.lg,
       paddingTop: SPACING.sm,
-      paddingBottom: 144,
+      paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING,
     },
     summaryCard: {
       flexDirection: 'row',

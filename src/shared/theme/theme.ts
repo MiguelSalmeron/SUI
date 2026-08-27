@@ -410,6 +410,9 @@ export const SPACING = {
 // Altura nominal de la NavigationBar MD3 (sin contar el safe-area inferior).
 export const NAV_BAR_HEIGHT = 72;
 
+// Espacio final uniforme para listas; la barra de tabs vive fuera del scene.
+export const SCREEN_CONTENT_BOTTOM_PADDING = SPACING.xl + SPACING.lg;
+
 import { useSettingsStore } from '@/shared/preferences/useSettingsStore';
 
 export const FONT_SCALE_MAP: Record<string, number> = {

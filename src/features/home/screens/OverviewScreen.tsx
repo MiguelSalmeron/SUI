@@ -7,9 +7,13 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { SPACING, useAppTheme } from '@/shared/theme/theme';
+import {
+  SCREEN_CONTENT_BOTTOM_PADDING,
+  SPACING,
+  useAppTheme,
+} from '@/shared/theme/theme';
 import { Skeleton } from '@/shared/ui/Skeleton';
 import {
   buildUnifiedTimeline,
@@ -19,6 +23,7 @@ import type { GoogleEvent, TimelineItem } from '@/shared/types/models';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
 import { localDateKey } from '@/shared/domain/productivity/homeStorage';
+import type { RootStackNavigationProp } from '@/application/navigation/types';
 
 const originPresentation = (
   item: TimelineItem,
@@ -32,6 +37,7 @@ export const OverviewScreen = () => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const navigation = useNavigation<RootStackNavigationProp>();
   const celebrate = useCelebrationStore((s) => s.trigger);
 
   const stateLoaded = useHomeStore((s) => s.stateLoaded);
@@ -173,7 +179,14 @@ export const OverviewScreen = () => {
         )}
       </View>
 
-      <View style={styles.progressCard}>
+      <TouchableOpacity
+        style={styles.progressCard}
+        onPress={() => navigation.navigate('Progress')}
+        activeOpacity={0.82}
+        accessibilityRole="button"
+        accessibilityLabel={`Ver progreso completo, ${progress}% hoy`}
+        accessibilityHint="Abre las estadísticas, nivel y logros"
+      >
         <View style={styles.progressHeader}>
           <View>
             <Text style={styles.progressLabel}>Progreso del día</Text>
@@ -201,7 +214,11 @@ export const OverviewScreen = () => {
             <Text style={styles.statLabel}>XP acumulados</Text>
           </View>
         </View>
-      </View>
+        <View style={styles.progressLink}>
+          <Text style={styles.progressLinkText}>Ver progreso</Text>
+          <Ionicons name="chevron-forward" size={17} color={colors.primary} />
+        </View>
+      </TouchableOpacity>
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Tu agenda</Text>
@@ -283,7 +300,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     content: {
       paddingHorizontal: SPACING.lg,
       paddingTop: SPACING.sm,
-      paddingBottom: 144,
+      paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING,
     },
     intro: { marginBottom: SPACING.lg },
     eyebrow: { ...type.labelSm, color: colors.primary, letterSpacing: 1.4 },
@@ -394,6 +411,17 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       backgroundColor: colors.outlineVariant,
       marginHorizontal: SPACING.sm,
     },
+    progressLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: 2,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.outlineVariant,
+      marginTop: SPACING.md,
+      paddingTop: SPACING.sm,
+    },
+    progressLinkText: { ...type.labelMd, color: colors.primary },
     sectionHeader: {
       flexDirection: 'row',
       alignItems: 'baseline',
