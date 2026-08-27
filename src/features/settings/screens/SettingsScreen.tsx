@@ -194,6 +194,18 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const linkedGoogle = userHasGoogleProvider(user);
+  const syncPending = useOnboardingStore((s) => s.syncPending);
+  const syncDescription = syncPending
+    ? 'Pendiente de sincronizar · se respaldará cuando vuelva la conexión'
+    : user?.uid
+      ? 'En la nube · respaldo con tu sesión actual'
+      : 'Datos locales · permanecen en este dispositivo';
+  const syncBadgeLabel = syncPending ? 'Pendiente' : user?.uid ? 'Nube' : 'Local';
+  const syncIcon: keyof typeof Ionicons.glyphMap = syncPending
+    ? 'cloud-offline-outline'
+    : user?.uid
+      ? 'cloud-done-outline'
+      : 'phone-portrait-outline';
   const accountLabel = linkedGoogle
     ? user?.displayName || user?.email || 'Cuenta Google'
     : user?.isAnonymous
@@ -365,6 +377,38 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
         {/* ─── CUENTA ─── */}
         <SectionHeader title="Cuenta" iconKey="account" colors={colors} />
         <View style={styles.card}>
+          <SettingsRow
+            icon={syncIcon}
+            label="Estado de datos"
+            description={syncDescription}
+            colors={colors}
+            right={
+              <View
+                style={[
+                  styles.badge,
+                  syncPending
+                    ? styles.syncPendingBadge
+                    : !user?.uid
+                      ? styles.syncLocalBadge
+                      : null,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.badgeText,
+                    syncPending
+                      ? styles.syncPendingText
+                      : !user?.uid
+                        ? styles.syncLocalText
+                        : null,
+                  ]}
+                >
+                  {syncBadgeLabel}
+                </Text>
+              </View>
+            }
+          />
+          <View style={styles.divider} />
           <SettingsRow
             icon={linkedGoogle ? 'logo-google' : 'person-outline'}
             label={accountLabel}
@@ -599,6 +643,18 @@ const createStyles = (colors: ColorScheme) =>
       fontSize: 12,
       fontWeight: '700',
       color: colors.onPrimaryContainer,
+    },
+    syncPendingBadge: {
+      backgroundColor: colors.flameContainer,
+    },
+    syncPendingText: {
+      color: colors.onFlameContainer,
+    },
+    syncLocalBadge: {
+      backgroundColor: colors.surfaceContainerHighest,
+    },
+    syncLocalText: {
+      color: colors.onSurfaceVariant,
     },
     footer: {
       alignItems: 'center',

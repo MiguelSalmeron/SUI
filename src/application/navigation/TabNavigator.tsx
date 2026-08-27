@@ -1,111 +1,204 @@
-import React, { useContext, useEffect, useMemo, useRef } from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
-  Animated,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+  createBottomTabNavigator,
+  type BottomTabBarProps,
+} from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '@/features/auth/context/AuthContext';
-import { ColorScheme, SPACING, useAppTheme, NAV_BAR_HEIGHT } from '@/shared/theme/theme';
+import {
+  NAV_BAR_HEIGHT,
+  SPACING,
+  type ColorScheme,
+  useAppTheme,
+} from '@/shared/theme/theme';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
-import { isHabitDueToday, localDateKey } from '@/shared/domain/productivity/homeStorage';
+import {
+  isHabitDueToday,
+  localDateKey,
+} from '@/shared/domain/productivity/homeStorage';
 import { useOnboardingStore } from '@/features/onboarding/store/useOnboardingStore';
 import { Avatar } from '@/shared/ui/Avatar';
-import type { RootStackNavigationProp } from './types';
+import type {
+  MainTabParamList,
+  RootStackNavigationProp,
+} from './types';
+import {
+  ASSISTANT_INSERT_INDEX,
+  MAIN_TAB_ITEMS,
+} from './mainTabs';
+
+export { MAIN_TAB_ITEMS } from './mainTabs';
 
 import { OverviewScreen } from '@/features/home/screens/OverviewScreen';
 import { GoalsScreen } from '@/features/goals/screens/GoalsScreen';
 import { HabitsScreen } from '@/features/habits/screens/HabitsScreen';
 import { CalendarScreen } from '@/features/calendar/screens/CalendarScreen';
-import { SummaryScreen } from '@/features/home/screens/SummaryScreen';
 import { CelebrationToast } from '@/features/home/components/CelebrationToast';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
 import { requestNotificationPermission } from '@/features/settings/services/notifications';
 
-const Tab = createBottomTabNavigator();
-
-const TAB_ICONS: Record<string, { focused: keyof typeof Ionicons.glyphMap; outline: keyof typeof Ionicons.glyphMap }> = {
-  Overview: { focused: 'home', outline: 'home-outline' },
-  Goals: { focused: 'flag', outline: 'flag-outline' },
-  Habits: { focused: 'repeat', outline: 'repeat-outline' },
-  Calendar: { focused: 'calendar', outline: 'calendar-outline' },
-  Summary: { focused: 'stats-chart', outline: 'stats-chart-outline' },
-};
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
 type TabHeaderProps = {
   colors: ColorScheme;
   topInset: number;
   profileName: string;
-  syncPending: boolean;
   onSettings: () => void;
 };
 
-const TabHeader = React.memo(({ colors, topInset, profileName, syncPending, onSettings }: TabHeaderProps) => {
-  const styles = useMemo(() => headerStyles(colors), [colors]);
-  return (
-    <View style={[styles.headerShell, { paddingTop: topInset + SPACING.sm }]}>
-      <View style={styles.identity}>
-        <Avatar name={profileName} size="sm" variant="primary" />
-        <View style={styles.identityText}>
+export const TabHeader = React.memo(
+  ({ colors, topInset, profileName, onSettings }: TabHeaderProps) => {
+    const styles = useMemo(() => headerStyles(colors), [colors]);
+    return (
+      <View style={[styles.headerShell, { paddingTop: topInset + SPACING.sm }]}>
+        <View style={styles.headerContent}>
           <Text style={styles.brand}>SUI</Text>
-          <Text style={styles.welcome} numberOfLines={1}>Hola, {profileName}</Text>
+          <TouchableOpacity
+            style={styles.avatarButton}
+            onPress={onSettings}
+            activeOpacity={0.78}
+            accessibilityRole="button"
+            accessibilityLabel={`Abrir ajustes de ${profileName}`}
+            accessibilityHint="Abre la configuración de la aplicación"
+          >
+            <Avatar name={profileName} size="sm" variant="primary" />
+          </TouchableOpacity>
         </View>
       </View>
-      <View
-        style={styles.syncStatus}
-        accessibilityLabel={syncPending ? 'Sincronización pendiente' : 'Sincronizado'}
-      >
-        <View
-          style={[
-            styles.syncDot,
-            { backgroundColor: syncPending ? colors.outline : colors.success },
-          ]}
+    );
+  },
+);
+
+type MainTabBarProps = BottomTabBarProps & {
+  colors: ColorScheme;
+  onAssistant: () => void;
+};
+
+export const MainTabBar = ({
+  state,
+  navigation,
+  insets,
+  colors,
+  onAssistant,
+}: MainTabBarProps) => {
+  const styles = useMemo(() => tabBarStyles(colors), [colors]);
+
+  const assistantButton = (
+    <TouchableOpacity
+      key="assistant"
+      style={styles.assistantSlot}
+      onPress={onAssistant}
+      activeOpacity={0.82}
+      accessibilityRole="button"
+      accessibilityLabel="Hablar con SUI"
+      accessibilityHint="Abre el chat de acompañamiento"
+      testID="assistant-tab-button"
+    >
+      <View style={styles.assistantButton}>
+        <Ionicons
+          name="chatbubble-ellipses"
+          size={22}
+          color={colors.onPrimary}
         />
       </View>
-      <TouchableOpacity
-        style={styles.settingsBtn}
-        onPress={onSettings}
-        accessibilityRole="button"
-        accessibilityLabel="Ajustes"
-        accessibilityHint="Abre la pantalla de configuración"
-      >
-        <Ionicons name="settings-outline" size={22} color={colors.onSurfaceVariant} />
-      </TouchableOpacity>
+      <Text style={styles.assistantLabel}>SUI</Text>
+    </TouchableOpacity>
+  );
+
+  return (
+    <View
+      style={[
+        styles.barSurface,
+        {
+          minHeight: NAV_BAR_HEIGHT + insets.bottom,
+          paddingBottom: Math.max(insets.bottom, SPACING.xs),
+        },
+      ]}
+    >
+      <View style={styles.barContent}>
+        {state.routes.map((route, index) => {
+          const routeName = route.name as keyof MainTabParamList;
+          const presentation = MAIN_TAB_ITEMS[routeName];
+          const focused = state.index === index;
+          const color = focused ? colors.primary : colors.onSurfaceVariant;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+            if (!focused && !event.defaultPrevented) {
+              navigation.navigate(route.name, route.params);
+            }
+          };
+
+          const onLongPress = () => {
+            navigation.emit({ type: 'tabLongPress', target: route.key });
+          };
+
+          return (
+            <React.Fragment key={route.key}>
+              {index === ASSISTANT_INSERT_INDEX ? assistantButton : null}
+              <TouchableOpacity
+                style={styles.tabItem}
+                onPress={onPress}
+                onLongPress={onLongPress}
+                activeOpacity={0.72}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: focused }}
+                accessibilityLabel={presentation.label}
+                testID={`tab-${routeName}`}
+              >
+                <View style={[styles.iconShell, focused && styles.iconShellActive]}>
+                  <Ionicons
+                    name={focused ? presentation.focused : presentation.outline}
+                    size={22}
+                    color={color}
+                  />
+                </View>
+                <Text style={[styles.tabLabel, { color }]}>{presentation.label}</Text>
+              </TouchableOpacity>
+            </React.Fragment>
+          );
+        })}
+      </View>
     </View>
   );
-});
+};
 
 export const TabNavigator = () => {
   const { user } = useContext(AuthContext);
   const theme = useAppTheme();
-  const colors = theme.colors;
-  const tabIconStyleSheet = useMemo(() => tabIconStyles(colors), [colors]);
-  const badgeStyleSheet = useMemo(() => badgeStyles(colors), [colors]);
-  const fabStyleSheet = useMemo(() => fabStyles(colors), [colors]);
+  const { colors } = theme;
   const navigation = useNavigation<RootStackNavigationProp>();
   const insets = useSafeAreaInsets();
 
-  const stateLoaded = useHomeStore((s) => s.stateLoaded);
-  const loadState = useHomeStore((s) => s.loadState);
-  const saveState = useHomeStore((s) => s.saveState);
-  const goals = useHomeStore((s) => s.goals);
-  const habits = useHomeStore((s) => s.habits);
-  const streak = useHomeStore((s) => s.streak);
-  const bumpStreak = useHomeStore((s) => s.bumpStreak);
-  const celebrate = useCelebrationStore((s) => s.trigger);
+  const stateLoaded = useHomeStore((state) => state.stateLoaded);
+  const loadState = useHomeStore((state) => state.loadState);
+  const saveState = useHomeStore((state) => state.saveState);
+  const goals = useHomeStore((state) => state.goals);
+  const habits = useHomeStore((state) => state.habits);
+  const streak = useHomeStore((state) => state.streak);
+  const bumpStreak = useHomeStore((state) => state.bumpStreak);
+  const celebrate = useCelebrationStore((state) => state.trigger);
 
   useEffect(() => {
     requestNotificationPermission().catch(() => undefined);
   }, []);
 
-  const onboardingName = useOnboardingStore((s) => s.profile.name);
-  const syncPending = useOnboardingStore((s) => s.syncPending);
-  const profileName = onboardingName?.trim() || user?.email?.split('@')[0] || 'Usuario';
+  const onboardingName = useOnboardingStore((state) => state.profile.name);
+  const profileName =
+    onboardingName?.trim() || user?.email?.split('@')[0] || 'Usuario';
 
   useEffect(() => {
     loadState();
@@ -123,20 +216,29 @@ export const TabNavigator = () => {
     };
   }, [goals, habits, streak, stateLoaded, saveState]);
 
-  const completedGoals = useMemo(() => goals.filter((g) => g.completed).length, [goals]);
-  const completedHabits = useMemo(() => habits.filter((h) => h.completed).length, [habits]);
+  const completedGoals = useMemo(
+    () => goals.filter((goal) => goal.completed).length,
+    [goals],
+  );
+  const completedHabits = useMemo(
+    () => habits.filter((habit) => habit.completed).length,
+    [habits],
+  );
   const todayGoals = useMemo(() => {
     const today = localDateKey();
-    return goals.filter((goal) => goal.deadline === today || goal.impactDays?.includes(today));
+    return goals.filter(
+      (goal) => goal.deadline === today || goal.impactDays?.includes(today),
+    );
   }, [goals]);
-  const todayHabits = useMemo(() => habits.filter((habit) => isHabitDueToday(habit)), [habits]);
+  const todayHabits = useMemo(
+    () => habits.filter((habit) => isHabitDueToday(habit)),
+    [habits],
+  );
   const dailyCompleted =
     todayGoals.filter((goal) => goal.completed).length +
     todayHabits.filter((habit) => habit.completed).length;
   const dailyTotal = todayGoals.length + todayHabits.length;
   const totalCompletedActions = completedGoals + completedHabits;
-  const pendingGoals = goals.length - completedGoals;
-  const pendingHabits = todayHabits.filter((habit) => !habit.completed).length;
 
   const prevCompletedActions = useRef(totalCompletedActions);
   const perfectDayShown = useRef(false);
@@ -154,99 +256,66 @@ export const TabNavigator = () => {
       }
     }
     prevCompletedActions.current = totalCompletedActions;
-  }, [dailyCompleted, dailyTotal, totalCompletedActions, stateLoaded, bumpStreak, celebrate]);
+  }, [
+    dailyCompleted,
+    dailyTotal,
+    totalCompletedActions,
+    stateLoaded,
+    bumpStreak,
+    celebrate,
+  ]);
 
-  const fabScale = useRef(new Animated.Value(1)).current;
-  const onFabPressIn = () =>
-    Animated.spring(fabScale, { toValue: 0.92, useNativeDriver: true, speed: 50 }).start();
-  const onFabPressOut = () =>
-    Animated.spring(fabScale, { toValue: 1, useNativeDriver: true, speed: 50 }).start();
-
-  const tabBarHeight = NAV_BAR_HEIGHT + 16 + insets.bottom;
-  const fabBottom = tabBarHeight + SPACING.md;
+  const openAssistant = useCallback(() => {
+    navigation.navigate('Chat');
+  }, [navigation]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <CelebrationToast />
       <Tab.Navigator
-        screenOptions={({ route }) => ({
+        tabBar={(props) => (
+          <MainTabBar
+            {...props}
+            colors={colors}
+            onAssistant={openAssistant}
+          />
+        )}
+        screenOptions={{
           sceneStyle: { backgroundColor: colors.background },
-          sceneContainerStyle: { backgroundColor: colors.background },
           header: () => (
             <TabHeader
               colors={colors}
               topInset={insets.top}
               profileName={profileName}
-              syncPending={syncPending}
               onSettings={() => navigation.navigate('Settings')}
             />
           ),
-          tabBarIcon: ({ focused, color, size = 24 }) => {
-            const icons = TAB_ICONS[route.name];
-            if (!icons) return null;
-            const badge =
-              route.name === 'Goals' && pendingGoals > 0
-                ? pendingGoals
-                : route.name === 'Habits' && pendingHabits > 0
-                ? pendingHabits
-                : 0;
-            return (
-              <View style={[tabIconStyleSheet.shell, focused && tabIconStyleSheet.shellActive]}>
-                <Ionicons
-                  name={focused ? icons.focused : icons.outline}
-                  size={size}
-                  color={color}
-                />
-                {badge > 0 && (
-                  <View style={badgeStyleSheet.badge}>
-                    <Text style={badgeStyleSheet.badgeText}>{badge > 9 ? '9+' : badge}</Text>
-                  </View>
-                )}
-              </View>
-            );
-          },
-          tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: colors.onSurfaceVariant,
-          tabBarStyle: {
-            backgroundColor: colors.surface,
-            borderTopColor: colors.outlineVariant,
-            borderTopWidth: StyleSheet.hairlineWidth,
-            paddingTop: SPACING.xs,
-            paddingBottom: Math.max(insets.bottom, SPACING.xs),
-            height: tabBarHeight,
-          },
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: '600',
-            marginBottom: 2,
-          },
-          tabBarLabelPosition: 'below-icon',
+          tabBarHideOnKeyboard: true,
           animation: 'fade',
           lazy: true,
-        })}
+        }}
       >
-        <Tab.Screen name="Overview" component={OverviewScreen} options={{ tabBarLabel: 'Inicio' }} />
-        <Tab.Screen name="Goals" component={GoalsScreen} options={{ tabBarLabel: 'Metas' }} />
-        <Tab.Screen name="Habits" component={HabitsScreen} options={{ tabBarLabel: 'Hábitos' }} />
-        <Tab.Screen name="Calendar" component={CalendarScreen} options={{ tabBarLabel: 'Agenda' }} />
-        <Tab.Screen name="Summary" component={SummaryScreen} options={{ tabBarLabel: 'Progreso' }} />
+        <Tab.Screen
+          name="Overview"
+          component={OverviewScreen}
+          options={{ title: MAIN_TAB_ITEMS.Overview.label }}
+        />
+        <Tab.Screen
+          name="Goals"
+          component={GoalsScreen}
+          options={{ title: MAIN_TAB_ITEMS.Goals.label }}
+        />
+        <Tab.Screen
+          name="Habits"
+          component={HabitsScreen}
+          options={{ title: MAIN_TAB_ITEMS.Habits.label }}
+        />
+        <Tab.Screen
+          name="Calendar"
+          component={CalendarScreen}
+          options={{ title: MAIN_TAB_ITEMS.Calendar.label }}
+        />
       </Tab.Navigator>
-
-      <Animated.View style={[fabStyleSheet.fab, { bottom: fabBottom, transform: [{ scale: fabScale }] }]}>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Chat')}
-          onPressIn={onFabPressIn}
-          onPressOut={onFabPressOut}
-          activeOpacity={0.9}
-          style={fabStyleSheet.fabInner}
-          accessibilityRole="button"
-          accessibilityLabel="Hablar con SUI"
-          accessibilityHint="Abre el chat de apoyo emocional"
-        >
-          <Ionicons name="chatbubble-ellipses" size={18} color={colors.onPrimary} />
-          <Text style={fabStyleSheet.fabText}>SUI</Text>
-        </TouchableOpacity>
-      </Animated.View>
     </View>
   );
 };
@@ -254,114 +323,101 @@ export const TabNavigator = () => {
 const headerStyles = (colors: ColorScheme) =>
   StyleSheet.create({
     headerShell: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: SPACING.lg,
-      paddingBottom: SPACING.md,
       backgroundColor: colors.background,
+      paddingHorizontal: SPACING.lg,
+      paddingBottom: SPACING.sm,
     },
-    identity: {
+    headerContent: {
+      width: '100%',
+      maxWidth: 560,
+      minHeight: 40,
+      alignSelf: 'center',
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
-      flex: 1,
-      paddingRight: SPACING.md,
-    },
-    identityText: {
-      flex: 1,
-      gap: 0,
+      justifyContent: 'space-between',
     },
     brand: {
-      fontSize: 16,
+      fontSize: 19,
       fontWeight: '700',
+      letterSpacing: 0.5,
       color: colors.onSurface,
     },
-    welcome: {
-      fontSize: 11,
-      fontWeight: '500',
-      color: colors.onSurfaceVariant,
-    },
-    syncStatus: {
-      width: 20,
-      height: 40,
-      alignItems: 'center',
+    avatarButton: {
+      minWidth: 44,
+      minHeight: 44,
+      alignItems: 'flex-end',
       justifyContent: 'center',
-    },
-    syncDot: {
-      width: 7,
-      height: 7,
-      borderRadius: 4,
-    },
-    settingsBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.surfaceContainerLow,
     },
   });
 
-const fabStyles = (colors: ColorScheme) =>
+const tabBarStyles = (colors: ColorScheme) =>
   StyleSheet.create({
-    fab: {
-      position: 'absolute',
-      right: SPACING.lg,
-      backgroundColor: colors.primary,
-      borderRadius: 30,
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.14,
-      shadowRadius: 8,
-      elevation: 5,
-      zIndex: 100,
+    barSurface: {
+      backgroundColor: colors.surface,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.outlineVariant,
+      paddingTop: SPACING.xs,
     },
-    fabInner: {
-      paddingVertical: SPACING.md,
-      paddingHorizontal: SPACING.lg,
+    barContent: {
+      width: '100%',
+      maxWidth: 560,
+      minHeight: NAV_BAR_HEIGHT - SPACING.xs,
+      alignSelf: 'center',
       flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
+      alignItems: 'flex-end',
     },
-    fabText: {
-      color: colors.onPrimary,
-      fontWeight: '700',
-      fontSize: 14,
-    },
-  });
-
-const badgeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    badge: {
-      position: 'absolute',
-      top: -4,
-      right: -10,
-      backgroundColor: colors.error,
-      borderRadius: 10,
-      minWidth: 18,
-      height: 18,
+    tabItem: {
+      flex: 1,
+      minWidth: 0,
+      minHeight: 60,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: 4,
+      gap: 2,
+      paddingHorizontal: 2,
     },
-    badgeText: {
-      color: colors.onError,
-      fontSize: 10,
-      fontWeight: '700',
-    },
-  });
-
-const tabIconStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    shell: {
+    iconShell: {
       minWidth: 42,
-      height: 30,
-      borderRadius: 16,
+      height: 29,
+      borderRadius: 15,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    shellActive: {
+    iconShellActive: {
       backgroundColor: colors.primaryContainer,
+    },
+    tabLabel: {
+      fontSize: 10,
+      lineHeight: 14,
+      fontWeight: '600',
+    },
+    assistantSlot: {
+      flex: 1,
+      minWidth: 0,
+      minHeight: 68,
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      marginTop: -14,
+    },
+    assistantButton: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      borderWidth: 4,
+      borderColor: colors.surface,
+      shadowColor: colors.onBackground,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.14,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    assistantLabel: {
+      fontSize: 10,
+      lineHeight: 14,
+      fontWeight: '700',
+      color: colors.primary,
+      marginTop: 1,
     },
   });

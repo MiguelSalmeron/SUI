@@ -1,7 +1,12 @@
 import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import {
+  ColorScheme,
+  SCREEN_CONTENT_BOTTOM_PADDING,
+  SPACING,
+  useAppTheme,
+} from '@/shared/theme/theme';
 import { ScreenIntro } from '@/shared/ui/ScreenIntro';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { WeeklyChart } from '../components/WeeklyChart';
@@ -161,7 +166,7 @@ const createStyles = (colors: ColorScheme) =>
   StyleSheet.create({
     content: {
       padding: SPACING.lg,
-      paddingBottom: SPACING.xl + 72,
+      paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING,
     },
     insightCard: {
       backgroundColor: colors.surface,

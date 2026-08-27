@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { OnboardingScreen } from '@/features/onboarding/screens/OnboardingScreen';
 import { ChatScreen } from '@/features/chat/screens/ChatScreen';
 import { SettingsScreen } from '@/features/settings/screens/SettingsScreen';
+import { SummaryScreen } from '@/features/home/screens/SummaryScreen';
 import { TabNavigator } from './TabNavigator';
 import { AuthContext } from '@/features/auth/context/AuthContext';
 import { useOnboardingStore } from '@/features/onboarding/store/useOnboardingStore';
@@ -94,6 +95,18 @@ export const AppNavigator = () => {
                 headerStyle: { backgroundColor: theme.colors.surfaceContainer },
                 headerTitleStyle: { color: theme.colors.onSurface, fontWeight: '900' },
                 headerShadowVisible: true,
+              }}
+            />
+            <Stack.Screen
+              name="Progress"
+              component={SummaryScreen}
+              options={{
+                headerShown: true,
+                title: '',
+                headerBackTitle: 'Inicio',
+                headerTintColor: theme.colors.primary,
+                headerStyle: { backgroundColor: theme.colors.background },
+                headerShadowVisible: false,
               }}
             />
             <Stack.Screen

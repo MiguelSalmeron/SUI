@@ -8,7 +8,11 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SPACING, useAppTheme } from '@/shared/theme/theme';
+import {
+  SCREEN_CONTENT_BOTTOM_PADDING,
+  SPACING,
+  useAppTheme,
+} from '@/shared/theme/theme';
 import { ScreenIntro } from '@/shared/ui/ScreenIntro';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
@@ -247,7 +251,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     content: {
       paddingHorizontal: SPACING.lg,
       paddingTop: SPACING.sm,
-      paddingBottom: 144,
+      paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING,
     },
     todayCard: {
       backgroundColor: colors.secondaryContainer,
