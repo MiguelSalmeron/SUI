@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { ScreenIntro } from '@/shared/ui/ScreenIntro';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { WeeklyChart } from '../components/WeeklyChart';
 import { AchievementGrid } from '../components/AchievementGrid';
@@ -63,15 +64,17 @@ export const SummaryScreen = () => {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Tu progreso 📊</Text>
-        <Text style={styles.sectionSubtitle}>Datos de constancia académica</Text>
-      </View>
+      <ScreenIntro
+        title="Progreso"
+        subtitle="Una mirada clara a lo que has construido."
+      />
 
       <LevelCard totalXp={totalXp} />
 
       <View style={styles.insightCard}>
-        <Ionicons name="bulb" size={20} color={colors.onSecondary} />
+        <View style={styles.insightIcon}>
+          <Ionicons name="bulb-outline" size={19} color={colors.flame} />
+        </View>
         <Text style={styles.insightText}>{insight}</Text>
       </View>
 
@@ -105,7 +108,7 @@ export const SummaryScreen = () => {
       </View>
 
       <View style={styles.todayCard}>
-        <Text style={styles.todayTitle}>Resumen de Hoy</Text>
+        <Text style={styles.todayTitle}>HOY</Text>
         <View style={styles.todayRow}>
           <Text style={styles.todayStat}>
             {completedGoals}/{goals.length} metas · {completedHabits}/{habits.length} hábitos
@@ -145,7 +148,7 @@ const statStyles = StyleSheet.create({
   },
   value: {
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   label: {
     fontSize: 11,
@@ -160,35 +163,31 @@ const createStyles = (colors: ColorScheme) =>
       padding: SPACING.lg,
       paddingBottom: SPACING.xl + 72,
     },
-    sectionHeader: {
-      marginBottom: SPACING.md,
-    },
-    sectionTitle: {
-      fontSize: 22,
-      fontWeight: '900',
-      color: colors.onSurface,
-    },
-    sectionSubtitle: {
-      marginTop: 4,
-      color: colors.onSurfaceVariant,
-      fontSize: 14,
-      fontWeight: '600',
-    },
     insightCard: {
-      backgroundColor: colors.secondary,
+      backgroundColor: colors.surface,
       borderRadius: 16,
       padding: SPACING.md,
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       gap: SPACING.sm,
       marginBottom: SPACING.md,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+    },
+    insightIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: colors.flameContainer,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     insightText: {
       flex: 1,
-      color: colors.onSecondary,
+      color: colors.onSurface,
       fontSize: 14,
       lineHeight: 20,
-      fontWeight: '600',
+      fontWeight: '400',
     },
     statsGrid: {
       flexDirection: 'row',
@@ -197,7 +196,7 @@ const createStyles = (colors: ColorScheme) =>
       marginBottom: SPACING.md,
     },
     todayCard: {
-      backgroundColor: colors.primary,
+      backgroundColor: colors.primaryContainer,
       borderRadius: 16,
       padding: SPACING.lg,
       marginBottom: SPACING.md,
@@ -205,7 +204,7 @@ const createStyles = (colors: ColorScheme) =>
     todayTitle: {
       fontSize: 13,
       fontWeight: '800',
-      color: colors.onPrimary,
+      color: colors.onPrimaryContainer,
       textTransform: 'uppercase',
       opacity: 0.85,
     },
@@ -218,12 +217,12 @@ const createStyles = (colors: ColorScheme) =>
     todayStat: {
       fontSize: 15,
       fontWeight: '700',
-      color: colors.onPrimary,
+      color: colors.onPrimaryContainer,
       flex: 1,
     },
     todayRate: {
       fontSize: 28,
-      fontWeight: '900',
-      color: colors.onPrimary,
+      fontWeight: '700',
+      color: colors.primary,
     },
   });

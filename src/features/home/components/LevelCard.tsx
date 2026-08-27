@@ -50,9 +50,9 @@ export const LevelCard = ({ totalXp }: Props) => {
 const createStyles = (colors: ColorScheme) =>
   StyleSheet.create({
     card: {
-      backgroundColor: colors.primaryContainer,
-      borderRadius: 22,
-      padding: SPACING.lg,
+      backgroundColor: colors.surface,
+      borderRadius: 18,
+      padding: SPACING.md,
       borderWidth: 1,
       borderColor: colors.outlineVariant,
       marginBottom: SPACING.sm,
@@ -64,36 +64,36 @@ const createStyles = (colors: ColorScheme) =>
       marginBottom: SPACING.sm,
     },
     levelBadge: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.primary,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.primaryContainer,
       alignItems: 'center',
       justifyContent: 'center',
     },
     levelNumber: {
-      fontSize: 22,
-      fontWeight: '900',
-      color: colors.onPrimary,
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.primary,
     },
     textCol: {
       flex: 1,
     },
     title: {
       fontSize: 17,
-      fontWeight: '900',
-      color: colors.onPrimaryContainer,
+      fontWeight: '700',
+      color: colors.onSurface,
     },
     subtitle: {
       fontSize: 12,
       fontWeight: '600',
-      color: colors.onPrimaryContainer,
+      color: colors.onSurfaceVariant,
       opacity: 0.8,
       marginTop: 2,
     },
     xpTotal: {
       fontSize: 14,
-      fontWeight: '800',
+      fontWeight: '700',
       color: colors.primary,
     },
     track: {

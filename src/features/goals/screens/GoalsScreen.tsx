@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -7,16 +8,34 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { SPACING, useAppTheme } from '@/shared/theme/theme';
+import { ScreenIntro } from '@/shared/ui/ScreenIntro';
+import { PromptModal } from '@/shared/ui/PromptModal';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
-import { PromptModal } from '@/shared/ui/PromptModal';
-import { localDateKey } from '@/shared/domain/productivity/homeStorage';
-import type { Goal, GoalGravity } from '@/shared/types/models';
+import type { Goal } from '@/shared/types/models';
+import { GoalFormModal } from '../components/GoalFormModal';
+
+type Filter = 'active' | 'completed';
+
+const formatDeadline = (dateKey: string) =>
+  new Date(`${dateKey}T00:00:00`).toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+
+const daysUntil = (dateKey: string) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const deadline = new Date(`${dateKey}T00:00:00`);
+  return Math.ceil((deadline.getTime() - today.getTime()) / 86_400_000);
+};
 
 export const GoalsScreen = () => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const celebrate = useCelebrationStore((s) => s.trigger);
 
   const goals = useHomeStore((s) => s.goals);
@@ -26,27 +45,39 @@ export const GoalsScreen = () => {
   const toggleMilestone = useHomeStore((s) => s.toggleMilestone);
   const removeGoal = useHomeStore((s) => s.removeGoal);
 
-  const [addModalVisible, setAddModalVisible] = useState(false);
-  const [addingMilestoneGoalId, setAddingMilestoneGoalId] = useState<string | null>(null);
-  const [gravity, setGravity] = useState<GoalGravity>('high');
+  const [filter, setFilter] = useState<Filter>('active');
+  const [formVisible, setFormVisible] = useState(false);
+  const [milestoneGoalId, setMilestoneGoalId] = useState<string | null>(null);
+  const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
 
-  const handleAddGoal = (title: string) => {
-    const defaultDeadline = localDateKey(
-      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  const activeGoals = useMemo(
+    () => goals.filter((goal) => !goal.completed).sort((a, b) => a.deadline.localeCompare(b.deadline)),
+    [goals],
+  );
+  const completedGoals = useMemo(() => goals.filter((goal) => goal.completed), [goals]);
+  const visibleGoals = filter === 'active' ? activeGoals : completedGoals;
+  const importantCount = activeGoals.filter((goal) => goal.gravity === 'high').length;
+
+  const confirmRemove = (goal: Goal) => {
+    Alert.alert(
+      'Eliminar meta',
+      `¿Quieres eliminar “${goal.title}”? Sus hitos también se eliminarán.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: () => removeGoal(goal.id) },
+      ],
     );
-    addGoal({
-      title,
-      deadline: defaultDeadline,
-      gravity,
-    });
-    setAddModalVisible(false);
   };
 
-  const handleAddMilestone = (title: string) => {
-    if (addingMilestoneGoalId) {
-      addMilestone(addingMilestoneGoalId, title);
-      setAddingMilestoneGoalId(null);
-    }
+  const openActions = (goal: Goal) => {
+    Alert.alert(goal.title, 'Elige una acción', [
+      {
+        text: goal.completed ? 'Reabrir meta' : 'Marcar como completada',
+        onPress: () => toggleGoal(goal.id),
+      },
+      { text: 'Eliminar', style: 'destructive', onPress: () => confirmRemove(goal) },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
   };
 
   return (
@@ -55,332 +86,404 @@ export const GoalsScreen = () => {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.title}>Metas (Destino) 🎯</Text>
-          <Text style={styles.subtitle}>
-            Tus grandes objetivos con fecha límite e hitos.
-          </Text>
+      <ScreenIntro
+        title="Metas"
+        subtitle="Resultados concretos con fecha e hitos."
+        actionLabel="Crear una meta"
+        onAction={() => setFormVisible(true)}
+      />
+
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryValue}>{activeGoals.length}</Text>
+          <Text style={styles.summaryLabel}>activas</Text>
         </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryItem}>
+          <Text style={[styles.summaryValue, importantCount > 0 && { color: colors.flame }]}>{importantCount}</Text>
+          <Text style={styles.summaryLabel}>importantes</Text>
+        </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryValue}>{completedGoals.length}</Text>
+          <Text style={styles.summaryLabel}>completadas</Text>
+        </View>
+      </View>
+
+      <View style={styles.filters}>
         <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => setAddModalVisible(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Añadir nueva meta"
+          style={[styles.filter, filter === 'active' && styles.filterActive]}
+          onPress={() => setFilter('active')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: filter === 'active' }}
         >
-          <Ionicons name="add" size={22} color={colors.onPrimary} />
+          <Text style={[styles.filterText, filter === 'active' && styles.filterTextActive]}>Activas</Text>
+          <View style={[styles.countBadge, filter === 'active' && styles.countBadgeActive]}>
+            <Text style={[styles.countText, filter === 'active' && styles.countTextActive]}>{activeGoals.length}</Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filter, filter === 'completed' && styles.filterActive]}
+          onPress={() => setFilter('completed')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: filter === 'completed' }}
+        >
+          <Text style={[styles.filterText, filter === 'completed' && styles.filterTextActive]}>Completadas</Text>
+          <View style={[styles.countBadge, filter === 'completed' && styles.countBadgeActive]}>
+            <Text style={[styles.countText, filter === 'completed' && styles.countTextActive]}>{completedGoals.length}</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
-      {goals.length === 0 ? (
+      {visibleGoals.length === 0 ? (
         <View style={styles.emptyCard}>
-          <Ionicons name="trophy-outline" size={40} color={colors.primary} />
-          <Text style={styles.emptyTitle}>Sin metas registradas</Text>
-          <Text style={styles.emptySub}>
-            Crea tu primer proyecto o examen por vencer para darle tracción a tu semestre.
+          <View style={styles.emptyIcon}>
+            <Ionicons
+              name={filter === 'active' ? 'flag-outline' : 'checkmark-done-outline'}
+              size={27}
+              color={colors.primary}
+            />
+          </View>
+          <Text style={styles.emptyTitle}>
+            {filter === 'active' ? 'Aún no tienes metas activas' : 'Todavía no hay metas completadas'}
           </Text>
-          <TouchableOpacity
-            style={styles.createBtn}
-            onPress={() => setAddModalVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Crear primera meta"
-          >
-            <Text style={styles.createBtnText}>Crear primera meta</Text>
-          </TouchableOpacity>
+          <Text style={styles.emptyText}>
+            {filter === 'active'
+              ? 'Empieza con un resultado pequeño y alcanzable.'
+              : 'Las metas que termines aparecerán aquí.'}
+          </Text>
+          {filter === 'active' ? (
+            <TouchableOpacity style={styles.emptyAction} onPress={() => setFormVisible(true)}>
+              <Text style={styles.emptyActionText}>Crear primera meta</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       ) : (
-        goals.map((goal) => {
-          const isRed = goal.gravity === 'high';
-          return (
-            <View key={goal.id} style={styles.goalCard}>
-              <View style={styles.cardHeader}>
-                <View
-                  style={[
-                    styles.gravityTag,
-                    {
-                      backgroundColor: isRed
-                        ? colors.errorContainer
-                        : colors.flameContainer,
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name={isRed ? 'alarm' : 'document-text'}
-                    size={16}
-                    color={isRed ? colors.error : colors.flame}
-                  />
-                  <Text
+        <View style={styles.goalList}>
+          {visibleGoals.map((goal) => {
+            const expanded = expandedGoalId === goal.id;
+            const remaining = daysUntil(goal.deadline);
+            const milestonesDone = goal.milestones.filter((item) => item.completed).length;
+
+            return (
+              <View key={goal.id} style={styles.goalCard}>
+                <View style={styles.cardTopRow}>
+                  <View
                     style={[
-                      styles.gravityText,
-                      { color: isRed ? colors.error : colors.flame },
+                      styles.priorityPill,
+                      goal.gravity === 'high' && styles.priorityPillImportant,
                     ]}
                   >
-                    {isRed ? 'Examen / Crítico' : 'Tarea / Quiz'}
-                  </Text>
+                    <View
+                      style={[
+                        styles.priorityDot,
+                        { backgroundColor: goal.gravity === 'high' ? colors.flame : colors.secondary },
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.priorityText,
+                        goal.gravity === 'high' && { color: colors.onFlameContainer },
+                      ]}
+                    >
+                      {goal.gravity === 'high' ? 'Importante' : 'Normal'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.menuButton}
+                    onPress={() => openActions(goal)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Acciones para ${goal.title}`}
+                  >
+                    <Ionicons name="ellipsis-horizontal" size={20} color={colors.onSurfaceVariant} />
+                  </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity
-                  onPress={() => removeGoal(goal.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Eliminar meta ${goal.title}`}
-                >
-                  <Ionicons name="trash-outline" size={18} color={colors.outline} />
-                </TouchableOpacity>
-              </View>
+                <Text style={[styles.goalTitle, goal.completed && styles.goalTitleDone]}>{goal.title}</Text>
+                <View style={styles.deadlineRow}>
+                  <Ionicons name="calendar-outline" size={14} color={colors.onSurfaceVariant} />
+                  <Text style={styles.deadlineText}>{formatDeadline(goal.deadline)}</Text>
+                  {!goal.completed && remaining <= 7 ? (
+                    <Text style={[styles.remainingText, remaining < 0 && { color: colors.error }]}>
+                      {remaining < 0 ? 'Vencida' : remaining === 0 ? 'Hoy' : `${remaining} días`}
+                    </Text>
+                  ) : null}
+                </View>
 
-              <Text style={styles.goalTitle}>{goal.title}</Text>
-              <Text style={styles.goalDeadline}>
-                📅 Vence: {goal.deadline}
-              </Text>
-
-              {/* Barra de Progreso */}
-              <View style={styles.progressRow}>
+                <View style={styles.progressHeader}>
+                  <Text style={styles.progressLabel}>Avance</Text>
+                  <Text style={styles.progressValue}>{goal.progress}%</Text>
+                </View>
                 <View style={styles.progressTrack}>
                   <View
                     style={[
                       styles.progressFill,
                       {
                         width: `${goal.progress}%`,
-                        backgroundColor: goal.completed
-                          ? colors.success
-                          : colors.primary,
+                        backgroundColor: goal.completed ? colors.success : colors.primary,
                       },
                     ]}
                   />
                 </View>
-                <Text style={styles.progressText}>{goal.progress}%</Text>
-              </View>
 
-              {/* Hitos / Milestones Checklist */}
-              {goal.milestones.length > 0 && (
-                <View style={styles.milestoneList}>
-                  {goal.milestones.map((m) => (
-                    <TouchableOpacity
-                      key={m.id}
-                      style={styles.milestoneRow}
-                      onPress={() => {
-                        toggleMilestone(goal.id, m.id);
-                        if (!m.completed) {
-                          celebrate({
-                            kind: 'goal',
-                            subtitle: `Hito cumplido · ${m.title}`,
-                          });
-                        }
-                      }}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${m.completed ? 'Desmarcar' : 'Marcar'} hito ${m.title}`}
-                    >
-                      <Ionicons
-                        name={m.completed ? 'checkbox' : 'square-outline'}
-                        size={18}
-                        color={m.completed ? colors.primary : colors.outline}
-                      />
-                      <Text
-                        style={[
-                          styles.milestoneTitle,
-                          m.completed && styles.milestoneDone,
-                        ]}
+                <TouchableOpacity
+                  style={styles.milestoneSummary}
+                  onPress={() => setExpandedGoalId(expanded ? null : goal.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded }}
+                >
+                  <View style={styles.milestoneSummaryCopy}>
+                    <Ionicons name="list-outline" size={17} color={colors.primary} />
+                    <Text style={styles.milestoneSummaryText}>
+                      {goal.milestones.length
+                        ? `${milestonesDone} de ${goal.milestones.length} hitos`
+                        : 'Añade hitos para medir el avance'}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={expanded ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color={colors.onSurfaceVariant}
+                  />
+                </TouchableOpacity>
+
+                {expanded ? (
+                  <View style={styles.milestoneList}>
+                    {goal.milestones.map((milestone) => (
+                      <TouchableOpacity
+                        key={milestone.id}
+                        style={styles.milestoneRow}
+                        onPress={() => {
+                          toggleMilestone(goal.id, milestone.id);
+                          if (!milestone.completed) {
+                            celebrate({ kind: 'goal', subtitle: `Hito cumplido · ${milestone.title}` });
+                          }
+                        }}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: milestone.completed }}
                       >
-                        {m.title}
-                      </Text>
+                        <Ionicons
+                          name={milestone.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                          size={20}
+                          color={milestone.completed ? colors.success : colors.outline}
+                        />
+                        <Text style={[styles.milestoneText, milestone.completed && styles.milestoneDone]}>
+                          {milestone.title}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity
+                      style={styles.addMilestone}
+                      onPress={() => setMilestoneGoalId(goal.id)}
+                    >
+                      <Ionicons name="add" size={17} color={colors.primary} />
+                      <Text style={styles.addMilestoneText}>Añadir hito</Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-
-              <TouchableOpacity
-                style={styles.addMilestoneBtn}
-                onPress={() => setAddingMilestoneGoalId(goal.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`Agregar hito a la meta ${goal.title}`}
-              >
-                <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
-                <Text style={styles.addMilestoneText}>Agregar Hito / Checklist</Text>
-              </TouchableOpacity>
-            </View>
-          );
-        })
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
+        </View>
       )}
 
-      {/* Modal Nueva Meta */}
-      <PromptModal
-        visible={addModalVisible}
-        title="Nueva Meta Académica"
-        hint="Crea un proyecto o examen por vencer. Elige tipo:"
-        placeholder="Ej. Proyecto Final de Estructuras de Datos"
-        validate={(v) => (v ? null : 'Ingresa un título')}
-        onSubmit={handleAddGoal}
-        onCancel={() => setAddModalVisible(false)}
+      <GoalFormModal
+        visible={formVisible}
+        onSubmit={(draft) => {
+          addGoal(draft);
+          setFormVisible(false);
+          setFilter('active');
+        }}
+        onCancel={() => setFormVisible(false)}
       />
 
-      {/* Modal Nuevo Hito */}
       <PromptModal
-        visible={addingMilestoneGoalId !== null}
-        title="Nuevo Hito para Meta"
-        placeholder="Ej. Redactar marco teórico"
-        validate={(v) => (v ? null : 'Ingresa un hito')}
-        onSubmit={handleAddMilestone}
-        onCancel={() => setAddingMilestoneGoalId(null)}
+        visible={milestoneGoalId !== null}
+        title="Nuevo hito"
+        hint="Una parte concreta que acerque esta meta a completarse."
+        placeholder="Ej. Terminar el primer borrador"
+        validate={(value) => (value ? null : 'Escribe un hito')}
+        onSubmit={(title) => {
+          if (milestoneGoalId) addMilestone(milestoneGoalId, title);
+          setMilestoneGoalId(null);
+        }}
+        onCancel={() => setMilestoneGoalId(null)}
       />
     </ScrollView>
   );
 };
 
-const createStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
+  const { colors, radius, type } = theme;
+  return StyleSheet.create({
     content: {
-      padding: SPACING.lg,
-      paddingBottom: SPACING.xl + 72,
+      paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.sm,
+      paddingBottom: 144,
     },
-    headerRow: {
+    summaryCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: radius.lg,
+      paddingVertical: SPACING.md,
+      marginBottom: SPACING.lg,
+    },
+    summaryItem: { flex: 1, alignItems: 'center' },
+    summaryValue: { ...type.titleLg, color: colors.onSurface },
+    summaryLabel: { ...type.bodySm, color: colors.onSurfaceVariant },
+    summaryDivider: { width: 1, height: 30, backgroundColor: colors.outlineVariant },
+    filters: {
+      flexDirection: 'row',
+      gap: SPACING.xs,
+      backgroundColor: colors.surfaceContainer,
+      borderRadius: radius.lg,
+      padding: SPACING.xs,
+      marginBottom: SPACING.md,
+    },
+    filter: {
+      flex: 1,
+      minHeight: 42,
+      borderRadius: radius.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+    },
+    filterActive: { backgroundColor: colors.surface },
+    filterText: { ...type.labelMd, color: colors.onSurfaceVariant },
+    filterTextActive: { color: colors.onSurface },
+    countBadge: {
+      minWidth: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: colors.surfaceContainerHighest,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 5,
+    },
+    countBadgeActive: { backgroundColor: colors.primaryContainer },
+    countText: { ...type.labelSm, color: colors.onSurfaceVariant },
+    countTextActive: { color: colors.onPrimaryContainer },
+    emptyCard: {
+      minHeight: 260,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surfaceContainerLow,
+      borderRadius: radius.xl,
+      padding: SPACING.xl,
+    },
+    emptyIcon: {
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      backgroundColor: colors.primaryContainer,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: SPACING.md,
+    },
+    emptyTitle: { ...type.titleMd, color: colors.onSurface, textAlign: 'center' },
+    emptyText: {
+      ...type.bodyMd,
+      color: colors.onSurfaceVariant,
+      textAlign: 'center',
+      marginTop: SPACING.xs,
+    },
+    emptyAction: {
+      minHeight: 44,
+      borderRadius: 22,
+      backgroundColor: colors.primary,
+      justifyContent: 'center',
+      paddingHorizontal: SPACING.lg,
+      marginTop: SPACING.lg,
+    },
+    emptyActionText: { ...type.labelLg, color: colors.onPrimary },
+    goalList: { gap: SPACING.md },
+    goalCard: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: radius.lg,
+      padding: SPACING.md,
+    },
+    cardTopRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: SPACING.lg,
+      marginBottom: SPACING.sm,
     },
-    title: {
-      fontSize: 22,
-      fontWeight: '900',
-      color: colors.onSurface,
+    priorityPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: colors.secondaryContainer,
+      borderRadius: 14,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
     },
-    subtitle: {
-      fontSize: 13,
-      color: colors.onSurfaceVariant,
-      marginTop: 2,
-    },
-    addBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.primary,
+    priorityPillImportant: { backgroundColor: colors.flameContainer },
+    priorityDot: { width: 7, height: 7, borderRadius: 4 },
+    priorityText: { ...type.labelSm, color: colors.onSecondaryContainer },
+    menuButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    emptyCard: {
-      backgroundColor: colors.surfaceContainer,
-      borderRadius: 20,
-      padding: SPACING.xl,
+    goalTitle: { ...type.titleLg, color: colors.onSurface },
+    goalTitleDone: { color: colors.onSurfaceVariant, textDecorationLine: 'line-through' },
+    deadlineRow: {
+      flexDirection: 'row',
       alignItems: 'center',
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-      marginTop: SPACING.md,
-    },
-    emptyTitle: {
-      fontSize: 17,
-      fontWeight: '800',
-      color: colors.onSurface,
-      marginTop: SPACING.md,
-    },
-    emptySub: {
-      fontSize: 13,
-      color: colors.onSurfaceVariant,
-      textAlign: 'center',
-      marginTop: 6,
-      marginBottom: SPACING.lg,
-    },
-    createBtn: {
-      backgroundColor: colors.primary,
-      paddingHorizontal: SPACING.lg,
-      paddingVertical: SPACING.sm + 2,
-      borderRadius: 12,
-    },
-    createBtnText: {
-      color: colors.onPrimary,
-      fontWeight: '800',
-      fontSize: 14,
-    },
-    goalCard: {
-      backgroundColor: colors.surfaceContainer,
-      borderRadius: 20,
-      padding: SPACING.lg,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
+      gap: 5,
+      marginTop: 4,
       marginBottom: SPACING.md,
     },
-    cardHeader: {
+    deadlineText: { ...type.bodySm, color: colors.onSurfaceVariant },
+    remainingText: {
+      ...type.labelSm,
+      color: colors.flame,
+      marginLeft: 'auto',
+    },
+    progressHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: SPACING.xs,
+      marginBottom: 6,
     },
-    gravityTag: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 8,
-    },
-    gravityText: {
-      fontSize: 11,
-      fontWeight: '800',
-    },
-    goalTitle: {
-      fontSize: 18,
-      fontWeight: '900',
-      color: colors.onSurface,
-      marginTop: 4,
-    },
-    goalDeadline: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: colors.onSurfaceVariant,
-      marginTop: 2,
-      marginBottom: SPACING.sm,
-    },
-    progressRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACING.md,
-      marginBottom: SPACING.md,
-    },
+    progressLabel: { ...type.bodySm, color: colors.onSurfaceVariant },
+    progressValue: { ...type.labelSm, color: colors.primary },
     progressTrack: {
-      flex: 1,
-      height: 10,
-      borderRadius: 5,
-      backgroundColor: colors.outlineVariant,
+      height: 7,
+      borderRadius: radius.full,
+      backgroundColor: colors.surfaceContainerHighest,
       overflow: 'hidden',
     },
-    progressFill: {
-      height: '100%',
-      borderRadius: 5,
+    progressFill: { height: '100%', borderRadius: radius.full },
+    milestoneSummary: {
+      minHeight: 44,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: SPACING.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.outlineVariant,
+      paddingTop: SPACING.sm,
     },
-    progressText: {
-      fontSize: 14,
-      fontWeight: '900',
-      color: colors.primary,
-    },
+    milestoneSummaryCopy: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 7 },
+    milestoneSummaryText: { ...type.bodySm, color: colors.onSurfaceVariant, flex: 1 },
     milestoneList: {
-      backgroundColor: colors.background,
-      borderRadius: 12,
-      padding: SPACING.sm,
-      marginBottom: SPACING.sm,
-      gap: 6,
-    },
-    milestoneRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
       gap: SPACING.sm,
-      paddingVertical: 2,
+      backgroundColor: colors.surfaceContainerLow,
+      borderRadius: radius.md,
+      padding: SPACING.sm,
     },
-    milestoneTitle: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.onSurface,
-    },
-    milestoneDone: {
-      color: colors.onSurfaceVariant,
-      textDecorationLine: 'line-through',
-    },
-    addMilestoneBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      alignSelf: 'flex-start',
-    },
-    addMilestoneText: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: colors.primary,
-    },
+    milestoneRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, minHeight: 36 },
+    milestoneText: { ...type.bodyMd, color: colors.onSurface, flex: 1 },
+    milestoneDone: { color: colors.onSurfaceVariant, textDecorationLine: 'line-through' },
+    addMilestone: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36 },
+    addMilestoneText: { ...type.labelMd, color: colors.primary },
   });
+};

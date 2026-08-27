@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '@/features/auth/context/AuthContext';
 import { ColorScheme, SPACING, useAppTheme, NAV_BAR_HEIGHT } from '@/shared/theme/theme';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
+import { isHabitDueToday, localDateKey } from '@/shared/domain/productivity/homeStorage';
 import { useOnboardingStore } from '@/features/onboarding/store/useOnboardingStore';
 import { Avatar } from '@/shared/ui/Avatar';
 import type { RootStackNavigationProp } from './types';
@@ -40,55 +41,52 @@ type TabHeaderProps = {
   colors: ColorScheme;
   topInset: number;
   profileName: string;
-  streak: number;
   syncPending: boolean;
   onSettings: () => void;
 };
 
-const TabHeader = React.memo(({ colors, topInset, profileName, streak, syncPending, onSettings }: TabHeaderProps) => (
-  <View style={[headerStyles(colors).headerShell, { paddingTop: topInset + SPACING.sm }]}>
-    <View style={headerStyles(colors).identity}>
-      <Avatar name={profileName} size="md" variant="primary" />
-      <View style={headerStyles(colors).identityText}>
-        <Text style={headerStyles(colors).name} numberOfLines={1}>
-          {profileName}
-        </Text>
-        <View style={headerStyles(colors).badgeRow}>
-          {streak > 0 && (
-            <View style={headerStyles(colors).streakPill}>
-              <Ionicons name="flame" size={11} color={colors.flame} />
-              <Text style={headerStyles(colors).streakText}>{streak} días</Text>
-            </View>
-          )}
-          <View style={headerStyles(colors).syncPill} accessibilityLabel={syncPending ? 'Sincronización pendiente' : 'Sincronizado'}>
-            <Ionicons
-              name={syncPending ? 'cloud-offline-outline' : 'cloud-done-outline'}
-              size={11}
-              color={syncPending ? colors.outline : colors.success}
-            />
-            <Text style={[headerStyles(colors).syncText, { color: syncPending ? colors.outline : colors.success }]}>
-              {syncPending ? 'Local' : 'Nube'}
-            </Text>
-          </View>
+const TabHeader = React.memo(({ colors, topInset, profileName, syncPending, onSettings }: TabHeaderProps) => {
+  const styles = useMemo(() => headerStyles(colors), [colors]);
+  return (
+    <View style={[styles.headerShell, { paddingTop: topInset + SPACING.sm }]}>
+      <View style={styles.identity}>
+        <Avatar name={profileName} size="sm" variant="primary" />
+        <View style={styles.identityText}>
+          <Text style={styles.brand}>SUI</Text>
+          <Text style={styles.welcome} numberOfLines={1}>Hola, {profileName}</Text>
         </View>
       </View>
+      <View
+        style={styles.syncStatus}
+        accessibilityLabel={syncPending ? 'Sincronización pendiente' : 'Sincronizado'}
+      >
+        <View
+          style={[
+            styles.syncDot,
+            { backgroundColor: syncPending ? colors.outline : colors.success },
+          ]}
+        />
+      </View>
+      <TouchableOpacity
+        style={styles.settingsBtn}
+        onPress={onSettings}
+        accessibilityRole="button"
+        accessibilityLabel="Ajustes"
+        accessibilityHint="Abre la pantalla de configuración"
+      >
+        <Ionicons name="settings-outline" size={22} color={colors.onSurfaceVariant} />
+      </TouchableOpacity>
     </View>
-    <TouchableOpacity
-      style={headerStyles(colors).settingsBtn}
-      onPress={onSettings}
-      accessibilityRole="button"
-      accessibilityLabel="Ajustes"
-      accessibilityHint="Abre la pantalla de configuración"
-    >
-      <Ionicons name="settings-outline" size={22} color={colors.onSurfaceVariant} />
-    </TouchableOpacity>
-  </View>
-));
+  );
+});
 
 export const TabNavigator = () => {
   const { user } = useContext(AuthContext);
   const theme = useAppTheme();
   const colors = theme.colors;
+  const tabIconStyleSheet = useMemo(() => tabIconStyles(colors), [colors]);
+  const badgeStyleSheet = useMemo(() => badgeStyles(colors), [colors]);
+  const fabStyleSheet = useMemo(() => fabStyles(colors), [colors]);
   const navigation = useNavigation<RootStackNavigationProp>();
   const insets = useSafeAreaInsets();
 
@@ -127,16 +125,24 @@ export const TabNavigator = () => {
 
   const completedGoals = useMemo(() => goals.filter((g) => g.completed).length, [goals]);
   const completedHabits = useMemo(() => habits.filter((h) => h.completed).length, [habits]);
-  const dailyCompleted = completedGoals + completedHabits;
-  const dailyTotal = goals.length + habits.length;
+  const todayGoals = useMemo(() => {
+    const today = localDateKey();
+    return goals.filter((goal) => goal.deadline === today || goal.impactDays?.includes(today));
+  }, [goals]);
+  const todayHabits = useMemo(() => habits.filter((habit) => isHabitDueToday(habit)), [habits]);
+  const dailyCompleted =
+    todayGoals.filter((goal) => goal.completed).length +
+    todayHabits.filter((habit) => habit.completed).length;
+  const dailyTotal = todayGoals.length + todayHabits.length;
+  const totalCompletedActions = completedGoals + completedHabits;
   const pendingGoals = goals.length - completedGoals;
-  const pendingHabits = habits.length - completedHabits;
+  const pendingHabits = todayHabits.filter((habit) => !habit.completed).length;
 
-  const prevDailyCompleted = useRef(dailyCompleted);
+  const prevCompletedActions = useRef(totalCompletedActions);
   const perfectDayShown = useRef(false);
   useEffect(() => {
-    if (!stateLoaded || dailyCompleted === 0) return;
-    if (dailyCompleted > prevDailyCompleted.current) {
+    if (!stateLoaded) return;
+    if (totalCompletedActions > prevCompletedActions.current) {
       bumpStreak();
       if (
         dailyTotal > 0 &&
@@ -147,8 +153,8 @@ export const TabNavigator = () => {
         celebrate({ kind: 'perfect_day', subtitle: 'Completaste todo hoy' });
       }
     }
-    prevDailyCompleted.current = dailyCompleted;
-  }, [dailyCompleted, dailyTotal, stateLoaded, bumpStreak, celebrate]);
+    prevCompletedActions.current = totalCompletedActions;
+  }, [dailyCompleted, dailyTotal, totalCompletedActions, stateLoaded, bumpStreak, celebrate]);
 
   const fabScale = useRef(new Animated.Value(1)).current;
   const onFabPressIn = () =>
@@ -171,7 +177,6 @@ export const TabNavigator = () => {
               colors={colors}
               topInset={insets.top}
               profileName={profileName}
-              streak={streak}
               syncPending={syncPending}
               onSettings={() => navigation.navigate('Settings')}
             />
@@ -186,15 +191,15 @@ export const TabNavigator = () => {
                 ? pendingHabits
                 : 0;
             return (
-              <View>
+              <View style={[tabIconStyleSheet.shell, focused && tabIconStyleSheet.shellActive]}>
                 <Ionicons
                   name={focused ? icons.focused : icons.outline}
                   size={size}
                   color={color}
                 />
                 {badge > 0 && (
-                  <View style={badgeStyles(colors).badge}>
-                    <Text style={badgeStyles(colors).badgeText}>{badge > 9 ? '9+' : badge}</Text>
+                  <View style={badgeStyleSheet.badge}>
+                    <Text style={badgeStyleSheet.badgeText}>{badge > 9 ? '9+' : badge}</Text>
                   </View>
                 )}
               </View>
@@ -203,7 +208,7 @@ export const TabNavigator = () => {
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.onSurfaceVariant,
           tabBarStyle: {
-            backgroundColor: colors.surfaceContainer,
+            backgroundColor: colors.surface,
             borderTopColor: colors.outlineVariant,
             borderTopWidth: StyleSheet.hairlineWidth,
             paddingTop: SPACING.xs,
@@ -212,7 +217,7 @@ export const TabNavigator = () => {
           },
           tabBarLabelStyle: {
             fontSize: 11,
-            fontWeight: '700',
+            fontWeight: '600',
             marginBottom: 2,
           },
           tabBarLabelPosition: 'below-icon',
@@ -223,23 +228,23 @@ export const TabNavigator = () => {
         <Tab.Screen name="Overview" component={OverviewScreen} options={{ tabBarLabel: 'Inicio' }} />
         <Tab.Screen name="Goals" component={GoalsScreen} options={{ tabBarLabel: 'Metas' }} />
         <Tab.Screen name="Habits" component={HabitsScreen} options={{ tabBarLabel: 'Hábitos' }} />
-        <Tab.Screen name="Calendar" component={CalendarScreen} options={{ tabBarLabel: 'Radar' }} />
-        <Tab.Screen name="Summary" component={SummaryScreen} options={{ tabBarLabel: 'Resumen' }} />
+        <Tab.Screen name="Calendar" component={CalendarScreen} options={{ tabBarLabel: 'Agenda' }} />
+        <Tab.Screen name="Summary" component={SummaryScreen} options={{ tabBarLabel: 'Progreso' }} />
       </Tab.Navigator>
 
-      <Animated.View style={[fabStyles(colors).fab, { bottom: fabBottom, transform: [{ scale: fabScale }] }]}>
+      <Animated.View style={[fabStyleSheet.fab, { bottom: fabBottom, transform: [{ scale: fabScale }] }]}>
         <TouchableOpacity
           onPress={() => navigation.navigate('Chat')}
           onPressIn={onFabPressIn}
           onPressOut={onFabPressOut}
           activeOpacity={0.9}
-          style={fabStyles(colors).fabInner}
+          style={fabStyleSheet.fabInner}
           accessibilityRole="button"
           accessibilityLabel="Hablar con SUI"
           accessibilityHint="Abre el chat de apoyo emocional"
         >
           <Ionicons name="chatbubble-ellipses" size={18} color={colors.onPrimary} />
-          <Text style={fabStyles(colors).fabText}>SUI</Text>
+          <Text style={fabStyleSheet.fabText}>SUI</Text>
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -253,48 +258,40 @@ const headerStyles = (colors: ColorScheme) =>
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: SPACING.lg,
-      paddingBottom: SPACING.sm,
+      paddingBottom: SPACING.md,
       backgroundColor: colors.background,
     },
     identity: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: SPACING.sm,
+      gap: 10,
       flex: 1,
       paddingRight: SPACING.md,
     },
     identityText: {
       flex: 1,
-      gap: 2,
+      gap: 0,
     },
-    name: {
-      fontSize: 17,
-      fontWeight: '800',
+    brand: {
+      fontSize: 16,
+      fontWeight: '700',
       color: colors.onSurface,
     },
-    badgeRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACING.sm,
-    },
-    streakPill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 3,
-    },
-    streakText: {
+    welcome: {
       fontSize: 11,
-      fontWeight: '700',
+      fontWeight: '500',
       color: colors.onSurfaceVariant,
     },
-    syncPill: {
-      flexDirection: 'row',
+    syncStatus: {
+      width: 20,
+      height: 40,
       alignItems: 'center',
-      gap: 3,
+      justifyContent: 'center',
     },
-    syncText: {
-      fontSize: 11,
-      fontWeight: '700',
+    syncDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
     },
     settingsBtn: {
       width: 40,
@@ -302,7 +299,7 @@ const headerStyles = (colors: ColorScheme) =>
       borderRadius: 20,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.surfaceContainer,
+      backgroundColor: colors.surfaceContainerLow,
     },
   });
 
@@ -315,9 +312,9 @@ const fabStyles = (colors: ColorScheme) =>
       borderRadius: 30,
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 10,
-      elevation: 7,
+      shadowOpacity: 0.14,
+      shadowRadius: 8,
+      elevation: 5,
       zIndex: 100,
     },
     fabInner: {
@@ -329,8 +326,8 @@ const fabStyles = (colors: ColorScheme) =>
     },
     fabText: {
       color: colors.onPrimary,
-      fontWeight: '900',
-      fontSize: 15,
+      fontWeight: '700',
+      fontSize: 14,
     },
   });
 
@@ -351,6 +348,20 @@ const badgeStyles = (colors: ColorScheme) =>
     badgeText: {
       color: colors.onError,
       fontSize: 10,
-      fontWeight: '900',
+      fontWeight: '700',
+    },
+  });
+
+const tabIconStyles = (colors: ColorScheme) =>
+  StyleSheet.create({
+    shell: {
+      minWidth: 42,
+      height: 30,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    shellActive: {
+      backgroundColor: colors.primaryContainer,
     },
   });

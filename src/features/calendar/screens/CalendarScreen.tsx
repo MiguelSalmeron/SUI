@@ -7,18 +7,20 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
-import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
-import { localDateKey, isHabitDueToday } from '@/shared/domain/productivity/homeStorage';
+import { SPACING, useAppTheme } from '@/shared/theme/theme';
+import { ScreenIntro } from '@/shared/ui/ScreenIntro';
 import { PromptModal } from '@/shared/ui/PromptModal';
+import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
+import { isHabitDueToday, localDateKey } from '@/shared/domain/productivity/homeStorage';
 import type { GoalGravity } from '@/shared/types/models';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
 
-const DAYS_HEADER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+const DAYS_HEADER = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 export const CalendarScreen = () => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const {
     events: googleEvents,
     lastSyncedAt,
@@ -36,93 +38,81 @@ export const CalendarScreen = () => {
   const habits = useHomeStore((s) => s.habits);
   const addGoal = useHomeStore((s) => s.addGoal);
 
-  const [selectedDate, setSelectedDate] = useState<string>(localDateKey());
-  const [addGoalModalVisible, setAddGoalModalVisible] = useState(false);
-  const [goalGravity, setGoalGravity] = useState<GoalGravity>('high');
-
-  // Cuadrícula de 28 días limpia
-  const calendarDays = useMemo(() => {
-    const days = [];
+  const todayKey = localDateKey();
+  const [selectedDate, setSelectedDate] = useState(todayKey);
+  const [visibleMonth, setVisibleMonth] = useState(() => {
     const today = new Date();
-    const start = new Date(today);
-    start.setDate(start.getDate() - 3);
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  });
+  const [addGoalModalVisible, setAddGoalModalVisible] = useState(false);
+  const [goalGravity] = useState<GoalGravity>('low');
 
-    for (let i = 0; i < 28; i++) {
-      const d = new Date(start);
-      d.setDate(d.getDate() + i);
-      const key = localDateKey(d);
+  const calendarDays = useMemo(() => {
+    const first = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
+    const mondayOffset = (first.getDay() + 6) % 7;
+    const gridStart = new Date(first);
+    gridStart.setDate(first.getDate() - mondayOffset);
 
+    return Array.from({ length: 42 }, (_, index) => {
+      const date = new Date(gridStart);
+      date.setDate(gridStart.getDate() + index);
+      const key = localDateKey(date);
       const dayGoals = goals.filter(
-        (g) => g.deadline === key || g.impactDays?.includes(key),
+        (goal) => goal.deadline === key || goal.impactDays?.includes(key),
       );
-      const hasHigh = dayGoals.some((g) => g.gravity === 'high');
-      const hasLow = dayGoals.some((g) => g.gravity === 'low');
-      const hasGoogleEvent = googleEvents.some((event) => event.date === key);
-
-      let stress: 'green' | 'yellow' | 'red' = 'green';
-      if (hasHigh) stress = 'red';
-      else if (hasLow) stress = 'yellow';
-
-      days.push({
-        date: d,
+      return {
+        date,
         key,
-        dayNum: d.getDate(),
-        isToday: key === localDateKey(),
-        stress,
-        goals: dayGoals,
-        hasGoogleEvent,
-      });
-    }
-    return days;
-  }, [goals, googleEvents]);
+        number: date.getDate(),
+        inMonth: date.getMonth() === visibleMonth.getMonth(),
+        isToday: key === todayKey,
+        hasGoal: dayGoals.length > 0,
+        hasImportantGoal: dayGoals.some((goal) => goal.gravity === 'high'),
+        hasGoogleEvent: googleEvents.some((event) => event.date === key),
+      };
+    });
+  }, [visibleMonth, goals, googleEvents, todayKey]);
 
   const selectedDayInfo = useMemo(() => {
-    const dayGoals = goals.filter(
-      (g) => g.deadline === selectedDate || g.impactDays?.includes(selectedDate),
-    );
-    const dayHabits = habits.filter((h) => {
-      const parts = selectedDate.split('-').map(Number);
-      const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
-      return isHabitDueToday(h, dateObj);
-    });
-    const dayGoogleEvents = googleEvents.filter((event) => event.date === selectedDate);
-
+    const parts = selectedDate.split('-').map(Number);
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
     return {
-      dateKey: selectedDate,
-      goals: dayGoals,
-      habits: dayHabits,
-      googleEvents: dayGoogleEvents,
+      goals: goals.filter(
+        (goal) => goal.deadline === selectedDate || goal.impactDays?.includes(selectedDate),
+      ),
+      habits: habits.filter((habit) => isHabitDueToday(habit, date)),
+      googleEvents: googleEvents.filter((event) => event.date === selectedDate),
     };
   }, [selectedDate, goals, habits, googleEvents]);
 
-  const handleAddGoal = (title: string) => {
-    addGoal({
-      title,
-      deadline: selectedDate,
-      gravity: goalGravity,
-    });
-    setAddGoalModalVisible(false);
+  const moveMonth = (delta: number) => {
+    const next = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + delta, 1);
+    setVisibleMonth(next);
+    setSelectedDate(localDateKey(next));
+  };
+
+  const selectDay = (date: Date, key: string) => {
+    setSelectedDate(key);
+    if (date.getMonth() !== visibleMonth.getMonth()) {
+      setVisibleMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+    }
   };
 
   const syncLabel =
     calendarStatus === 'syncing'
       ? 'Sincronizando…'
       : calendarStatus === 'loading-cache'
-        ? 'Cargando caché…'
+        ? 'Cargando…'
         : calendarStatus === 'offline'
-          ? 'Usando caché local'
+          ? 'Datos locales'
           : calendarConnected
-            ? 'Calendario conectado'
-            : 'Calendario no conectado';
-
-  const lastSyncLabel = lastSyncedAt
-    ? `Última actualización: ${new Date(lastSyncedAt).toLocaleString('es-ES', {
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      })}`
-    : 'Tus eventos aparecerán aquí después de conectar Google Calendar.';
+            ? 'Conectado'
+            : 'Sin conectar';
+  const syncBusy = calendarStatus === 'syncing' || calendarStatus === 'loading-cache';
+  const totalForSelectedDay =
+    selectedDayInfo.goals.length +
+    selectedDayInfo.habits.length +
+    selectedDayInfo.googleEvents.length;
 
   return (
     <ScrollView
@@ -130,161 +120,219 @@ export const CalendarScreen = () => {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header Limpio */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Planificador Mensual</Text>
-      </View>
+      <ScreenIntro title="Agenda" subtitle="Todo lo que tiene fecha, reunido en un lugar." />
 
-      <View style={styles.calendarConnectionCard}>
-        <View style={styles.connectionHeader}>
-          <View style={styles.connectionIcon}>
-            <Ionicons name="logo-google" size={20} color={colors.primary} />
-          </View>
-          <View style={styles.connectionCopy}>
-            <Text style={styles.connectionTitle}>Google Calendar</Text>
+      <View style={styles.connectionCard}>
+        <View style={styles.connectionIcon}>
+          <Ionicons name="logo-google" size={19} color={colors.primary} />
+        </View>
+        <View style={styles.connectionCopy}>
+          <Text style={styles.connectionTitle}>Google Calendar</Text>
+          <View style={styles.statusRow}>
+            <View
+              style={[
+                styles.statusDot,
+                { backgroundColor: calendarConnected ? colors.success : colors.outline },
+              ]}
+            />
             <Text style={styles.connectionStatus}>{syncLabel}</Text>
           </View>
-          {calendarConnected && (
-            <View style={styles.connectedBadge}>
-              <Ionicons name="checkmark-circle" size={15} color={colors.success} />
-              <Text style={styles.connectedBadgeText}>{googleEvents.length}</Text>
-            </View>
-          )}
         </View>
-        <Text style={styles.connectionDescription}>
-          Solo lectura: SUI combina tus eventos con tus metas y hábitos. No modifica tu calendario.
-        </Text>
-        <Text style={styles.lastSyncText}>{lastSyncLabel}</Text>
-        {calendarError && <Text style={styles.connectionError}>{calendarError}</Text>}
-        {platformHint && !calendarError && <Text style={styles.connectionHint}>{platformHint}</Text>}
-        {!calendarConfigured && (
-          <Text style={styles.connectionHint}>
-            Configura el Client ID de Google para activar la conexión.
+        <TouchableOpacity
+          style={[styles.syncButton, (!calendarReady || syncBusy) && styles.syncButtonDisabled]}
+          onPress={() => void connectAndSync()}
+          disabled={!calendarReady || syncBusy}
+          accessibilityRole="button"
+          accessibilityLabel={calendarConnected ? 'Actualizar calendario' : 'Conectar calendario'}
+        >
+          <Ionicons
+            name={calendarConnected ? 'refresh' : 'link-outline'}
+            size={17}
+            color={colors.primary}
+          />
+          <Text style={styles.syncButtonText}>{calendarConnected ? 'Actualizar' : 'Conectar'}</Text>
+        </TouchableOpacity>
+      </View>
+      {calendarError || platformHint || !calendarConfigured ? (
+        <View style={styles.connectionMessage}>
+          <Text style={[styles.connectionMessageText, calendarError && { color: colors.error }]}>
+            {calendarError ?? platformHint ?? 'Configura el Client ID de Google para activar la conexión.'}
           </Text>
-        )}
-        <View style={styles.connectionActions}>
-          <TouchableOpacity
-            style={styles.connectButton}
-            onPress={() => void connectAndSync()}
-            disabled={!calendarReady || calendarStatus === 'syncing' || calendarStatus === 'loading-cache'}
-            accessibilityRole="button"
-            accessibilityLabel={calendarConnected ? 'Actualizar Google Calendar' : 'Conectar Google Calendar'}
-            accessibilityState={{
-              disabled: !calendarReady || calendarStatus === 'syncing' || calendarStatus === 'loading-cache',
-            }}
-          >
-            <Ionicons name={calendarConnected ? 'refresh' : 'link-outline'} size={16} color={colors.onPrimary} />
-            <Text style={styles.connectButtonText}>{calendarConnected ? 'Actualizar' : 'Conectar'}</Text>
-          </TouchableOpacity>
-          {calendarConnected && (
-            <TouchableOpacity
-              style={styles.disconnectButton}
-              onPress={() => void disconnect()}
-              accessibilityRole="button"
-              accessibilityLabel="Desconectar Google Calendar"
-            >
-              <Text style={styles.disconnectButtonText}>Desconectar</Text>
+          {calendarConnected ? (
+            <TouchableOpacity onPress={() => void disconnect()}>
+              <Text style={styles.disconnectText}>Desconectar</Text>
             </TouchableOpacity>
-          )}
+          ) : null}
         </View>
-      </View>
-
-      {/* Encabezado días de la semana */}
-      <View style={styles.daysHeader}>
-        {DAYS_HEADER.map((d) => (
-          <Text key={d} style={styles.dayHeaderCell}>
-            {d}
-          </Text>
-        ))}
-      </View>
-
-      {/* Rejilla de Días */}
-      <View style={styles.grid}>
-        {calendarDays.map((day) => {
-          const isSelected = day.key === selectedDate;
-          const bgByStress = {
-            green: colors.surfaceContainer,
-            yellow: colors.flameContainer,
-            red: colors.errorContainer,
-          };
-
-          return (
-            <TouchableOpacity
-              key={day.key}
-              style={[
-                styles.dayCell,
-                {
-                  backgroundColor: bgByStress[day.stress],
-                  borderColor: isSelected ? colors.primary : colors.outlineVariant,
-                  borderWidth: isSelected ? 2 : 1,
-                },
-              ]}
-              onPress={() => setSelectedDate(day.key)}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.dayNumText,
-                  day.isToday && styles.todayText,
-                  isSelected && { color: colors.primary },
-                ]}
-              >
-                {day.dayNum}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Lista del Día Seleccionado (Limpia sin secciones vacías) */}
-      <View style={styles.detailCard}>
-        <View style={styles.detailHeader}>
-          <Text style={styles.detailTitle}>
-            {new Date(selectedDate + 'T00:00:00').toLocaleDateString('es-ES', {
-              weekday: 'long',
+      ) : lastSyncedAt ? (
+        <View style={styles.connectionFooter}>
+          <Text style={styles.lastSyncText}>
+            Actualizado {new Date(lastSyncedAt).toLocaleDateString('es-ES', {
               day: 'numeric',
-              month: 'long',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit',
             })}
           </Text>
+          {calendarConnected ? (
+            <TouchableOpacity onPress={() => void disconnect()}>
+              <Text style={styles.disconnectText}>Desconectar</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : null}
+
+      <View style={styles.calendarCard}>
+        <View style={styles.monthHeader}>
           <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => {
-              setGoalGravity('high');
-              setAddGoalModalVisible(true);
-            }}
+            style={styles.monthButton}
+            onPress={() => moveMonth(-1)}
+            accessibilityRole="button"
+            accessibilityLabel="Mes anterior"
           >
-            <Ionicons name="add" size={20} color={colors.onPrimary} />
+            <Ionicons name="chevron-back" size={20} color={colors.onSurfaceVariant} />
+          </TouchableOpacity>
+          <View style={styles.monthCopy}>
+            <Text style={styles.monthTitle}>
+              {visibleMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+            </Text>
+            {visibleMonth.getMonth() !== new Date().getMonth() ||
+            visibleMonth.getFullYear() !== new Date().getFullYear() ? (
+              <TouchableOpacity
+                onPress={() => {
+                  const today = new Date();
+                  setVisibleMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+                  setSelectedDate(todayKey);
+                }}
+              >
+                <Text style={styles.todayLink}>Volver a hoy</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <TouchableOpacity
+            style={styles.monthButton}
+            onPress={() => moveMonth(1)}
+            accessibilityRole="button"
+            accessibilityLabel="Mes siguiente"
+          >
+            <Ionicons name="chevron-forward" size={20} color={colors.onSurfaceVariant} />
           </TouchableOpacity>
         </View>
 
-        {selectedDayInfo.goals.length === 0 &&
-        selectedDayInfo.habits.length === 0 &&
-        selectedDayInfo.googleEvents.length === 0 ? (
-          <Text style={styles.emptyText}>Sin eventos, entregas ni hábitos para esta fecha.</Text>
+        <View style={styles.daysHeader}>
+          {DAYS_HEADER.map((day) => (
+            <Text key={day} style={styles.dayHeaderCell}>{day}</Text>
+          ))}
+        </View>
+
+        <View style={styles.grid}>
+          {calendarDays.map((day) => {
+            const selected = day.key === selectedDate;
+            return (
+              <TouchableOpacity
+                key={day.key}
+                style={[styles.dayCell, selected && styles.dayCellSelected]}
+                onPress={() => selectDay(day.date, day.key)}
+                activeOpacity={0.72}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                accessibilityLabel={day.date.toLocaleDateString('es-ES', {
+                  weekday: 'long', day: 'numeric', month: 'long',
+                })}
+              >
+                <Text
+                  style={[
+                    styles.dayNumber,
+                    !day.inMonth && styles.dayNumberOutside,
+                    day.isToday && !selected && styles.dayNumberToday,
+                    selected && styles.dayNumberSelected,
+                  ]}
+                >
+                  {day.number}
+                </Text>
+                <View style={styles.indicatorRow}>
+                  {day.hasGoogleEvent ? (
+                    <View style={[styles.indicator, { backgroundColor: selected ? colors.onPrimary : colors.primary }]} />
+                  ) : null}
+                  {day.hasGoal ? (
+                    <View
+                      style={[
+                        styles.indicator,
+                        {
+                          backgroundColor: selected
+                            ? colors.onPrimary
+                            : day.hasImportantGoal
+                              ? colors.flame
+                              : colors.secondary,
+                        },
+                      ]}
+                    />
+                  ) : null}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={styles.detailHeader}>
+        <View style={styles.detailHeaderCopy}>
+          <Text style={styles.detailTitle}>
+            {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', {
+              weekday: 'long', day: 'numeric', month: 'long',
+            })}
+          </Text>
+          <Text style={styles.detailMeta}>
+            {totalForSelectedDay} {totalForSelectedDay === 1 ? 'actividad' : 'actividades'}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setAddGoalModalVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Añadir entrega en esta fecha"
+        >
+          <Ionicons name="add" size={20} color={colors.onPrimary} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.dayList}>
+        {totalForSelectedDay === 0 ? (
+          <View style={styles.emptyDay}>
+            <Ionicons name="calendar-clear-outline" size={24} color={colors.secondary} />
+            <Text style={styles.emptyText}>Este día está libre.</Text>
+          </View>
         ) : (
           <>
             {selectedDayInfo.googleEvents.map((event) => (
-              <View key={`google-${event.id}`} style={styles.rowItem}>
-                <Ionicons name="logo-google" size={16} color={colors.primary} />
-                <Text style={styles.rowTitle}>
-                  {event.allDay ? 'Todo el día: ' : `${event.time ?? ''} · `}
-                  {event.title}
-                </Text>
-              </View>
+              <DayRow
+                key={`google-${event.id}`}
+                icon="calendar-outline"
+                title={event.title}
+                meta={event.allDay ? 'Todo el día · Google Calendar' : `${event.time ?? ''} · Google Calendar`}
+                color={colors.primary}
+                backgroundColor={colors.primaryContainer}
+              />
             ))}
-
-            {selectedDayInfo.goals.map((g) => (
-              <View key={g.id} style={styles.rowItem}>
-                <Ionicons name="flag" size={16} color={colors.primary} />
-                <Text style={styles.rowTitle}>Entrega: {g.title}</Text>
-              </View>
+            {selectedDayInfo.goals.map((goal) => (
+              <DayRow
+                key={goal.id}
+                icon="flag-outline"
+                title={goal.title}
+                meta="Fecha límite · Meta"
+                color={goal.gravity === 'high' ? colors.flame : colors.primary}
+                backgroundColor={goal.gravity === 'high' ? colors.flameContainer : colors.primaryContainer}
+              />
             ))}
-
-            {selectedDayInfo.habits.map((h) => (
-              <View key={h.id} style={styles.rowItem}>
-                <Ionicons name="repeat" size={16} color={colors.flame} />
-                <Text style={styles.rowTitle}>Hábito: {h.title}</Text>
-              </View>
+            {selectedDayInfo.habits.map((habit) => (
+              <DayRow
+                key={habit.id}
+                icon="repeat"
+                title={habit.title}
+                meta="Repetición · Hábito"
+                color={colors.secondary}
+                backgroundColor={colors.secondaryContainer}
+              />
             ))}
           </>
         )}
@@ -292,209 +340,207 @@ export const CalendarScreen = () => {
 
       <PromptModal
         visible={addGoalModalVisible}
-        title="Agregar Entrega para Fecha"
-        hint={`Fecha: ${selectedDate}`}
-        placeholder="Ej. Examen Parcial de Física"
-        validate={(v) => (v ? null : 'Escribe un título')}
-        onSubmit={handleAddGoal}
+        title="Nueva entrega"
+        hint={`Se añadirá a Metas con fecha ${new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', {
+          day: 'numeric', month: 'long',
+        })}.`}
+        placeholder="Ej. Examen parcial de Física"
+        validate={(value) => (value ? null : 'Escribe un título')}
+        onSubmit={(title) => {
+          addGoal({ title, deadline: selectedDate, gravity: goalGravity });
+          setAddGoalModalVisible(false);
+        }}
         onCancel={() => setAddGoalModalVisible(false)}
       />
     </ScrollView>
   );
 };
 
-const createStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
+type DayRowProps = {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  meta: string;
+  color: string;
+  backgroundColor: string;
+};
+
+const DayRow = ({ icon, title, meta, color, backgroundColor }: DayRowProps) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  return (
+    <View style={styles.dayRow}>
+      <View style={[styles.dayRowIcon, { backgroundColor }]}>
+        <Ionicons name={icon} size={17} color={color} />
+      </View>
+      <View style={styles.dayRowCopy}>
+        <Text style={styles.dayRowTitle} numberOfLines={2}>{title}</Text>
+        <Text style={styles.dayRowMeta}>{meta}</Text>
+      </View>
+    </View>
+  );
+};
+
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
+  const { colors, radius, type } = theme;
+  return StyleSheet.create({
     content: {
-      padding: SPACING.lg,
-      paddingBottom: SPACING.xl + 72,
+      paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.sm,
+      paddingBottom: 144,
     },
-    calendarConnectionCard: {
-      backgroundColor: colors.surfaceContainer,
-      borderRadius: 16,
-      padding: SPACING.md,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-      marginBottom: SPACING.lg,
-    },
-    connectionHeader: {
+    connectionCard: {
+      minHeight: 66,
       flexDirection: 'row',
       alignItems: 'center',
+      gap: SPACING.sm,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: radius.lg,
+      padding: SPACING.sm,
+      marginBottom: SPACING.xs,
     },
     connectionIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 42,
+      height: 42,
+      borderRadius: 21,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.primaryContainer,
-      marginRight: SPACING.sm,
     },
-    connectionCopy: {
-      flex: 1,
-    },
-    connectionTitle: {
-      fontSize: 16,
-      fontWeight: '800',
-      color: colors.onSurface,
-    },
-    connectionStatus: {
-      marginTop: 2,
-      fontSize: 12,
-      fontWeight: '700',
-      color: colors.onSurfaceVariant,
-    },
-    connectedBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      paddingHorizontal: SPACING.sm,
-      paddingVertical: SPACING.xs,
-      borderRadius: 12,
-      backgroundColor: colors.successContainer,
-    },
-    connectedBadgeText: {
-      fontSize: 12,
-      fontWeight: '800',
-      color: colors.onSuccessContainer,
-    },
-    connectionDescription: {
-      marginTop: SPACING.sm,
-      fontSize: 13,
-      lineHeight: 19,
-      color: colors.onSurfaceVariant,
-    },
-    lastSyncText: {
-      marginTop: SPACING.xs,
-      fontSize: 12,
-      color: colors.onSurfaceVariant,
-    },
-    connectionError: {
-      marginTop: SPACING.sm,
-      fontSize: 12,
-      lineHeight: 17,
-      color: colors.error,
-      fontWeight: '700',
-    },
-    connectionHint: {
-      marginTop: SPACING.sm,
-      fontSize: 12,
-      lineHeight: 17,
-      color: colors.flame,
-    },
-    connectionActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACING.sm,
-      marginTop: SPACING.md,
-    },
-    connectButton: {
-      minHeight: 44,
+    connectionCopy: { flex: 1 },
+    connectionTitle: { ...type.titleSm, color: colors.onSurface },
+    statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 1 },
+    statusDot: { width: 6, height: 6, borderRadius: 3 },
+    connectionStatus: { ...type.bodySm, color: colors.onSurfaceVariant },
+    syncButton: {
+      minHeight: 40,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: SPACING.xs,
+      gap: 5,
+      borderRadius: 20,
+      backgroundColor: colors.primaryContainer,
       paddingHorizontal: SPACING.md,
-      borderRadius: 12,
-      backgroundColor: colors.primary,
     },
-    connectButtonText: {
-      color: colors.onPrimary,
-      fontSize: 13,
-      fontWeight: '800',
-    },
-    disconnectButton: {
-      minHeight: 44,
-      justifyContent: 'center',
-      paddingHorizontal: SPACING.sm,
-    },
-    disconnectButtonText: {
-      color: colors.error,
-      fontSize: 13,
-      fontWeight: '800',
-    },
-    header: {
-      marginBottom: SPACING.md,
-    },
-    title: {
-      fontSize: 22,
-      fontWeight: '900',
-      color: colors.onSurface,
-    },
-    daysHeader: {
-      flexDirection: 'row',
-      marginBottom: SPACING.xs,
-    },
-    dayHeaderCell: {
-      flex: 1,
-      textAlign: 'center',
-      fontSize: 12,
-      fontWeight: '800',
-      color: colors.onSurfaceVariant,
-    },
-    grid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 6,
-      marginBottom: SPACING.lg,
-    },
-    dayCell: {
-      width: '12.8%',
-      aspectRatio: 1,
-      borderRadius: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    dayNumText: {
-      fontSize: 13,
-      fontWeight: '800',
-      color: colors.onSurface,
-    },
-    todayText: {
-      color: colors.primary,
-      fontWeight: '900',
-    },
-    detailCard: {
-      backgroundColor: colors.surfaceContainer,
-      borderRadius: 16,
-      padding: SPACING.lg,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-    },
-    detailHeader: {
+    syncButtonDisabled: { opacity: 0.48 },
+    syncButtonText: { ...type.labelMd, color: colors.primary },
+    connectionMessage: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
+      gap: SPACING.sm,
+      paddingHorizontal: SPACING.sm,
       marginBottom: SPACING.md,
     },
-    detailTitle: {
-      fontSize: 16,
-      fontWeight: '900',
-      color: colors.onSurface,
-      textTransform: 'capitalize',
+    connectionMessageText: { ...type.bodySm, color: colors.onSurfaceVariant, flex: 1 },
+    disconnectText: { ...type.labelSm, color: colors.error },
+    lastSyncText: {
+      ...type.bodySm,
+      color: colors.onSurfaceVariant,
+      flex: 1,
     },
-    addBtn: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
+    connectionFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      marginHorizontal: SPACING.sm,
+      marginBottom: SPACING.md,
+    },
+    calendarCard: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: radius.xl,
+      padding: SPACING.md,
+      marginTop: SPACING.sm,
+      marginBottom: SPACING.xl,
+    },
+    monthHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: SPACING.md,
+    },
+    monthButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.surfaceContainerLow,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    monthCopy: { alignItems: 'center' },
+    monthTitle: { ...type.titleMd, color: colors.onSurface, textTransform: 'capitalize' },
+    todayLink: { ...type.labelSm, color: colors.primary, marginTop: 1 },
+    daysHeader: { flexDirection: 'row', marginBottom: SPACING.xs },
+    dayHeaderCell: {
+      width: '14.285%',
+      textAlign: 'center',
+      ...type.labelSm,
+      color: colors.onSurfaceVariant,
+    },
+    grid: { flexDirection: 'row', flexWrap: 'wrap' },
+    dayCell: {
+      width: '14.285%',
+      aspectRatio: 0.9,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dayCellSelected: { backgroundColor: colors.primary },
+    dayNumber: { ...type.labelMd, color: colors.onSurface },
+    dayNumberOutside: { color: colors.outline },
+    dayNumberToday: { color: colors.primary },
+    dayNumberSelected: { color: colors.onPrimary },
+    indicatorRow: { height: 5, flexDirection: 'row', gap: 2, marginTop: 2 },
+    indicator: { width: 4, height: 4, borderRadius: 2 },
+    detailHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: SPACING.md,
+      marginBottom: SPACING.sm,
+    },
+    detailHeaderCopy: { flex: 1 },
+    detailTitle: { ...type.titleLg, color: colors.onSurface, textTransform: 'capitalize' },
+    detailMeta: { ...type.bodySm, color: colors.onSurfaceVariant, marginTop: 1 },
+    addButton: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
       backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    emptyText: {
-      fontSize: 13,
-      color: colors.onSurfaceVariant,
-      fontStyle: 'italic',
+    dayList: { gap: SPACING.sm },
+    emptyDay: {
+      minHeight: 108,
+      borderRadius: radius.lg,
+      backgroundColor: colors.surfaceContainerLow,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: SPACING.sm,
     },
-    rowItem: {
+    emptyText: { ...type.bodyMd, color: colors.onSurfaceVariant },
+    dayRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: SPACING.sm,
-      paddingVertical: SPACING.xs,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: radius.lg,
+      padding: SPACING.md,
     },
-    rowTitle: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.onSurface,
+    dayRowIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
+    dayRowCopy: { flex: 1 },
+    dayRowTitle: { ...type.titleSm, color: colors.onSurface },
+    dayRowMeta: { ...type.bodySm, color: colors.onSurfaceVariant, marginTop: 1 },
   });
+};

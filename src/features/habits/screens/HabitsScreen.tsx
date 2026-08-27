@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -7,15 +8,20 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { SPACING, useAppTheme } from '@/shared/theme/theme';
+import { ScreenIntro } from '@/shared/ui/ScreenIntro';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
-import { PromptModal } from '@/shared/ui/PromptModal';
-import { localDateKey } from '@/shared/domain/productivity/homeStorage';
+import { isHabitDueToday, localDateKey } from '@/shared/domain/productivity/homeStorage';
+import type { Habit } from '@/shared/types/models';
+import { HabitFormModal } from '../components/HabitFormModal';
+
+type Filter = 'today' | 'all';
 
 export const HabitsScreen = () => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const celebrate = useCelebrationStore((s) => s.trigger);
 
   const habits = useHomeStore((s) => s.habits);
@@ -25,17 +31,49 @@ export const HabitsScreen = () => {
   const freezeStreak = useHomeStore((s) => s.freezeStreak);
   const removeHabit = useHomeStore((s) => s.removeHabit);
 
-  const [addModalVisible, setAddModalVisible] = useState(false);
-  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>('today');
+  const [formVisible, setFormVisible] = useState(false);
 
-  const handleAddHabit = (title: string) => {
-    addHabit({
-      title,
-      frequency: 'daily',
-      linkedGoalId: selectedGoalId,
-    });
-    setAddModalVisible(false);
-    setSelectedGoalId(null);
+  const todayHabits = useMemo(() => habits.filter((habit) => isHabitDueToday(habit)), [habits]);
+  const completedToday = todayHabits.filter((habit) => habit.completed).length;
+  const progress = todayHabits.length
+    ? Math.round((completedToday / todayHabits.length) * 100)
+    : 0;
+  const visibleHabits = filter === 'today' ? todayHabits : habits;
+
+  const confirmRemove = (habit: Habit) => {
+    Alert.alert(
+      'Eliminar hábito',
+      `¿Quieres eliminar “${habit.title}”? La racha guardada también se eliminará.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: () => removeHabit(habit.id) },
+      ],
+    );
+  };
+
+  const openActions = (habit: Habit) => {
+    const frozen = Boolean(habit.frozenUntil && habit.frozenUntil >= localDateKey());
+    Alert.alert(habit.title, 'Elige una acción', [
+      ...(!frozen
+        ? [{ text: 'Proteger la racha por un día', onPress: () => freezeStreak(habit.id) }]
+        : []),
+      { text: 'Eliminar', style: 'destructive' as const, onPress: () => confirmRemove(habit) },
+      { text: 'Cancelar', style: 'cancel' as const },
+    ]);
+  };
+
+  const toggle = (habit: Habit) => {
+    const linkedGoal = goals.find((goal) => goal.id === habit.linkedGoalId);
+    toggleHabit(habit.id);
+    if (!habit.completed) {
+      celebrate({
+        kind: 'habit',
+        subtitle: linkedGoal
+          ? `+5 XP · “${linkedGoal.title}” avanzó +2%`
+          : `+5 XP · ${habit.title}`,
+      });
+    }
   };
 
   return (
@@ -44,277 +82,326 @@ export const HabitsScreen = () => {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.title}>Hábitos (Combustible) ⚡</Text>
-          <Text style={styles.subtitle}>
-            Acciones diarias que alimentan tus grandes metas.
-          </Text>
+      <ScreenIntro
+        title="Hábitos"
+        subtitle="Acciones pequeñas que construyen constancia."
+        actionLabel="Crear un hábito"
+        onAction={() => setFormVisible(true)}
+      />
+
+      <View style={styles.todayCard}>
+        <View style={styles.todayTopRow}>
+          <View>
+            <Text style={styles.todayLabel}>Constancia de hoy</Text>
+            <Text style={styles.todayCount}>
+              {todayHabits.length
+                ? `${completedToday} de ${todayHabits.length} completados`
+                : 'Sin hábitos para hoy'}
+            </Text>
+          </View>
+          <View style={styles.percentCircle}>
+            <Text style={styles.percentText}>{progress}%</Text>
+          </View>
         </View>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${progress}%` }]} />
+        </View>
+        <Text style={styles.todayNote}>
+          {progress === 100 && todayHabits.length > 0
+            ? 'Lo hiciste. La constancia también se construye así.'
+            : 'Una repetición a la vez es suficiente.'}
+        </Text>
+      </View>
+
+      <View style={styles.filters}>
         <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => setAddModalVisible(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Añadir nuevo hábito"
+          style={[styles.filter, filter === 'today' && styles.filterActive]}
+          onPress={() => setFilter('today')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: filter === 'today' }}
         >
-          <Ionicons name="add" size={22} color={colors.onPrimary} />
+          <Text style={[styles.filterText, filter === 'today' && styles.filterTextActive]}>Hoy</Text>
+          <View style={[styles.countBadge, filter === 'today' && styles.countBadgeActive]}>
+            <Text style={[styles.countText, filter === 'today' && styles.countTextActive]}>{todayHabits.length}</Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filter, filter === 'all' && styles.filterActive]}
+          onPress={() => setFilter('all')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: filter === 'all' }}
+        >
+          <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>Mis hábitos</Text>
+          <View style={[styles.countBadge, filter === 'all' && styles.countBadgeActive]}>
+            <Text style={[styles.countText, filter === 'all' && styles.countTextActive]}>{habits.length}</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
-      {habits.length === 0 ? (
+      {visibleHabits.length === 0 ? (
         <View style={styles.emptyCard}>
-          <Ionicons name="repeat-outline" size={40} color={colors.secondary} />
-          <Text style={styles.emptyTitle}>Sin hábitos aún</Text>
-          <Text style={styles.emptySub}>
-            Construye la consistencia diaria que alimenta tu meta universitaria.
+          <View style={styles.emptyIcon}>
+            <Ionicons name="repeat-outline" size={28} color={colors.secondary} />
+          </View>
+          <Text style={styles.emptyTitle}>
+            {filter === 'today' ? 'No hay hábitos para hoy' : 'Aún no tienes hábitos'}
+          </Text>
+          <Text style={styles.emptyText}>
+            {filter === 'today'
+              ? 'Puedes revisar todos tus hábitos o dejar el día libre.'
+              : 'Elige una acción tan pequeña que sea fácil volver a ella.'}
           </Text>
           <TouchableOpacity
-            style={styles.createBtn}
-            onPress={() => setAddModalVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Crear primer hábito"
+            style={styles.emptyAction}
+            onPress={() => (filter === 'today' && habits.length ? setFilter('all') : setFormVisible(true))}
           >
-            <Text style={styles.createBtnText}>Crear primer hábito</Text>
+            <Text style={styles.emptyActionText}>
+              {filter === 'today' && habits.length ? 'Ver mis hábitos' : 'Crear primer hábito'}
+            </Text>
           </TouchableOpacity>
         </View>
       ) : (
-        habits.map((habit) => {
-          const linkedGoal = goals.find((g) => g.id === habit.linkedGoalId);
-          const isFrozen = habit.frozenUntil === localDateKey();
+        <View style={styles.habitList}>
+          {visibleHabits.map((habit) => {
+            const linkedGoal = goals.find((goal) => goal.id === habit.linkedGoalId);
+            const frozen = Boolean(habit.frozenUntil && habit.frozenUntil >= localDateKey());
+            const frequencyLabel =
+              habit.frequency === 'daily'
+                ? 'Todos los días'
+                : `${habit.frequency.length} días por semana`;
 
-          return (
-            <View key={habit.id} style={styles.habitCard}>
-              <View style={styles.cardRow}>
+            return (
+              <View key={habit.id} style={styles.habitCard}>
                 <TouchableOpacity
-                  style={[
-                    styles.checkBtn,
-                    habit.completed && { backgroundColor: colors.secondary },
-                  ]}
-                  onPress={() => {
-                    toggleHabit(habit.id);
-                    if (!habit.completed) {
-                      celebrate({
-                        kind: 'habit',
-                        subtitle: linkedGoal
-                          ? `+5 XP · Meta "${linkedGoal.title}" avanzó +2%`
-                          : `+5 XP · ${habit.title}`,
-                      });
-                    }
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${habit.completed ? 'Desmarcar' : 'Marcar'} hábito ${habit.title}`}
+                  style={[styles.checkButton, habit.completed && styles.checkButtonDone]}
+                  onPress={() => toggle(habit)}
+                  activeOpacity={0.75}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: habit.completed }}
+                  accessibilityLabel={habit.title}
                 >
-                  <Ionicons
-                    name={habit.completed ? 'checkmark' : 'ellipse-outline'}
-                    size={20}
-                    color={habit.completed ? colors.onSecondary : colors.outline}
-                  />
+                  {habit.completed ? (
+                    <Ionicons name="checkmark" size={19} color={colors.onSecondary} />
+                  ) : null}
                 </TouchableOpacity>
 
-                <View style={styles.infoCol}>
-                  <Text
-                    style={[
-                      styles.habitTitle,
-                      habit.completed && styles.habitDone,
-                    ]}
-                  >
+                <View style={styles.habitCopy}>
+                  <Text style={[styles.habitTitle, habit.completed && styles.habitDone]} numberOfLines={2}>
                     {habit.title}
                   </Text>
-
-                  {/* Vínculo a Meta */}
+                  <View style={styles.metadataRow}>
+                    <Ionicons name="calendar-outline" size={13} color={colors.onSurfaceVariant} />
+                    <Text style={styles.metadataText}>{frequencyLabel}</Text>
+                  </View>
                   {linkedGoal ? (
-                    <View style={styles.linkBadge}>
-                      <Ionicons name="link" size={12} color={colors.primary} />
-                      <Text style={styles.linkText}>
-                        Alimenta: {linkedGoal.title} (+2% / día)
+                    <View style={styles.goalLink}>
+                      <Ionicons name="flag-outline" size={13} color={colors.primary} />
+                      <Text style={styles.goalLinkText} numberOfLines={1}>
+                        Impulsa {linkedGoal.title}
                       </Text>
                     </View>
-                  ) : (
-                    <Text style={styles.noLinkText}>Sin meta vinculada</Text>
-                  )}
+                  ) : null}
                 </View>
 
-                {/* Racha y Congelador */}
-                <View style={styles.rightCol}>
-                  <View style={styles.streakBadge}>
+                <View style={styles.trailing}>
+                  <View style={[styles.streakPill, frozen && styles.frozenPill]}>
                     <Ionicons
-                      name={isFrozen ? 'snow' : 'flame'}
-                      size={14}
-                      color={isFrozen ? colors.primary : colors.flame}
+                      name={frozen ? 'snow-outline' : 'flame'}
+                      size={15}
+                      color={frozen ? colors.primary : colors.flame}
                     />
-                    <Text style={styles.streakText}>{habit.streak}</Text>
+                    <Text style={[styles.streakText, frozen && { color: colors.primary }]}>{habit.streak}</Text>
                   </View>
-
                   <TouchableOpacity
-                    style={styles.freezeBtn}
-                    onPress={() => freezeStreak(habit.id)}
+                    style={styles.menuButton}
+                    onPress={() => openActions(habit)}
                     accessibilityRole="button"
-                    accessibilityLabel={`Congelar racha del hábito ${habit.title}`}
+                    accessibilityLabel={`Acciones para ${habit.title}`}
                   >
-                    <Ionicons name="shield-checkmark-outline" size={16} color={colors.outline} />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => removeHabit(habit.id)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Eliminar hábito ${habit.title}`}
-                  >
-                    <Ionicons name="trash-outline" size={16} color={colors.outline} />
+                    <Ionicons name="ellipsis-horizontal" size={20} color={colors.onSurfaceVariant} />
                   </TouchableOpacity>
                 </View>
               </View>
-            </View>
-          );
-        })
+            );
+          })}
+        </View>
       )}
 
-      {/* Modal Nuevo Hábito */}
-      <PromptModal
-        visible={addModalVisible}
-        title="Nuevo Hábito Diario"
-        hint="Define una pequeña acción repetible (ej. Estudiar C++ 20 min):"
-        placeholder="Ej. Repasar 20 min al día"
-        validate={(v) => (v ? null : 'Ingresa un título')}
-        onSubmit={handleAddHabit}
-        onCancel={() => setAddModalVisible(false)}
+      <HabitFormModal
+        visible={formVisible}
+        goals={goals}
+        onSubmit={(draft) => {
+          addHabit(draft);
+          setFormVisible(false);
+          setFilter('today');
+        }}
+        onCancel={() => setFormVisible(false)}
       />
     </ScrollView>
   );
 };
 
-const createStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
+  const { colors, radius, type } = theme;
+  return StyleSheet.create({
     content: {
-      padding: SPACING.lg,
-      paddingBottom: SPACING.xl + 72,
+      paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.sm,
+      paddingBottom: 144,
     },
-    headerRow: {
+    todayCard: {
+      backgroundColor: colors.secondaryContainer,
+      borderRadius: radius.xl,
+      padding: SPACING.lg,
+      marginBottom: SPACING.lg,
+    },
+    todayTopRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: SPACING.lg,
+      marginBottom: SPACING.md,
     },
-    title: {
-      fontSize: 22,
-      fontWeight: '900',
-      color: colors.onSurface,
+    todayLabel: { ...type.titleMd, color: colors.onSecondaryContainer },
+    todayCount: {
+      ...type.bodySm,
+      color: colors.onSecondaryContainer,
+      opacity: 0.75,
+      marginTop: 1,
     },
-    subtitle: {
-      fontSize: 13,
-      color: colors.onSurfaceVariant,
-      marginTop: 2,
-    },
-    addBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.secondary,
+    percentCircle: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: colors.surface,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    emptyCard: {
+    percentText: { ...type.labelLg, color: colors.secondary },
+    progressTrack: {
+      height: 8,
+      borderRadius: radius.full,
+      backgroundColor: colors.surface,
+      overflow: 'hidden',
+    },
+    progressFill: { height: '100%', borderRadius: radius.full, backgroundColor: colors.flame },
+    todayNote: {
+      ...type.bodySm,
+      color: colors.onSecondaryContainer,
+      opacity: 0.8,
+      marginTop: SPACING.sm,
+    },
+    filters: {
+      flexDirection: 'row',
+      gap: SPACING.xs,
       backgroundColor: colors.surfaceContainer,
-      borderRadius: 20,
-      padding: SPACING.xl,
+      borderRadius: radius.lg,
+      padding: SPACING.xs,
+      marginBottom: SPACING.md,
+    },
+    filter: {
+      flex: 1,
+      minHeight: 42,
+      borderRadius: radius.md,
+      flexDirection: 'row',
       alignItems: 'center',
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-      marginTop: SPACING.md,
+      justifyContent: 'center',
+      gap: 6,
     },
-    emptyTitle: {
-      fontSize: 17,
-      fontWeight: '800',
-      color: colors.onSurface,
-      marginTop: SPACING.md,
+    filterActive: { backgroundColor: colors.surface },
+    filterText: { ...type.labelMd, color: colors.onSurfaceVariant },
+    filterTextActive: { color: colors.onSurface },
+    countBadge: {
+      minWidth: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: colors.surfaceContainerHighest,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 5,
     },
-    emptySub: {
-      fontSize: 13,
+    countBadgeActive: { backgroundColor: colors.secondaryContainer },
+    countText: { ...type.labelSm, color: colors.onSurfaceVariant },
+    countTextActive: { color: colors.onSecondaryContainer },
+    emptyCard: {
+      minHeight: 260,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surfaceContainerLow,
+      borderRadius: radius.xl,
+      padding: SPACING.xl,
+    },
+    emptyIcon: {
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      backgroundColor: colors.secondaryContainer,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: SPACING.md,
+    },
+    emptyTitle: { ...type.titleMd, color: colors.onSurface, textAlign: 'center' },
+    emptyText: {
+      ...type.bodyMd,
       color: colors.onSurfaceVariant,
       textAlign: 'center',
-      marginTop: 6,
-      marginBottom: SPACING.lg,
+      marginTop: SPACING.xs,
     },
-    createBtn: {
+    emptyAction: {
+      minHeight: 44,
+      borderRadius: 22,
       backgroundColor: colors.secondary,
+      justifyContent: 'center',
       paddingHorizontal: SPACING.lg,
-      paddingVertical: SPACING.sm + 2,
-      borderRadius: 12,
+      marginTop: SPACING.lg,
     },
-    createBtnText: {
-      color: colors.onSecondary,
-      fontWeight: '800',
-      fontSize: 14,
-    },
+    emptyActionText: { ...type.labelLg, color: colors.onSecondary },
+    habitList: { gap: SPACING.sm },
     habitCard: {
-      backgroundColor: colors.surfaceContainer,
-      borderRadius: 16,
-      padding: SPACING.md,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-      marginBottom: SPACING.sm,
-    },
-    cardRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: SPACING.md,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: radius.lg,
+      padding: SPACING.md,
     },
-    checkBtn: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      borderWidth: 2,
+    checkButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      borderWidth: 1.5,
       borderColor: colors.outline,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    infoCol: {
-      flex: 1,
-    },
-    habitTitle: {
-      fontSize: 16,
-      fontWeight: '800',
-      color: colors.onSurface,
-    },
-    habitDone: {
-      color: colors.onSurfaceVariant,
-      textDecorationLine: 'line-through',
-    },
-    linkBadge: {
+    checkButtonDone: { backgroundColor: colors.secondary, borderColor: colors.secondary },
+    habitCopy: { flex: 1, minWidth: 0 },
+    habitTitle: { ...type.titleMd, color: colors.onSurface },
+    habitDone: { color: colors.onSurfaceVariant, textDecorationLine: 'line-through' },
+    metadataRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
+    metadataText: { ...type.bodySm, color: colors.onSurfaceVariant },
+    goalLink: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+    goalLinkText: { ...type.bodySm, color: colors.primary, flex: 1 },
+    trailing: { alignItems: 'center', gap: SPACING.xs },
+    streakPill: {
+      minWidth: 40,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: colors.flameContainer,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
-      marginTop: 4,
+      justifyContent: 'center',
+      gap: 3,
+      paddingHorizontal: 7,
     },
-    linkText: {
-      fontSize: 11,
-      fontWeight: '700',
-      color: colors.primary,
-    },
-    noLinkText: {
-      fontSize: 11,
-      color: colors.onSurfaceVariant,
-      marginTop: 2,
-    },
-    rightCol: {
-      flexDirection: 'row',
+    frozenPill: { backgroundColor: colors.primaryContainer },
+    streakText: { ...type.labelMd, color: colors.flame },
+    menuButton: {
+      width: 34,
+      height: 30,
       alignItems: 'center',
-      gap: SPACING.xs + 2,
-    },
-    streakBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 2,
-      backgroundColor: colors.background,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 8,
-    },
-    streakText: {
-      fontSize: 13,
-      fontWeight: '900',
-      color: colors.flame,
-    },
-    freezeBtn: {
-      padding: 4,
+      justifyContent: 'center',
     },
   });
+};

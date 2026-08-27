@@ -9,19 +9,29 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { SPACING, useAppTheme } from '@/shared/theme/theme';
 import { Skeleton } from '@/shared/ui/Skeleton';
-import { loadCachedGoogleEvents, buildUnifiedTimeline } from '@/features/calendar/services/googleSync';
+import {
+  buildUnifiedTimeline,
+  loadCachedGoogleEvents,
+} from '@/features/calendar/services/googleSync';
 import type { GoogleEvent, TimelineItem } from '@/shared/types/models';
-import { LevelCard } from '../components/LevelCard';
-import { StreakBadge } from '../components/StreakBadge';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
 import { localDateKey } from '@/shared/domain/productivity/homeStorage';
 
+const originPresentation = (
+  item: TimelineItem,
+): { label: string; icon: keyof typeof Ionicons.glyphMap } => {
+  if (item.origin === 'habit') return { label: 'Hábito', icon: 'repeat' };
+  if (item.origin === 'goal') return { label: 'Meta', icon: 'flag-outline' };
+  return { label: 'Calendario', icon: 'calendar-outline' };
+};
+
 export const OverviewScreen = () => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const celebrate = useCelebrationStore((s) => s.trigger);
 
   const stateLoaded = useHomeStore((s) => s.stateLoaded);
@@ -32,8 +42,8 @@ export const OverviewScreen = () => {
   const toggleHabit = useHomeStore((s) => s.toggleHabit);
   const toggleGoal = useHomeStore((s) => s.toggleGoal);
 
-  const [selectedDate, setSelectedDate] = useState<string>(localDateKey());
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
+  const todayKey = localDateKey();
 
   useFocusEffect(
     useCallback(() => {
@@ -49,40 +59,26 @@ export const OverviewScreen = () => {
     }, []),
   );
 
-  // Generar la franja horizontal de minicalendario (7 días centrados en hoy)
-  const weekDays = useMemo(() => {
-    const list = [];
-    const today = new Date();
-    // 3 días antes y 3 días después
-    for (let i = -3; i <= 3; i++) {
-      const d = new Date(today);
-      d.setDate(d.getDate() + i);
-      const key = localDateKey(d);
-      const dayName = d.toLocaleDateString('es-ES', { weekday: 'short' });
-
-      // Ver si tiene actividad en ese día
-      const hasGoal = goals.some((g) => g.deadline === key);
-      const hasGoogle = googleEvents.some((g) => g.date === key);
-
-      list.push({
-        date: d,
-        key,
-        dayName: dayName.slice(0, 3).toUpperCase(),
-        dayNum: d.getDate(),
-        isToday: key === localDateKey(),
-        hasActivity: hasGoal || hasGoogle,
-      });
-    }
-    return list;
-  }, [goals, googleEvents]);
-
-  // Agenda Unificada del día seleccionado
-  const timelineItems = useMemo<TimelineItem[]>(() => {
-    return buildUnifiedTimeline(selectedDate, googleEvents, goals, habits);
-  }, [selectedDate, googleEvents, goals, habits]);
+  const timelineItems = useMemo(
+    () => buildUnifiedTimeline(todayKey, googleEvents, goals, habits),
+    [todayKey, googleEvents, goals, habits],
+  );
+  const actionableItems = useMemo(
+    () => timelineItems.filter((item) => item.origin !== 'google_calendar'),
+    [timelineItems],
+  );
+  const completedCount = actionableItems.filter((item) => item.completed).length;
+  const progress = actionableItems.length
+    ? Math.round((completedCount / actionableItems.length) * 100)
+    : 0;
+  const nextItem = timelineItems.find((item) => {
+    if (item.origin !== 'google_calendar') return !item.completed;
+    if (!item.startAt) return true;
+    return new Date(item.startAt).getTime() >= Date.now();
+  });
 
   const handleToggleItem = (item: TimelineItem) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
     if (item.origin === 'habit') {
       toggleHabit(item.originalId);
       if (!item.completed) {
@@ -91,7 +87,7 @@ export const OverviewScreen = () => {
     } else if (item.origin === 'goal') {
       toggleGoal(item.originalId);
       if (!item.completed) {
-        celebrate({ kind: 'goal', subtitle: `+10 XP · Meta completada` });
+        celebrate({ kind: 'goal', subtitle: '+10 XP · Meta completada' });
       }
     }
   };
@@ -103,12 +99,18 @@ export const OverviewScreen = () => {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Skeleton height={50} radius="lg" />
-        <Skeleton height={90} radius="xl" />
-        <Skeleton height={200} radius="lg" />
+        <Skeleton height={58} radius="lg" />
+        <Skeleton height={170} radius="xl" />
+        <Skeleton height={92} radius="lg" />
+        <Skeleton height={220} radius="lg" />
       </ScrollView>
     );
   }
+
+  const formattedToday = new Date(`${todayKey}T00:00:00`).toLocaleDateString(
+    'es-ES',
+    { weekday: 'long', day: 'numeric', month: 'long' },
+  );
 
   return (
     <ScrollView
@@ -116,183 +118,156 @@ export const OverviewScreen = () => {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Nivel y Racha resumidos */}
-      <View style={styles.topStatsRow}>
-        <View style={{ flex: 1 }}>
-          <LevelCard totalXp={totalXp} />
+      <View style={styles.intro}>
+        <Text style={styles.eyebrow}>HOY</Text>
+        <Text style={styles.title}>{formattedToday}</Text>
+        <Text style={styles.subtitle}>Avanza a tu ritmo, sin perder el rumbo.</Text>
+      </View>
+
+      <View style={styles.focusCard}>
+        {nextItem ? (
+          <>
+            <View style={styles.focusTopRow}>
+              <View style={styles.focusLabel}>
+                <View style={styles.pulseDot} />
+                <Text style={styles.focusEyebrow}>SIGUIENTE</Text>
+              </View>
+              <Text style={styles.focusTime}>{nextItem.time ?? 'Todo el día'}</Text>
+            </View>
+            <Text style={styles.focusTitle} numberOfLines={2}>
+              {nextItem.title.replace(/^ENTREGA:\s*/, '')}
+            </Text>
+            <View style={styles.focusFooter}>
+              <View style={styles.originRow}>
+                <Ionicons
+                  name={originPresentation(nextItem).icon}
+                  size={15}
+                  color={colors.onPrimaryContainer}
+                />
+                <Text style={styles.focusOrigin}>{originPresentation(nextItem).label}</Text>
+              </View>
+              {nextItem.origin !== 'google_calendar' ? (
+                <TouchableOpacity
+                  style={styles.focusAction}
+                  onPress={() => handleToggleItem(nextItem)}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Marcar ${nextItem.title} como completado`}
+                >
+                  <Ionicons name="checkmark" size={17} color={colors.onFlame} />
+                  <Text style={styles.focusActionText}>Listo</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          </>
+        ) : (
+          <View style={styles.clearDay}>
+            <View style={styles.clearIcon}>
+              <Ionicons name="checkmark" size={24} color={colors.onSecondaryContainer} />
+            </View>
+            <View style={styles.clearCopy}>
+              <Text style={styles.clearTitle}>Tu día está despejado</Text>
+              <Text style={styles.clearText}>Puedes descansar o preparar algo con calma.</Text>
+            </View>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.progressCard}>
+        <View style={styles.progressHeader}>
+          <View>
+            <Text style={styles.progressLabel}>Progreso del día</Text>
+            <Text style={styles.progressCount}>
+              {actionableItems.length
+                ? `${completedCount} de ${actionableItems.length} completadas`
+                : 'Sin pendientes para hoy'}
+            </Text>
+          </View>
+          <Text style={styles.progressPercent}>{progress}%</Text>
+        </View>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${progress}%` }]} />
+        </View>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Ionicons name="flame" size={16} color={colors.flame} />
+            <Text style={styles.statValue}>{streak}</Text>
+            <Text style={styles.statLabel}>días de racha</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="sparkles" size={15} color={colors.primary} />
+            <Text style={styles.statValue}>{totalXp}</Text>
+            <Text style={styles.statLabel}>XP acumulados</Text>
+          </View>
         </View>
       </View>
 
-      {/* Mini-Calendar Bar Superior (Franja Deslizante) */}
-      <View style={styles.miniCalendarContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.miniCalendarScroll}
-        >
-          {weekDays.map((d) => {
-            const isSelected = d.key === selectedDate;
-            return (
-              <TouchableOpacity
-                key={d.key}
-                style={[
-                  styles.miniDayCell,
-                  isSelected && {
-                    backgroundColor: colors.primary,
-                    borderColor: colors.primary,
-                  },
-                ]}
-                onPress={() => setSelectedDate(d.key)}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.miniDayName,
-                    isSelected && { color: colors.onPrimary },
-                  ]}
-                >
-                  {d.dayName}
-                </Text>
-                <Text
-                  style={[
-                    styles.miniDayNum,
-                    isSelected && { color: colors.onPrimary },
-                    d.isToday && !isSelected && { color: colors.primary },
-                  ]}
-                >
-                  {d.dayNum}
-                </Text>
-                {d.hasActivity && (
-                  <View
-                    style={[
-                      styles.activityDot,
-                      {
-                        backgroundColor: isSelected
-                          ? colors.onPrimary
-                          : colors.primary,
-                      },
-                    ]}
-                  />
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* Encabezado del Día Seleccionado */}
-      <View style={styles.dayHeader}>
-        <Text style={styles.dayTitle}>
-          {new Date(selectedDate + 'T00:00:00').toLocaleDateString('es-ES', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-          })}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Tu agenda</Text>
+        <Text style={styles.sectionMeta}>
+          {timelineItems.length} {timelineItems.length === 1 ? 'actividad' : 'actividades'}
         </Text>
       </View>
 
-      {/* Agenda Unificada (Daily Timeline) */}
       <View style={styles.timelineList}>
         {timelineItems.length === 0 ? (
           <View style={styles.emptyDayBox}>
-            <Ionicons name="sparkles-outline" size={32} color={colors.outline} />
-            <Text style={styles.emptyDayText}>
-              Sin actividades registradas para este día. ¡Disfruta tu tiempo!
-            </Text>
+            <Ionicons name="leaf-outline" size={25} color={colors.secondary} />
+            <Text style={styles.emptyDayText}>No tienes actividades programadas para hoy.</Text>
           </View>
         ) : (
           timelineItems.map((item) => {
+            const presentation = originPresentation(item);
             const isGoogle = item.origin === 'google_calendar';
-            const isHabit = item.origin === 'habit';
-            const isGoal = item.origin === 'goal';
+            const accent = item.origin === 'habit' ? colors.flame : colors.primary;
 
             return (
               <View key={item.id} style={styles.timelineRow}>
-                {/* Hora */}
-                <Text style={styles.timeText}>{item.time}</Text>
-
-                {/* Badge de Origen */}
                 <View
                   style={[
-                    styles.badgeChip,
+                    styles.itemIcon,
                     {
-                      backgroundColor: isGoogle
-                        ? colors.surfaceContainerHighest
-                        : isHabit
-                        ? colors.flameContainer
-                        : colors.primaryContainer,
+                      backgroundColor:
+                        item.origin === 'habit'
+                          ? colors.flameContainer
+                          : colors.primaryContainer,
                     },
                   ]}
                 >
-                  <Ionicons
-                    name={
-                      isGoogle
-                        ? 'logo-google'
-                        : isHabit
-                        ? 'repeat'
-                        : 'flag'
-                    }
-                    size={12}
-                    color={
-                      isGoogle
-                        ? colors.onSurface
-                        : isHabit
-                        ? colors.flame
-                        : colors.primary
-                    }
-                  />
-                  <Text
-                    style={[
-                      styles.badgeChipText,
-                      {
-                        color: isGoogle
-                          ? colors.onSurface
-                          : isHabit
-                          ? colors.flame
-                          : colors.primary,
-                      },
-                    ]}
-                  >
-                    {isGoogle ? 'Google' : isHabit ? 'Hábito' : 'Meta'}
-                  </Text>
+                  <Ionicons name={presentation.icon} size={17} color={accent} />
                 </View>
-
-                {/* Título de la actividad */}
-                <View style={styles.titleCol}>
+                <View style={styles.itemCopy}>
+                  <View style={styles.itemMetaRow}>
+                    <Text style={styles.itemTime}>{item.time ?? 'Todo el día'}</Text>
+                    <Text style={styles.itemOrigin}>{presentation.label}</Text>
+                  </View>
                   <Text
-                    style={[
-                      styles.itemTitleText,
-                      item.completed && !isGoogle && styles.itemDoneText,
-                    ]}
+                    style={[styles.itemTitle, item.completed && !isGoogle && styles.itemDone]}
                     numberOfLines={2}
                   >
-                    {item.title}
+                    {item.title.replace(/^ENTREGA:\s*/, '')}
                   </Text>
-
-                  {item.linkedGoalTitle && (
-                    <Text style={styles.subText}>
-                      🔗 Alimenta: {item.linkedGoalTitle}
+                  {item.linkedGoalTitle ? (
+                    <Text style={styles.itemLink} numberOfLines={1}>
+                      Vinculado a {item.linkedGoalTitle}
                     </Text>
-                  )}
+                  ) : null}
                 </View>
-
-                {/* Acción 1-Tap (Check) */}
-                {!isGoogle && (
+                {!isGoogle ? (
                   <TouchableOpacity
-                    style={[
-                      styles.actionCheck,
-                      item.completed && {
-                        backgroundColor: colors.success,
-                        borderColor: colors.success,
-                      },
-                    ]}
+                    style={[styles.checkButton, item.completed && styles.checkButtonDone]}
                     onPress={() => handleToggleItem(item)}
+                    activeOpacity={0.75}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: item.completed }}
+                    accessibilityLabel={item.title}
                   >
-                    {item.completed && (
-                      <Ionicons name="checkmark" size={14} color={colors.onSuccess} />
-                    )}
+                    {item.completed ? (
+                      <Ionicons name="checkmark" size={16} color={colors.onSuccess} />
+                    ) : null}
                   </TouchableOpacity>
-                )}
+                ) : null}
               </View>
             );
           })
@@ -302,127 +277,180 @@ export const OverviewScreen = () => {
   );
 };
 
-const createStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
+const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
+  const { colors, radius, type } = theme;
+  return StyleSheet.create({
     content: {
-      padding: SPACING.lg,
-      paddingBottom: SPACING.xl + 72,
+      paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.sm,
+      paddingBottom: 144,
     },
-    topStatsRow: {
-      marginBottom: SPACING.xs,
-    },
-    miniCalendarContainer: {
-      marginVertical: SPACING.md,
-    },
-    miniCalendarScroll: {
-      gap: SPACING.xs + 2,
-    },
-    miniDayCell: {
-      width: 48,
-      height: 64,
-      borderRadius: 16,
-      backgroundColor: colors.surfaceContainer,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 2,
-    },
-    miniDayName: {
-      fontSize: 10,
-      fontWeight: '800',
-      color: colors.onSurfaceVariant,
-    },
-    miniDayNum: {
-      fontSize: 16,
-      fontWeight: '900',
-      color: colors.onSurface,
-    },
-    activityDot: {
-      width: 4,
-      height: 4,
-      borderRadius: 2,
-      marginTop: 2,
-    },
-    dayHeader: {
-      marginBottom: SPACING.md,
-    },
-    dayTitle: {
-      fontSize: 18,
-      fontWeight: '900',
+    intro: { marginBottom: SPACING.lg },
+    eyebrow: { ...type.labelSm, color: colors.primary, letterSpacing: 1.4 },
+    title: {
+      ...type.headlineSm,
       color: colors.onSurface,
       textTransform: 'capitalize',
+      marginTop: 2,
     },
-    timelineList: {
-      gap: SPACING.sm,
+    subtitle: { ...type.bodyMd, color: colors.onSurfaceVariant, marginTop: 2 },
+    focusCard: {
+      minHeight: 158,
+      backgroundColor: colors.primaryContainer,
+      borderRadius: radius.xl,
+      padding: SPACING.lg,
+      justifyContent: 'space-between',
+      marginBottom: SPACING.md,
     },
-    emptyDayBox: {
-      backgroundColor: colors.surfaceContainer,
-      borderRadius: 16,
-      padding: SPACING.xl,
+    focusTopRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
       alignItems: 'center',
-      gap: SPACING.sm,
+    },
+    focusLabel: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+    pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.flame },
+    focusEyebrow: {
+      ...type.labelSm,
+      color: colors.onPrimaryContainer,
+      letterSpacing: 1.2,
+    },
+    focusTime: { ...type.labelMd, color: colors.onPrimaryContainer, opacity: 0.72 },
+    focusTitle: {
+      ...type.titleLg,
+      color: colors.onPrimaryContainer,
+      marginVertical: SPACING.md,
+      maxWidth: 300,
+    },
+    focusFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: SPACING.md,
+    },
+    originRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    focusOrigin: { ...type.bodySm, color: colors.onPrimaryContainer },
+    focusAction: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      backgroundColor: colors.flame,
+      borderRadius: radius.full,
+      paddingHorizontal: SPACING.md,
+      minHeight: 40,
+    },
+    focusActionText: { ...type.labelLg, color: colors.onFlame },
+    clearDay: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
+    clearIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.secondaryContainer,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    clearCopy: { flex: 1 },
+    clearTitle: { ...type.titleMd, color: colors.onPrimaryContainer },
+    clearText: {
+      ...type.bodySm,
+      color: colors.onPrimaryContainer,
+      opacity: 0.75,
+      marginTop: 2,
+    },
+    progressCard: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: colors.outlineVariant,
+      padding: SPACING.md,
+      marginBottom: SPACING.xl,
     },
-    emptyDayText: {
-      fontSize: 13,
-      color: colors.onSurfaceVariant,
-      textAlign: 'center',
+    progressHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: SPACING.sm,
     },
+    progressLabel: { ...type.titleSm, color: colors.onSurface },
+    progressCount: { ...type.bodySm, color: colors.onSurfaceVariant, marginTop: 1 },
+    progressPercent: { ...type.titleLg, color: colors.primary },
+    progressTrack: {
+      height: 7,
+      borderRadius: radius.full,
+      backgroundColor: colors.surfaceContainerHighest,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      borderRadius: radius.full,
+      backgroundColor: colors.secondary,
+    },
+    statsRow: { flexDirection: 'row', alignItems: 'center', marginTop: SPACING.md },
+    statItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5 },
+    statValue: { ...type.labelLg, color: colors.onSurface },
+    statLabel: { ...type.bodySm, color: colors.onSurfaceVariant },
+    statDivider: {
+      width: 1,
+      height: 22,
+      backgroundColor: colors.outlineVariant,
+      marginHorizontal: SPACING.sm,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      marginBottom: SPACING.sm,
+    },
+    sectionTitle: { ...type.titleLg, color: colors.onSurface },
+    sectionMeta: { ...type.bodySm, color: colors.onSurfaceVariant },
+    timelineList: { gap: SPACING.sm },
+    emptyDayBox: {
+      minHeight: 104,
+      backgroundColor: colors.surfaceContainerLow,
+      borderRadius: radius.lg,
+      padding: SPACING.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: SPACING.sm,
+    },
+    emptyDayText: { ...type.bodyMd, color: colors.onSurfaceVariant, textAlign: 'center' },
     timelineRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.surfaceContainer,
-      borderRadius: 14,
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
       padding: SPACING.md,
       borderWidth: 1,
       borderColor: colors.outlineVariant,
       gap: SPACING.sm,
     },
-    timeText: {
-      fontSize: 12,
-      fontWeight: '800',
-      color: colors.primary,
-      width: 60,
+    itemIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    badgeChip: {
+    itemCopy: { flex: 1, minWidth: 0 },
+    itemMetaRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 8,
+      gap: SPACING.sm,
+      marginBottom: 2,
     },
-    badgeChipText: {
-      fontSize: 10,
-      fontWeight: '800',
-    },
-    titleCol: {
-      flex: 1,
-    },
-    itemTitleText: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.onSurface,
-    },
-    itemDoneText: {
-      color: colors.onSurfaceVariant,
-      textDecorationLine: 'line-through',
-    },
-    subText: {
-      fontSize: 11,
-      color: colors.primary,
-      fontWeight: '600',
-      marginTop: 2,
-    },
-    actionCheck: {
-      width: 26,
-      height: 26,
-      borderRadius: 13,
-      borderWidth: 2,
+    itemTime: { ...type.labelSm, color: colors.primary },
+    itemOrigin: { ...type.bodySm, color: colors.onSurfaceVariant },
+    itemTitle: { ...type.titleSm, color: colors.onSurface },
+    itemDone: { color: colors.onSurfaceVariant, textDecorationLine: 'line-through' },
+    itemLink: { ...type.bodySm, color: colors.onSurfaceVariant, marginTop: 2 },
+    checkButton: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      borderWidth: 1.5,
       borderColor: colors.outline,
       alignItems: 'center',
       justifyContent: 'center',
     },
+    checkButtonDone: { backgroundColor: colors.success, borderColor: colors.success },
   });
+};
