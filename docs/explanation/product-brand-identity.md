@@ -124,7 +124,25 @@ usa en párrafos, navegación, formularios ni datos densos. League Spartan no se
 usa dentro del producto.
 
 Las familias se cargan localmente antes de ocultar el splash. Los tokens viven
-en `src/shared/theme/brand.ts` y `src/shared/theme/theme.ts`.
+en `src/shared/theme/typography.ts` y llegan a componentes mediante
+`theme.type`.
+
+Escala operativa:
+
+- Display: `displayLg` 52/60, `displayMd` 40/48, `displaySm` 32/40;
+- Headline: `headlineLg` 30/38, `headlineMd` 26/34, `headlineSm` 22/30;
+- Title: `titleLg` 20/28, `titleMd` 16/24, `titleSm` 14/20;
+- Body: `bodyLg` 16/24, `bodyMd` 14/20, `bodySm` 12/16;
+- Label: `labelLg` 14/20, `labelMd` 12/16, `labelSm` 11/16 y `labelXs`
+  10/14.
+
+Fredoka usa exclusivamente `brandDisplayLg`, `brandDisplayMd`,
+`brandDisplaySm`, `brandTitle` y `brandLabel`. Componentes no escriben tamaños,
+interlineados, pesos ni familias directamente. Iconos tipográficos y emojis
+pueden derivar tamaño e interlineado del token sin heredar Poppins.
+
+Pequeño, Mediano y Grande aplican factores `0.88`, `1` y `1.15`. Escalan tamaño
+e interlineado; conservan familia, peso y espaciado.
 
 ## Lenguaje gráfico
 
