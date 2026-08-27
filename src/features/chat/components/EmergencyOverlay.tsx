@@ -111,16 +111,19 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     color: colors.onError,
     fontSize: 26,
     fontWeight: '900',
+    fontFamily: 'Poppins-Bold',
   },
   title: {
     fontSize: 22,
     fontWeight: '900',
+    fontFamily: 'Poppins-Bold',
     color: colors.onSurface,
     textAlign: 'center',
     marginBottom: SPACING.sm,
   },
   message: {
     fontSize: 15,
+    fontFamily: 'Poppins-Regular',
     lineHeight: 22,
     color: colors.onSurfaceVariant,
     textAlign: 'center',
@@ -140,6 +143,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   contactLabel: {
     color: colors.onError,
     fontWeight: '900',
+    fontFamily: 'Poppins-Bold',
     fontSize: 16,
   },
   contactPhone: {
@@ -148,6 +152,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
     fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
   closeBtn: {
     marginTop: SPACING.lg,
@@ -156,6 +161,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   closeText: {
     color: colors.primary,
     fontWeight: '800',
+    fontFamily: 'Poppins-Bold',
     fontSize: 15,
   },
 });

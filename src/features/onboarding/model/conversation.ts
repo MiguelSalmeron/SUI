@@ -15,7 +15,7 @@ export type OnboardingMessage = {
 const botCopy = (step: OnboardingStep, profile: OnboardingProfile): string => {
   switch (step) {
     case 'welcome':
-      return '¡Hola! Soy SUI, tu copiloto preventivo. Te haré unas preguntas súper rápidas para adaptar tu experiencia. ¿Empezamos?';
+      return 'Hola, soy Sui. Te haré unas preguntas breves para adaptar tu experiencia. ¿Empezamos?';
     case 'name':
       return '¿Cómo te gustaría que te llame?';
     case 'hasRoute':
@@ -23,7 +23,7 @@ const botCopy = (step: OnboardingStep, profile: OnboardingProfile): string => {
     case 'career':
       return 'Elige tu área de estudio o escribe el nombre exacto de tu carrera:';
     case 'botPersonality':
-      return '¿Cómo prefieres que sea la personalidad de tu asistente SUI?';
+      return '¿Cómo prefieres que sea la personalidad de tu asistente Sui?';
     case 'chronotype':
       return '¿En qué momento del día sientes que rinde mejor tu mente?';
     case 'birthYear':

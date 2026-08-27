@@ -11,6 +11,7 @@ import { TabNavigator } from './TabNavigator';
 import { AuthContext } from '@/features/auth/context/AuthContext';
 import { useOnboardingStore } from '@/features/onboarding/store/useOnboardingStore';
 import { useAppTheme } from '@/shared/theme/theme';
+import { SUI_FONTS } from '@/shared/theme/brand';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -93,7 +94,11 @@ export const AppNavigator = () => {
                 headerBackTitle: 'Inicio',
                 headerTintColor: theme.colors.primary,
                 headerStyle: { backgroundColor: theme.colors.surfaceContainer },
-                headerTitleStyle: { color: theme.colors.onSurface, fontWeight: '900' },
+                headerTitleStyle: {
+                  color: theme.colors.onSurface,
+                  fontWeight: '900',
+                  fontFamily: SUI_FONTS.bold,
+                },
                 headerShadowVisible: true,
               }}
             />
@@ -118,7 +123,11 @@ export const AppNavigator = () => {
                 headerBackTitle: 'Inicio',
                 headerTintColor: theme.colors.primary,
                 headerStyle: { backgroundColor: theme.colors.surfaceContainer },
-                headerTitleStyle: { color: theme.colors.onSurface, fontWeight: '900' },
+                headerTitleStyle: {
+                  color: theme.colors.onSurface,
+                  fontWeight: '900',
+                  fontFamily: SUI_FONTS.bold,
+                },
                 headerShadowVisible: true,
               }}
             />

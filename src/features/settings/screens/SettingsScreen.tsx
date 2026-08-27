@@ -124,10 +124,12 @@ const rowStyles = (colors: ColorScheme) =>
     label: {
       fontSize: 16,
       fontWeight: '600',
+      fontFamily: 'Poppins-SemiBold',
       color: colors.onSurface,
     },
     description: {
       fontSize: 13,
+      fontFamily: 'Poppins-Regular',
       color: colors.onSurfaceVariant,
       marginTop: 2,
     },
@@ -172,6 +174,7 @@ const sectionStyles = (colors: ColorScheme) =>
     headerTitle: {
       fontSize: 13,
       fontWeight: '800',
+      fontFamily: 'Poppins-Bold',
       letterSpacing: 0.8,
       textTransform: 'uppercase',
       color: colors.primary,
@@ -461,7 +464,7 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>SUI v1.0.0</Text>
+          <Text style={styles.footerText}>Sui v1.0.0</Text>
         </View>
       </ScrollView>
 
@@ -642,6 +645,7 @@ const createStyles = (colors: ColorScheme) =>
     badgeText: {
       fontSize: 12,
       fontWeight: '700',
+      fontFamily: 'Poppins-Bold',
       color: colors.onPrimaryContainer,
     },
     syncPendingBadge: {
@@ -665,6 +669,7 @@ const createStyles = (colors: ColorScheme) =>
       fontSize: 12,
       color: colors.onSurfaceVariant,
       fontWeight: '600',
+      fontFamily: 'Poppins-SemiBold',
     },
   });
 
@@ -706,11 +711,13 @@ const modalStyles = (colors: ColorScheme) =>
     title: {
       fontSize: 18,
       fontWeight: '700',
+      fontFamily: 'Poppins-Bold',
       color: colors.onSurface,
       textAlign: 'center',
     },
     message: {
       fontSize: 14,
+      fontFamily: 'Poppins-Regular',
       color: colors.onSurfaceVariant,
       textAlign: 'center',
       marginTop: SPACING.xs,
@@ -733,6 +740,7 @@ const modalStyles = (colors: ColorScheme) =>
     cancelText: {
       fontSize: 15,
       fontWeight: '600',
+      fontFamily: 'Poppins-SemiBold',
       color: colors.onSurface,
     },
     confirmBtn: {
@@ -749,6 +757,7 @@ const modalStyles = (colors: ColorScheme) =>
     confirmText: {
       fontSize: 15,
       fontWeight: '700',
+      fontFamily: 'Poppins-Bold',
       color: colors.onError,
     },
   });

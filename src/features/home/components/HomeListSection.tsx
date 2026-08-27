@@ -185,12 +185,14 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
+    fontFamily: 'Poppins-Bold',
     color: colors.onSurface,
   },
   sectionSubtitle: {
     marginTop: 4,
     color: colors.onSurfaceVariant,
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
   },
   card: {
     backgroundColor: colors.surfaceContainer,
@@ -208,11 +210,13 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   progressText: {
     fontSize: 14,
     fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     color: colors.onSurface,
   },
   progressPercent: {
     fontSize: 16,
     fontWeight: '900',
+    fontFamily: 'Poppins-Bold',
   },
   progressTrack: {
     height: 6,
@@ -233,6 +237,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
     color: colors.onSurfaceVariant,
     textAlign: 'center',
     lineHeight: 20,
@@ -248,6 +253,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   },
   addButtonText: {
     fontWeight: '800',
+    fontFamily: 'Poppins-Bold',
     fontSize: 15,
   },
   list: {
@@ -278,6 +284,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     color: colors.onSurface,
     fontSize: 15,
     fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     lineHeight: 20,
   },
   itemTitleDone: {

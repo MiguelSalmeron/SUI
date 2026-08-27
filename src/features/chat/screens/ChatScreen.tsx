@@ -201,6 +201,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   headerBtnText: {
     color: colors.primary,
     fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     fontSize: 14,
   },
   listContent: {
@@ -216,11 +217,13 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   emptyTitle: {
     fontSize: 26,
     fontWeight: '900',
+    fontFamily: 'Poppins-Bold',
     color: colors.onSurface,
     marginBottom: SPACING.sm,
   },
   emptyText: {
     fontSize: 16,
+    fontFamily: 'Poppins-Regular',
     color: colors.onSurfaceVariant,
     textAlign: 'center',
     lineHeight: 23,
@@ -228,6 +231,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   },
   emptyNote: {
     fontSize: 13,
+    fontFamily: 'Poppins-Regular',
     color: colors.onSurfaceVariant,
     textAlign: 'center',
     lineHeight: 19,

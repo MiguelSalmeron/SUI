@@ -100,16 +100,19 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   count: {
     fontSize: 26,
     fontWeight: '900',
+    fontFamily: 'Poppins-Bold',
     color: colors.flame,
   },
   countIdle: {
     fontSize: 20,
     fontWeight: '900',
+    fontFamily: 'Poppins-Bold',
     color: colors.onSurface,
   },
   label: {
     fontSize: 13,
     fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     color: colors.onSurfaceVariant,
     marginTop: 2,
   },

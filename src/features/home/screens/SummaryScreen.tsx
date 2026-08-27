@@ -154,10 +154,12 @@ const statStyles = StyleSheet.create({
   value: {
     fontSize: 22,
     fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
   label: {
     fontSize: 11,
     fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
     textTransform: 'uppercase',
   },
 });
@@ -193,6 +195,7 @@ const createStyles = (colors: ColorScheme) =>
       fontSize: 14,
       lineHeight: 20,
       fontWeight: '400',
+      fontFamily: 'Poppins-Regular',
     },
     statsGrid: {
       flexDirection: 'row',
@@ -209,6 +212,7 @@ const createStyles = (colors: ColorScheme) =>
     todayTitle: {
       fontSize: 13,
       fontWeight: '800',
+      fontFamily: 'Poppins-Bold',
       color: colors.onPrimaryContainer,
       textTransform: 'uppercase',
       opacity: 0.85,
@@ -222,12 +226,14 @@ const createStyles = (colors: ColorScheme) =>
     todayStat: {
       fontSize: 15,
       fontWeight: '700',
+      fontFamily: 'Poppins-Bold',
       color: colors.onPrimaryContainer,
       flex: 1,
     },
     todayRate: {
       fontSize: 28,
       fontWeight: '700',
+      fontFamily: 'Poppins-Bold',
       color: colors.primary,
     },
   });
