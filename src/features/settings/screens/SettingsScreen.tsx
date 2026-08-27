@@ -14,7 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ColorScheme, SPACING, useAppTheme, useThemeController, ThemeMode } from '@/shared/theme/theme';
+import { AppTheme, ColorScheme, SPACING, TypographyScale, useAppTheme, useThemeController, ThemeMode } from '@/shared/theme/theme';
 import { useSettingsStore, FontSize } from '@/shared/preferences/useSettingsStore';
 import { useOnboardingStore } from '@/features/onboarding/store/useOnboardingStore';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
@@ -66,41 +66,42 @@ interface SettingsRowProps {
   right?: React.ReactNode;
   onPress?: () => void;
   colors: ColorScheme;
+  type: TypographyScale;
   destructive?: boolean;
 }
 
 const SettingsRow = React.memo<SettingsRowProps>(
-  ({ icon, label, description, right, onPress, colors, destructive }) => (
+  ({ icon, label, description, right, onPress, colors, type, destructive }) => (
     <TouchableOpacity
-      style={rowStyles(colors).row}
+      style={rowStyles(colors, type).row}
       onPress={onPress}
       activeOpacity={onPress ? 0.6 : 1}
       disabled={!onPress}
       accessibilityRole={onPress ? 'button' : 'none'}
     >
-      <View style={rowStyles(colors).iconContainer}>
+      <View style={rowStyles(colors, type).iconContainer}>
         <Ionicons
           name={icon}
           size={22}
           color={destructive ? colors.error : colors.primary}
         />
       </View>
-      <View style={rowStyles(colors).content}>
-        <Text style={[rowStyles(colors).label, destructive && { color: colors.error }]}>
+      <View style={rowStyles(colors, type).content}>
+        <Text style={[rowStyles(colors, type).label, destructive && { color: colors.error }]}>
           {label}
         </Text>
         {description ? (
-          <Text style={rowStyles(colors).description}>{description}</Text>
+          <Text style={rowStyles(colors, type).description}>{description}</Text>
         ) : null}
       </View>
       {right ? (
-        <View style={rowStyles(colors).right}>{right}</View>
+        <View style={rowStyles(colors, type).right}>{right}</View>
       ) : null}
     </TouchableOpacity>
   ),
 );
 
-const rowStyles = (colors: ColorScheme) =>
+const rowStyles = (colors: ColorScheme, type: TypographyScale) =>
   StyleSheet.create({
     row: {
       flexDirection: 'row',
@@ -122,14 +123,11 @@ const rowStyles = (colors: ColorScheme) =>
       flex: 1,
     },
     label: {
-      fontSize: 16,
-      fontWeight: '600',
-      fontFamily: 'Poppins-SemiBold',
+      ...type.titleMd,
       color: colors.onSurface,
     },
     description: {
-      fontSize: 13,
-      fontFamily: 'Poppins-Regular',
+      ...type.bodySm,
       color: colors.onSurfaceVariant,
       marginTop: 2,
     },
@@ -145,21 +143,22 @@ interface SectionHeaderProps {
   title: string;
   iconKey: string;
   colors: ColorScheme;
+  type: TypographyScale;
 }
 
-const SectionHeader = ({ title, iconKey, colors }: SectionHeaderProps) => (
-  <View style={sectionStyles(colors).header}>
+const SectionHeader = ({ title, iconKey, colors, type }: SectionHeaderProps) => (
+  <View style={sectionStyles(colors, type).header}>
     <Ionicons
       name={SECTION_ICONS[iconKey] ?? 'ellipse-outline'}
       size={16}
       color={colors.primary}
-      style={sectionStyles(colors).headerIcon}
+      style={sectionStyles(colors, type).headerIcon}
     />
-    <Text style={sectionStyles(colors).headerTitle}>{title}</Text>
+    <Text style={sectionStyles(colors, type).headerTitle}>{title}</Text>
   </View>
 );
 
-const sectionStyles = (colors: ColorScheme) =>
+const sectionStyles = (colors: ColorScheme, type: TypographyScale) =>
   StyleSheet.create({
     header: {
       flexDirection: 'row',
@@ -172,9 +171,7 @@ const sectionStyles = (colors: ColorScheme) =>
       marginRight: SPACING.sm,
     },
     headerTitle: {
-      fontSize: 13,
-      fontWeight: '800',
-      fontFamily: 'Poppins-Bold',
+      ...type.labelMd,
       letterSpacing: 0.8,
       textTransform: 'uppercase',
       color: colors.primary,
@@ -185,7 +182,8 @@ const sectionStyles = (colors: ColorScheme) =>
 // Pantalla principal: SettingsScreen
 // ──────────────────────────────────────────────────────────
 export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'Settings'>) => {
-  const { colors } = useAppTheme();
+  const theme = useAppTheme();
+  const { colors, type } = theme;
   const { mode, setMode } = useThemeController();
   const { notificationsEnabled, fontSize, setNotificationsEnabled, setFontSize } =
     useSettingsStore();
@@ -194,7 +192,8 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
   const { signInWithGoogle, busy: googleBusy, ready: googleReady, configured: googleConfigured } =
     useGoogleAuth();
 
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const dialogStyles = useMemo(() => modalStyles(theme), [theme]);
 
   const linkedGoogle = userHasGoogleProvider(user);
   const syncPending = useOnboardingStore((s) => s.syncPending);
@@ -319,7 +318,7 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
         showsVerticalScrollIndicator={false}
       >
         {/* ─── APARIENCIA ─── */}
-        <SectionHeader title="Apariencia" iconKey="appearance" colors={colors} />
+        <SectionHeader title="Apariencia" iconKey="appearance" colors={colors} type={type} />
         <View style={styles.card}>
           <SettingsRow
             icon={THEME_ICONS[mode]}
@@ -327,6 +326,7 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
             description={THEME_LABELS[mode]}
             onPress={cycleThemeMode}
             colors={colors}
+            type={type}
             right={
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{THEME_LABELS[mode]}</Text>
@@ -340,6 +340,7 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
             description={FONT_LABELS[fontSize]}
             onPress={cycleFontSize}
             colors={colors}
+            type={type}
             right={
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{FONT_LABELS[fontSize]}</Text>
@@ -349,13 +350,14 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
         </View>
 
         {/* ─── GENERAL ─── */}
-        <SectionHeader title="General" iconKey="general" colors={colors} />
+        <SectionHeader title="General" iconKey="general" colors={colors} type={type} />
         <View style={styles.card}>
           <SettingsRow
             icon="notifications-outline"
             label="Notificaciones"
             description="Recordatorios y alertas de la app"
             colors={colors}
+            type={type}
             right={
               <Switch
                 value={notificationsEnabled}
@@ -378,13 +380,14 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
         </View>
 
         {/* ─── CUENTA ─── */}
-        <SectionHeader title="Cuenta" iconKey="account" colors={colors} />
+        <SectionHeader title="Cuenta" iconKey="account" colors={colors} type={type} />
         <View style={styles.card}>
           <SettingsRow
             icon={syncIcon}
             label="Estado de datos"
             description={syncDescription}
             colors={colors}
+            type={type}
             right={
               <View
                 style={[
@@ -417,6 +420,7 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
             label={accountLabel}
             description={accountDescription}
             colors={colors}
+            type={type}
             right={
               linkedGoogle ? (
                 <View style={styles.badge}>
@@ -444,6 +448,7 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
                     : () => void handleLinkGoogle()
                 }
                 colors={colors}
+                type={type}
                 right={
                   googleLinkBusy ? (
                     <ActivityIndicator size="small" color={colors.primary} />
@@ -459,6 +464,7 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
             description="Salir de tu cuenta actual"
             onPress={handleLogout}
             colors={colors}
+            type={type}
             destructive
           />
         </View>
@@ -475,34 +481,34 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
         animationType="fade"
         onRequestClose={() => setConfirmVisible(false)}
       >
-        <View style={modalStyles(colors).overlay}>
-          <View style={modalStyles(colors).card} accessibilityRole="alert">
-            <View style={modalStyles(colors).hero}>
-              <View style={modalStyles(colors).iconWrap}>
+        <View style={dialogStyles.overlay}>
+          <View style={dialogStyles.card} accessibilityRole="alert">
+            <View style={dialogStyles.hero}>
+              <View style={dialogStyles.iconWrap}>
                 <Ionicons name="log-out-outline" size={26} color={colors.error} />
               </View>
-              <Text style={modalStyles(colors).title}>Cerrar sesión</Text>
+              <Text style={dialogStyles.title}>Cerrar sesión</Text>
             </View>
-            <Text style={modalStyles(colors).message}>
+            <Text style={dialogStyles.message}>
               ¿Estás seguro de que quieres cerrar sesión? Tendrás que volver a
               configurar tu experiencia.
             </Text>
-            <View style={modalStyles(colors).actions}>
+            <View style={dialogStyles.actions}>
               <TouchableOpacity
-                style={modalStyles(colors).cancelBtn}
+                style={dialogStyles.cancelBtn}
                 onPress={() => setConfirmVisible(false)}
                 accessibilityRole="button"
                 accessibilityLabel="Cancelar cierre de sesión"
               >
-                <Text style={modalStyles(colors).cancelText}>Cancelar</Text>
+                <Text style={dialogStyles.cancelText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={modalStyles(colors).confirmBtn}
+                style={dialogStyles.confirmBtn}
                 onPress={performLogout}
                 accessibilityRole="button"
                 accessibilityLabel="Confirmar cerrar sesión"
               >
-                <Text style={modalStyles(colors).confirmText}>
+                <Text style={dialogStyles.confirmText}>
                   Cerrar sesión
                 </Text>
               </TouchableOpacity>
@@ -518,37 +524,37 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
         animationType="fade"
         onRequestClose={() => setLogoutState('idle')}
       >
-        <View style={modalStyles(colors).overlay}>
-          <View style={modalStyles(colors).card} accessibilityRole="alert">
+        <View style={dialogStyles.overlay}>
+          <View style={dialogStyles.card} accessibilityRole="alert">
             {logoutState === 'logging' ? (
-              <View style={modalStyles(colors).hero}>
+              <View style={dialogStyles.hero}>
                 <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={modalStyles(colors).title}>Cerrando sesión...</Text>
+                <Text style={dialogStyles.title}>Cerrando sesión...</Text>
               </View>
             ) : (
               <>
-                <View style={modalStyles(colors).hero}>
-                  <View style={modalStyles(colors).iconWrap}>
+                <View style={dialogStyles.hero}>
+                  <View style={dialogStyles.iconWrap}>
                     <Ionicons
                       name="alert-circle-outline"
                       size={26}
                       color={colors.error}
                     />
                   </View>
-                  <Text style={modalStyles(colors).title}>
+                  <Text style={dialogStyles.title}>
                     No se pudo cerrar sesión
                   </Text>
                 </View>
-                <Text style={modalStyles(colors).message}>
+                <Text style={dialogStyles.message}>
                   {logoutError || 'Ocurrió un error inesperado.'}
                 </Text>
                 <TouchableOpacity
-                  style={[modalStyles(colors).confirmBtn, modalStyles(colors).fullWidthBtn]}
+                  style={[dialogStyles.confirmBtn, dialogStyles.fullWidthBtn]}
                   onPress={() => setLogoutState('idle')}
                   accessibilityRole="button"
                   accessibilityLabel="Entendido"
                 >
-                  <Text style={modalStyles(colors).confirmText}>Entendido</Text>
+                  <Text style={dialogStyles.confirmText}>Entendido</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -562,38 +568,38 @@ export const SettingsScreen = ({ navigation }: NativeStackScreenProps<RootStackP
         animationType="fade"
         onRequestClose={() => setGoogleLinkState('idle')}
       >
-        <View style={modalStyles(colors).overlay}>
-          <View style={modalStyles(colors).card} accessibilityRole="alert">
+        <View style={dialogStyles.overlay}>
+          <View style={dialogStyles.card} accessibilityRole="alert">
             {googleLinkState === 'linking' ? (
-              <View style={modalStyles(colors).hero}>
+              <View style={dialogStyles.hero}>
                 <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={modalStyles(colors).title}>Vinculando Google...</Text>
+                <Text style={dialogStyles.title}>Vinculando Google...</Text>
               </View>
             ) : googleLinkState === 'success' ? (
-              <View style={modalStyles(colors).hero}>
-                <View style={[modalStyles(colors).iconWrap, { backgroundColor: colors.primaryContainer }]}>
+              <View style={dialogStyles.hero}>
+                <View style={[dialogStyles.iconWrap, { backgroundColor: colors.primaryContainer }]}>
                   <Ionicons name="checkmark-circle" size={26} color={colors.primary} />
                 </View>
-                <Text style={modalStyles(colors).title}>Cuenta vinculada</Text>
+                <Text style={dialogStyles.title}>Cuenta vinculada</Text>
               </View>
             ) : (
               <>
-                <View style={modalStyles(colors).hero}>
-                  <View style={modalStyles(colors).iconWrap}>
+                <View style={dialogStyles.hero}>
+                  <View style={dialogStyles.iconWrap}>
                     <Ionicons name="alert-circle-outline" size={26} color={colors.error} />
                   </View>
-                  <Text style={modalStyles(colors).title}>No se pudo vincular</Text>
+                  <Text style={dialogStyles.title}>No se pudo vincular</Text>
                 </View>
-                <Text style={modalStyles(colors).message}>
+                <Text style={dialogStyles.message}>
                   {googleLinkError || 'Ocurrió un error inesperado.'}
                 </Text>
                 <TouchableOpacity
-                  style={[modalStyles(colors).confirmBtn, modalStyles(colors).fullWidthBtn]}
+                  style={[dialogStyles.confirmBtn, dialogStyles.fullWidthBtn]}
                   onPress={() => setGoogleLinkState('idle')}
                   accessibilityRole="button"
                   accessibilityLabel="Entendido"
                 >
-                  <Text style={modalStyles(colors).confirmText}>Entendido</Text>
+                  <Text style={dialogStyles.confirmText}>Entendido</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -614,7 +620,7 @@ const FONT_ICONS: Record<FontSize, keyof typeof Ionicons.glyphMap> = {
 // ──────────────────────────────────────────────────────────
 // Estilos MD3
 // ──────────────────────────────────────────────────────────
-const createStyles = (colors: ColorScheme) =>
+const createStyles = ({ colors, type }: AppTheme) =>
   StyleSheet.create({
     screen: {
       flex: 1,
@@ -643,9 +649,7 @@ const createStyles = (colors: ColorScheme) =>
       borderRadius: 12,
     },
     badgeText: {
-      fontSize: 12,
-      fontWeight: '700',
-      fontFamily: 'Poppins-Bold',
+      ...type.labelMd,
       color: colors.onPrimaryContainer,
     },
     syncPendingBadge: {
@@ -666,17 +670,15 @@ const createStyles = (colors: ColorScheme) =>
       paddingBottom: SPACING.lg,
     },
     footerText: {
-      fontSize: 12,
+      ...type.labelMd,
       color: colors.onSurfaceVariant,
-      fontWeight: '600',
-      fontFamily: 'Poppins-SemiBold',
     },
   });
 
 // ──────────────────────────────────────────────────────────
 // Estilos del modal de logout (MD3)
 // ──────────────────────────────────────────────────────────
-const modalStyles = (colors: ColorScheme) =>
+const modalStyles = ({ colors, type }: AppTheme) =>
   StyleSheet.create({
     overlay: {
       flex: 1,
@@ -709,20 +711,16 @@ const modalStyles = (colors: ColorScheme) =>
       alignItems: 'center',
     },
     title: {
-      fontSize: 18,
-      fontWeight: '700',
-      fontFamily: 'Poppins-Bold',
+      ...type.titleLg,
       color: colors.onSurface,
       textAlign: 'center',
     },
     message: {
-      fontSize: 14,
-      fontFamily: 'Poppins-Regular',
+      ...type.bodyMd,
       color: colors.onSurfaceVariant,
       textAlign: 'center',
       marginTop: SPACING.xs,
       marginBottom: SPACING.lg,
-      lineHeight: 20,
       alignSelf: 'stretch',
     },
     actions: {
@@ -738,9 +736,7 @@ const modalStyles = (colors: ColorScheme) =>
       backgroundColor: colors.surfaceContainerHighest,
     },
     cancelText: {
-      fontSize: 15,
-      fontWeight: '600',
-      fontFamily: 'Poppins-SemiBold',
+      ...type.titleMd,
       color: colors.onSurface,
     },
     confirmBtn: {
@@ -755,9 +751,7 @@ const modalStyles = (colors: ColorScheme) =>
       flex: 0,
     },
     confirmText: {
-      fontSize: 15,
-      fontWeight: '700',
-      fontFamily: 'Poppins-Bold',
+      ...type.titleMd,
       color: colors.onError,
     },
   });

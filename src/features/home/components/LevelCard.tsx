@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
-import { SUI_FONTS } from '@/shared/theme/brand';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { calculateLevel } from '@/shared/domain/productivity/gamification';
 
 type Props = {
@@ -9,8 +8,9 @@ type Props = {
 };
 
 export const LevelCard = ({ totalXp }: Props) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const level = useMemo(() => calculateLevel(totalXp), [totalXp]);
   const anim = useRef(new Animated.Value(level.progress)).current;
 
@@ -48,7 +48,7 @@ export const LevelCard = ({ totalXp }: Props) => {
   );
 };
 
-const createStyles = (colors: ColorScheme) =>
+const createStyles = ({ colors, type }: AppTheme) =>
   StyleSheet.create({
     card: {
       backgroundColor: colors.surface,
@@ -73,32 +73,24 @@ const createStyles = (colors: ColorScheme) =>
       justifyContent: 'center',
     },
     levelNumber: {
-      fontSize: 20,
-      fontWeight: '700',
-      fontFamily: 'Poppins-Bold',
+      ...type.titleLg,
       color: colors.primary,
     },
     textCol: {
       flex: 1,
     },
     title: {
-      fontSize: 17,
-      fontWeight: '400',
-      fontFamily: SUI_FONTS.display,
+      ...type.brandTitle,
       color: colors.onSurface,
     },
     subtitle: {
-      fontSize: 12,
-      fontWeight: '600',
-      fontFamily: 'Poppins-SemiBold',
+      ...type.labelMd,
       color: colors.onSurfaceVariant,
       opacity: 0.8,
       marginTop: 2,
     },
     xpTotal: {
-      fontSize: 14,
-      fontWeight: '700',
-      fontFamily: 'Poppins-Bold',
+      ...type.labelLg,
       color: colors.primary,
     },
     track: {

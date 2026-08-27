@@ -10,7 +10,7 @@ import {
 import { useForm, Controller, Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 
 interface ChatComposerProps {
   /** Esquema zod para validar el campo (string o number coercionado). */
@@ -30,8 +30,9 @@ export const ChatComposer = ({
   maxLength = 40,
   onSubmitValue,
 }: ChatComposerProps) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   type FormValues = { value: string };
   const schema = z.object({ value: fieldSchema });
 
@@ -81,7 +82,7 @@ export const ChatComposer = ({
   );
 };
 
-const createStyles = (colors: ColorScheme) => StyleSheet.create({
+const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
   wrapper: {
     gap: 4,
   },
@@ -91,6 +92,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     gap: SPACING.sm,
   },
   input: {
+    ...type.bodyLg,
     flex: 1,
     backgroundColor: colors.surfaceContainerLow,
     borderWidth: 1,
@@ -98,8 +100,6 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     borderRadius: 16,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.md,
-    fontSize: 16,
-    fontFamily: 'Poppins-Regular',
     color: colors.onSurface,
   },
   inputError: {
@@ -114,16 +114,12 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     justifyContent: 'center',
   },
   sendText: {
+    ...type.titleMd,
     color: colors.onPrimary,
-    fontWeight: '800',
-    fontFamily: 'Poppins-Bold',
-    fontSize: 15,
   },
   errorText: {
+    ...type.bodySm,
     color: colors.error,
-    fontSize: 12,
-    fontWeight: '600',
-    fontFamily: 'Poppins-SemiBold',
     marginLeft: SPACING.xs,
   },
 });

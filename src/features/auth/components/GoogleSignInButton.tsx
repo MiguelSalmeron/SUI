@@ -7,7 +7,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 
 type GoogleSignInButtonProps = {
   label: string;
@@ -27,8 +27,9 @@ export const GoogleSignInButton = React.memo(function GoogleSignInButton({
   disabled = false,
   style,
 }: GoogleSignInButtonProps) {
-  const { colors } = useAppTheme();
-  const styles = buttonStyles(colors);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = buttonStyles(theme);
   const isDisabled = disabled || busy;
 
   return (
@@ -51,7 +52,7 @@ export const GoogleSignInButton = React.memo(function GoogleSignInButton({
   );
 });
 
-const buttonStyles = (colors: ColorScheme) =>
+const buttonStyles = ({ colors, type }: AppTheme) =>
   StyleSheet.create({
     button: {
       flexDirection: 'row',
@@ -69,9 +70,8 @@ const buttonStyles = (colors: ColorScheme) =>
       opacity: 0.55,
     },
     label: {
+      ...type.titleMd,
       color: colors.onSurface,
-      fontWeight: '700',
-      fontFamily: 'Poppins-Bold',
-      fontSize: 15,
+      flexShrink: 1,
     },
   });

@@ -22,8 +22,7 @@ import { seedOnboardingGoals } from '@/shared/domain/productivity/homeStorage';
 
 import { useGoogleAuth } from '@/features/auth/hooks/useGoogleAuth';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
-import { SUI_FONTS } from '@/shared/theme/brand';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { SuiMark } from '@/shared/ui/SuiMark';
 import { buildConversation } from '../model/conversation';
 import * as Haptics from 'expo-haptics';
@@ -38,8 +37,9 @@ import {
 } from '../types/onboarding';
 
 export const OnboardingScreen = () => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
 
@@ -472,7 +472,7 @@ export const OnboardingScreen = () => {
   );
 };
 
-const createStyles = (colors: ColorScheme) =>
+const createStyles = ({ colors, type }: AppTheme) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -491,13 +491,11 @@ const createStyles = (colors: ColorScheme) =>
       gap: SPACING.md,
     },
     headerTitle: {
-      fontSize: 21,
-      fontFamily: SUI_FONTS.display,
+      ...type.brandDisplaySm,
       color: colors.onSurface,
     },
     headerSubtitle: {
-      fontSize: 13,
-      fontFamily: 'Poppins-Regular',
+      ...type.bodySm,
       color: colors.onSurfaceVariant,
       marginTop: 2,
     },
@@ -528,16 +526,12 @@ const createStyles = (colors: ColorScheme) =>
       opacity: 0.5,
     },
     primaryButtonText: {
+      ...type.titleMd,
       color: colors.onPrimary,
-      fontWeight: '800',
-      fontFamily: 'Poppins-Bold',
-      fontSize: 16,
     },
     googleErrorText: {
+      ...type.bodySm,
       color: colors.error,
-      fontSize: 13,
-      fontWeight: '600',
-      fontFamily: 'Poppins-SemiBold',
       textAlign: 'center',
       marginTop: SPACING.xs,
     },
@@ -557,16 +551,12 @@ const createStyles = (colors: ColorScheme) =>
       paddingHorizontal: SPACING.md,
     },
     chipText: {
+      ...type.titleMd,
       color: colors.primary,
-      fontWeight: '700',
-      fontFamily: 'Poppins-Bold',
-      fontSize: 15,
     },
     chipSubText: {
+      ...type.bodySm,
       color: colors.onSurfaceVariant,
-      fontSize: 12,
-      fontWeight: '500',
-      fontFamily: 'Poppins-Medium',
       marginTop: 1,
     },
     popularCareersGrid: {
@@ -587,10 +577,8 @@ const createStyles = (colors: ColorScheme) =>
       paddingHorizontal: SPACING.md,
     },
     careerChipText: {
+      ...type.labelMd,
       color: colors.onSurface,
-      fontSize: 13,
-      fontWeight: '700',
-      fontFamily: 'Poppins-Bold',
     },
     otherCareerBtn: {
       flexDirection: 'row',
@@ -600,10 +588,8 @@ const createStyles = (colors: ColorScheme) =>
       paddingVertical: SPACING.xs + 2,
     },
     otherCareerText: {
+      ...type.labelMd,
       color: colors.onSurfaceVariant,
-      fontSize: 13,
-      fontWeight: '600',
-      fontFamily: 'Poppins-SemiBold',
       textDecorationLine: 'underline',
     },
     goalsGrid: {
@@ -628,22 +614,19 @@ const createStyles = (colors: ColorScheme) =>
       borderColor: colors.primary,
     },
     goalEmoji: {
-      fontSize: 16,
+      fontSize: type.titleMd.fontSize,
+      lineHeight: type.titleMd.lineHeight,
     },
     goalLabel: {
+      ...type.labelLg,
       color: colors.onSurface,
-      fontWeight: '600',
-      fontFamily: 'Poppins-SemiBold',
-      fontSize: 14,
     },
     goalLabelSelected: {
       color: colors.onPrimary,
     },
     goalsCounter: {
+      ...type.labelMd,
       color: colors.onSurfaceVariant,
-      fontSize: 13,
-      fontWeight: '600',
-      fontFamily: 'Poppins-SemiBold',
       marginBottom: SPACING.sm,
     },
     loadingScreen: {
@@ -672,16 +655,13 @@ const createStyles = (colors: ColorScheme) =>
       marginBottom: SPACING.md,
     },
     loadingTitle: {
-      fontSize: 20,
-      fontFamily: SUI_FONTS.display,
+      ...type.brandTitle,
       color: colors.onSurface,
       marginBottom: SPACING.xs,
     },
     loadingPhrase: {
-      fontSize: 14,
+      ...type.labelLg,
       color: colors.primary,
-      fontWeight: '700',
-      fontFamily: 'Poppins-Bold',
       marginBottom: SPACING.lg,
     },
     progressTrack: {

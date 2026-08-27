@@ -7,7 +7,7 @@
 
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { ColorScheme, useAppTheme } from '@/shared/theme/theme';
+import { AppTheme, TypographyToken, useAppTheme } from '@/shared/theme/theme';
 
 export type AvatarSize = 'sm' | 'md' | 'lg';
 export type AvatarVariant = 'primary' | 'surface';
@@ -19,10 +19,10 @@ export type AvatarProps = {
   style?: ViewStyle;
 };
 
-const SIZES: Record<AvatarSize, { box: number; font: number }> = {
-  sm: { box: 32, font: 14 },
-  md: { box: 40, font: 16 },
-  lg: { box: 56, font: 22 },
+const SIZES: Record<AvatarSize, { box: number; token: TypographyToken }> = {
+  sm: { box: 32, token: 'labelLg' },
+  md: { box: 40, token: 'titleMd' },
+  lg: { box: 56, token: 'headlineSm' },
 };
 
 const initialOf = (name: string): string => {
@@ -38,12 +38,13 @@ export const Avatar: React.FC<AvatarProps> = ({
   variant = 'primary',
   style,
 }) => {
-  const { colors } = useAppTheme();
+  const theme = useAppTheme();
+  const { colors } = theme;
   const dims = SIZES[size];
-  const styles = useMemo(() => createStyles(colors, dims.box, dims.font, variant), [
-    colors,
+  const styles = useMemo(() => createStyles(theme, dims.box, dims.token, variant), [
+    theme,
     dims.box,
-    dims.font,
+    dims.token,
     variant,
   ]);
 
@@ -59,12 +60,13 @@ export const Avatar: React.FC<AvatarProps> = ({
 };
 
 const createStyles = (
-  colors: ColorScheme,
+  theme: AppTheme,
   box: number,
-  font: number,
+  token: TypographyToken,
   variant: AvatarVariant,
-) =>
-  StyleSheet.create({
+) => {
+  const { colors, type } = theme;
+  return StyleSheet.create({
     base: {
       width: box,
       height: box,
@@ -76,9 +78,8 @@ const createStyles = (
       borderColor: colors.outlineVariant,
     },
     initial: {
-      fontSize: font,
-      fontWeight: '800',
-      fontFamily: 'Poppins-Bold',
+      ...type[token],
       color: variant === 'primary' ? colors.onPrimary : colors.onSurface,
     },
   });
+};

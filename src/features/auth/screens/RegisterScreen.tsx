@@ -15,10 +15,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import type { RootStackParamList } from '@/application/navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { SUI_FONTS } from '@/shared/theme/brand';
 import { SuiMark } from '@/shared/ui/SuiMark';
 
 // Validation Schema with Zod
@@ -59,8 +58,9 @@ const getRegisterErrorMessage = (error: unknown) => {
 };
 
 export const RegisterScreen = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'Register'>) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [loading, setLoading] = useState(false);
 
   const {
@@ -194,7 +194,7 @@ export const RegisterScreen = ({ navigation }: NativeStackScreenProps<RootStackP
   );
 };
 
-const createStyles = (colors: ColorScheme) => StyleSheet.create({
+const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -209,15 +209,13 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 32,
-    fontFamily: SUI_FONTS.display,
+    ...type.brandDisplayMd,
     color: colors.onSurface,
     marginTop: SPACING.md,
     marginBottom: SPACING.sm,
   },
   subtitle: {
-    fontSize: 16,
-    fontFamily: SUI_FONTS.regular,
+    ...type.bodyLg,
     color: colors.onSurfaceVariant,
     textAlign: 'center',
   },
@@ -232,31 +230,26 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     marginBottom: SPACING.md,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: SUI_FONTS.semibold,
+    ...type.labelLg,
     color: colors.onSurface,
     marginBottom: SPACING.xs,
   },
   input: {
+    ...type.bodyLg,
     backgroundColor: colors.surfaceContainerLow,
     borderWidth: 1,
     borderColor: colors.outlineVariant,
     borderRadius: 12,
     padding: SPACING.md,
-    fontSize: 16,
-    fontFamily: SUI_FONTS.regular,
     color: colors.onSurface,
   },
   inputError: {
     borderColor: colors.error,
   },
   errorText: {
+    ...type.bodySm,
     color: colors.error,
-    fontSize: 12,
     marginTop: 4,
-    fontWeight: '600',
-    fontFamily: SUI_FONTS.semibold,
   },
   button: {
     backgroundColor: colors.primary,
@@ -269,23 +262,19 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
+    ...type.titleMd,
     color: colors.onPrimary,
-    fontSize: 18,
-    fontWeight: 'bold',
-    fontFamily: SUI_FONTS.bold,
   },
   linkButton: {
     marginTop: SPACING.lg,
     alignItems: 'center',
   },
   linkText: {
+    ...type.bodyMd,
     color: colors.onSurfaceVariant,
-    fontSize: 14,
-    fontFamily: SUI_FONTS.regular,
   },
   linkTextBold: {
+    ...type.labelLg,
     color: colors.primary,
-    fontWeight: 'bold',
-    fontFamily: SUI_FONTS.bold,
   },
 });
