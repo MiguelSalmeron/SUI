@@ -144,28 +144,28 @@ SUI adopta los esquemas semánticos y de accesibilidad de **Material Design v3**
 
 | Token | Valor Hex | Uso Semántico |
 | :--- | :--- | :--- |
-| `primary` | `#1A73E8` | Color semilla, elementos activos principales |
+| `primary` | `#355F78` | Azul pizarra para navegación y acciones principales |
 | `onPrimary` | `#FFFFFF` | Contenido sobre fondo primary |
-| `primaryContainer` | `#D3E3FD` | Contenedores y botones destacados (ej. pill activo de Navbar) |
-| `onPrimaryContainer` | `#0842A0` | Contenido sobre primaryContainer |
-| `secondary` | `#4285F4` | Color de apoyo secundario |
+| `primaryContainer` | `#DCEAF1` | Contenedores destacados y foco principal sereno |
+| `onPrimaryContainer` | `#132F3E` | Contenido sobre primaryContainer |
+| `secondary` | `#55796F` | Verde salvia para constancia y acompañamiento |
 | `onSecondary` | `#FFFFFF` | Contenido sobre fondo secondary |
-| `secondaryContainer` | `#DBE7FF` | Contenedores alternativos (ej. botones secundarios) |
-| `onSecondaryContainer` | `#0B3B8C` | Contenido sobre secondaryContainer |
-| `tertiary` | `#3367D6` | Acentuaciones o llamadas a la acción terciarias |
+| `secondaryContainer` | `#DCEBE5` | Contenedores de hábitos y progreso sostenido |
+| `onSecondaryContainer` | `#17352E` | Contenido sobre secondaryContainer |
+| `tertiary` | `#746B83` | Acentuaciones terciarias discretas |
 | `onTertiary` | `#FFFFFF` | Contenido sobre fondo tertiary |
-| `tertiaryContainer` | `#E3ECFF` | Contenedores terciarios suaves |
-| `onTertiaryContainer` | `#102A6B` | Contenido sobre tertiaryContainer |
-| `background` | `#F8FBFF` | Fondo general de la aplicación libre de destellos |
-| `onBackground` | `#1A1C1E` | Texto sobre background |
-| `surface` | `#FFFFFF` | Tarjetas, paneles flotantes y hojas de fondo |
-| `onSurface` | `#1C1B1F` | Texto principal sobre superficies |
-| `surfaceVariant` | `#E8F0FE` | Variaciones de superficie (ej. racha inactiva) |
-| `onSurfaceVariant` | `#49454F` | Texto secundario y descriptivo |
-| `surfaceContainer` | `#F1F6FE` | Contenedores de tarjetas de contenido intermedio |
-| `surfaceContainerHigh`| `#ECF2FC` | Contenedores elevados |
-| `outline` | `#CAC4D0` | Bordes activos y divisores visibles |
-| `outlineVariant` | `#E1E3E6` | Bordes sutiles o separadores de bajo contraste |
+| `tertiaryContainer` | `#ECE5F1` | Contenedores terciarios suaves |
+| `onTertiaryContainer` | `#332B3D` | Contenido sobre tertiaryContainer |
+| `background` | `#F5F7F5` | Fondo general neutro con matiz natural |
+| `onBackground` | `#202522` | Texto sobre background |
+| `surface` | `#FDFEFC` | Tarjetas, paneles flotantes y hojas de fondo |
+| `onSurface` | `#202522` | Texto principal sobre superficies |
+| `surfaceVariant` | `#E1E7E3` | Variaciones de superficie |
+| `onSurfaceVariant` | `#59635E` | Texto secundario y descriptivo |
+| `surfaceContainer` | `#EEF2EF` | Contenedores de contenido intermedio |
+| `surfaceContainerHigh`| `#E7ECE8` | Contenedores elevados |
+| `outline` | `#76817B` | Bordes activos y divisores visibles |
+| `outlineVariant` | `#D3DBD6` | Bordes sutiles o separadores de bajo contraste |
 | `error` | `#B3261E` | Indicaciones de error o advertencia crítica |
 | `onError` | `#FFFFFF` | Contenido sobre error |
 | `errorContainer` | `#F9DEDC` | Contenedores de alertas de error |

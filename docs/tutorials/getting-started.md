@@ -59,7 +59,7 @@ Expo Go no reproduce todas las capacidades nativas. Para notificaciones, splash 
 2. Confirma entrada al dashboard.
 3. Crea una meta y un hábito.
 4. Marca ambos como completados.
-5. Abre Radar y revisa la agenda unificada.
+5. Abre Agenda y revisa el calendario unificado.
 6. Abre el chat y confirma streaming si el proxy está configurado.
 
 ## 7. Localizar código

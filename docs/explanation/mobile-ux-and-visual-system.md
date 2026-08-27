@@ -1,0 +1,189 @@
+# UX móvil y sistema visual
+
+## Objetivo
+
+SUI está diseñada primero para teléfonos. La experiencia busca transmitir calma
+y acompañamiento sin introducir pausas artificiales, animaciones largas ni
+pasos innecesarios. Los acentos energéticos aparecen únicamente cuando ayudan
+a actuar o reconocer un avance.
+
+La dirección visual se resume en tres principios:
+
+1. **Calma modesta:** fondos naturales, superficies discretas y jerarquía sin
+   decoración excesiva.
+2. **Respuesta inmediata:** las acciones frecuentes están a un toque y la
+   interfaz no añade esperas deliberadas.
+3. **Energía con propósito:** naranja para rachas, prioridades y celebraciones;
+   nunca como color dominante de navegación.
+
+## Arquitectura de información
+
+La navegación inferior conserva cinco destinos. Metas y Hábitos permanecen
+separados porque representan modelos distintos, aunque puedan relacionarse.
+
+| Pestaña | Pregunta que responde | Responsabilidad |
+| --- | --- | --- |
+| Inicio | ¿Qué hago ahora? | Próxima actividad, avance y agenda de hoy |
+| Metas | ¿Qué quiero terminar? | Resultados finitos, fechas, progreso e hitos |
+| Hábitos | ¿Qué quiero repetir? | Frecuencia, cumplimiento diario, racha y vínculos |
+| Agenda | ¿Cuándo ocurre? | Calendario mensual y actividades por fecha |
+| Progreso | ¿Cómo me ha ido? | Semana, XP, constancia, métricas y logros |
+
+El botón flotante de SUI abre el acompañamiento conversacional sin ocupar una
+pestaña adicional.
+
+### Relación entre metas y hábitos
+
+- Una meta tiene fecha límite, porcentaje de avance e hitos.
+- Un hábito tiene frecuencia, estado diario y racha.
+- Un hábito puede impulsar una meta, pero no se convierte en una meta.
+- Inicio y Agenda pueden reunir ambos modelos para ejecutar o consultar el día.
+- La administración siempre permanece en sus pestañas independientes.
+
+## Jerarquía de las pantallas
+
+### Inicio
+
+Inicio está limitado al día actual para no duplicar la función de Agenda. El
+orden visual es:
+
+1. fecha y mensaje breve;
+2. próxima actividad;
+3. progreso del día, racha y XP;
+4. agenda cronológica.
+
+Los eventos pasados de Google Calendar no se presentan como la próxima
+actividad. Metas y hábitos pendientes sí permanecen accionables hasta que se
+completan.
+
+### Metas
+
+Las metas se dividen en **Activas** y **Completadas**. La lista presenta
+importancia, fecha, avance y un resumen de hitos. Los hitos se expanden bajo
+demanda para evitar tarjetas permanentemente densas.
+
+Crear una meta exige decisiones visibles:
+
+- nombre del resultado;
+- horizonte de fecha;
+- importancia normal o prioritaria.
+
+Eliminar y completar/reabrir se encuentran en un menú secundario. La
+eliminación siempre requiere confirmación.
+
+### Hábitos
+
+Hábitos ofrece dos contextos:
+
+- **Hoy:** ejecución de las repeticiones correspondientes al día;
+- **Mis hábitos:** administración de todas las rutinas.
+
+El formulario solicita acción, frecuencia y vínculo opcional con una meta. Las
+acciones de proteger racha y eliminar están en el menú secundario; completar
+permanece como la acción principal de un toque.
+
+### Agenda
+
+Agenda usa una cuadrícula mensual real alineada de lunes a domingo. Permite:
+
+- cambiar de mes;
+- volver rápidamente a hoy;
+- identificar eventos y metas mediante indicadores discretos;
+- consultar todas las actividades de la fecha seleccionada;
+- crear una entrega directamente en esa fecha;
+- conectar Google Calendar en modo de solo lectura.
+
+La conexión externa se muestra en una fila compacta para no desplazar el
+calendario fuera del primer viewport.
+
+### Progreso
+
+Progreso concentra nivel, XP, insight semanal, gráfica, métricas y logros. No
+incluye acciones de planificación. Las superficies sustituyen los grandes
+bloques saturados para mantener la lectura tranquila.
+
+## Sistema visual
+
+Los tokens viven en `src/shared/theme/theme.ts` y deben consumirse mediante
+`useAppTheme()`.
+
+### Color
+
+- **Primary — azul pizarra:** navegación, selección y acciones principales.
+- **Secondary — verde salvia:** hábitos, constancia y acompañamiento.
+- **Flame — naranja cálido:** rachas, prioridad y celebraciones.
+- **Background/surfaces:** grises verdosos de bajo contraste para reducir
+  fatiga sin perder separación entre elementos.
+
+Existe un esquema oscuro equivalente. Los componentes deben usar pares
+semánticos (`primary/onPrimary`, `flame/onFlame`, etc.) para conservar
+contraste en ambos esquemas.
+
+### Tipografía
+
+La escala compartida reduce el uso de pesos 800–900. Las pantallas nuevas usan:
+
+- `headlineSm` para títulos de primer nivel;
+- `titleLg`, `titleMd` y `titleSm` para jerarquía interna;
+- `bodyMd` y `bodySm` para descripción y metadatos;
+- `labelLg`, `labelMd` y `labelSm` para acciones y estados.
+
+El ajuste de tamaño de texto continúa aplicándose desde `useSettingsStore`.
+
+### Formas y superficies
+
+- radios medianos para campos y controles;
+- radios grandes para tarjetas;
+- radio completo para pills, indicadores y botones circulares;
+- bordes sutiles antes que sombras intensas;
+- una tarjeta protagonista por pantalla como máximo.
+
+`ScreenIntro` define el encabezado estándar de las pantallas principales. Los
+formularios específicos permanecen dentro de cada funcionalidad:
+
+```text
+src/shared/ui/ScreenIntro.tsx
+src/features/goals/components/GoalFormModal.tsx
+src/features/habits/components/HabitFormModal.tsx
+```
+
+## Reglas de interacción móvil
+
+- Objetivos táctiles principales de al menos 40–44 dp.
+- Etiquetas visibles en todas las pestañas inferiores.
+- Acciones destructivas fuera del flujo principal y con confirmación.
+- Estados vacíos con una acción siguiente clara.
+- Una acción primaria por formulario.
+- Listas verticales como patrón principal; desplazamiento horizontal sólo para
+  selecciones compactas.
+- Feedback háptico y celebraciones después de completar, nunca antes.
+- Sin animaciones que retrasen la disponibilidad de una acción.
+
+## Rendimiento
+
+- Cálculos de listas y calendarios se memoizan cuando dependen de estado.
+- Los estilos compartidos por render se memoizan según los tokens del tema.
+- La navegación conserva carga diferida de pestañas.
+- Google Calendar continúa leyendo caché local antes de sincronizar.
+- No se añadieron dependencias visuales ni fuentes remotas.
+
+## Accesibilidad
+
+- Los controles interactivos incluyen rol y etiqueta accesible.
+- Los filtros exponen estado seleccionado.
+- Los checkboxes exponen estado marcado.
+- El color no es el único indicador de selección o finalización.
+- Claro y oscuro usan tokens `on*` específicos para contraste.
+
+## Verificación
+
+Antes de integrar cambios visuales se debe ejecutar:
+
+```bash
+npm run check
+npm run export:web
+```
+
+La revisión final debe completarse también en un teléfono o emulador Android y,
+cuando haya disponibilidad, en un dispositivo iOS para validar safe areas,
+teclado, tamaño de texto y objetivos táctiles.

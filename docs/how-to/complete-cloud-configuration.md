@@ -71,7 +71,7 @@ Esta guía contiene el checklist para conectar y verificar la aplicación móvil
 1. [ ] Activar **Google Calendar API** en el proyecto `xsui-nica` de Google Cloud.
 2. [ ] Añadir el scope `https://www.googleapis.com/auth/calendar.readonly` en la pantalla de consentimiento OAuth.
 3. [ ] Verificar Client IDs Web, Android e iOS y sus redirect URIs.
-4. [ ] Probar en `https://xsui.web.app`: Calendar/Radar → Conectar → aceptar permiso → Actualizar.
+4. [ ] Probar en `https://xsui.web.app`: Agenda → Conectar → aceptar permiso → Actualizar.
 5. [ ] Verificar caché offline, cancelación del consentimiento, token caducado y Desconectar.
 
 ### Paso 7: Mantenimiento pendiente
