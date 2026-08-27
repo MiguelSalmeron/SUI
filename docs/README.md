@@ -24,6 +24,7 @@ La documentación sigue el modelo Diátaxis: aprendizaje, tareas, referencia y e
 - [Chatbot](explanation/chatbot.md)
 - [Privacidad y crisis](explanation/privacy-and-crisis.md)
 - [Visión del producto](explanation/product-overview.md)
+- [UX móvil y sistema visual](explanation/mobile-ux-and-visual-system.md)
 
 ## Decisiones arquitectónicas
 

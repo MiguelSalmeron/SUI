@@ -2,11 +2,11 @@
 
 ## 🎯 ¿Qué es y cuál es el propósito?
 **SUI** es una aplicación orientada al bienestar personal y la productividad diaria de estudiantes universitarios. Ayuda al usuario a estructurar su día integrando cinco ejes en un único flujo de trabajo, organizados como pestañas inferiores (Material Design 3):
-1. **Inicio (Overview):** panel central con nivel/XP, racha, progreso diario y accesos rápidos.
-2. **Metas:** tareas puntuales del día (To-Do).
-3. **Hábitos:** acciones repetitivas para generar constancia.
-4. **Calendario / Radar:** agenda unificada con eventos de Google Calendar, metas y hábitos.
-5. **Resumen (Summary):** estadísticas semanales, gráfico de los últimos 7 días, logros e insight.
+1. **Inicio (Overview):** próxima actividad, progreso diario y agenda de hoy.
+2. **Metas:** resultados finitos con fecha límite, progreso e hitos.
+3. **Hábitos:** acciones recurrentes con frecuencia, racha y vínculo opcional a una meta.
+4. **Agenda (Calendar):** calendario mensual unificado con eventos de Google Calendar, metas y hábitos.
+5. **Progreso (Summary):** estadísticas semanales, gráfico de los últimos 7 días, logros e insight.
 
 Complementa el flujo con un **chatbot de asistencia emocional**, un **resumen nocturno con IA** y un sistema de **gamificación** (XP, niveles, logros, celebraciones).
 
@@ -31,7 +31,7 @@ La aplicación ha superado la fase de MVP y entrega un producto funcional con si
 3. **Dark Mode:** ✅ Implementado. Tres modos (Claro / Oscuro / Sistema) en `SettingsScreen` con persistencia y tokens Material Design 3.
 4. **Navegación por tabs:** ✅ Implementada. Bottom Tabs con 5 pantallas + Native Stack para Chat y Settings.
 5. **Resumen nocturno con IA:** ✅ Implementado. Notificación programada que abre `NightlyReportModal` con resumen empático del día.
-6. **Calendario / Radar:** 🟡 En evolución. La interfaz combina agenda local con una caché normalizada de Google Calendar; la conexión real de solo lectura se está implementando.
+6. **Agenda conectada:** 🟡 En evolución. La interfaz combina agenda local con una caché normalizada de Google Calendar; la conexión real de solo lectura se está implementando.
 7. **Asistencia Emocional (Chatbot IA):** ✅ Operativo con Azure Foundry `gpt-5-mini`, streaming SSE, historial local 48h con TTL auto-limpieza, y protocolo de crisis con `EmergencyOverlay`.
 
 ## 🗺️ Roadmap Sugerido (Próximos Pasos)

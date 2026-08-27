@@ -77,6 +77,7 @@ No se usa Expo Router. `src/application` evita reservar una carpeta de rutas bas
 - [Índice de documentación](docs/README.md)
 - [Primeros pasos](docs/tutorials/getting-started.md)
 - [Arquitectura](docs/explanation/architecture.md)
+- [UX móvil y sistema visual](docs/explanation/mobile-ux-and-visual-system.md)
 - [Chatbot](docs/explanation/chatbot.md)
 - [Guía del desarrollador](docs/reference/developer-guide.md)
 - [Configuración de Firebase](docs/how-to/firebase-config.md)
