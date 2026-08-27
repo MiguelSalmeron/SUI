@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-SUI está diseñada primero para teléfonos. La experiencia busca transmitir calma
+Sui está diseñada primero para teléfonos. La experiencia busca transmitir calma
 y acompañamiento sin introducir pausas artificiales, animaciones largas ni
 pasos innecesarios. Los acentos energéticos aparecen únicamente cuando ayudan
 a actuar o reconocer un avance.
@@ -29,12 +29,12 @@ relacionarse.
 | Hábitos | ¿Qué quiero repetir? | Frecuencia, cumplimiento diario, racha y vínculos |
 | Agenda | ¿Cuándo ocurre? | Calendario mensual y actividades por fecha |
 
-La acción central **SUI** se inserta entre Metas y Hábitos. Abre el Chat como
+La acción central **Sui** se inserta entre Metas y Hábitos. Abre el Chat como
 pantalla completa del stack y no cambia la pestaña seleccionada. **Progreso**
 es una pantalla secundaria: se abre desde la tarjeta «Progreso del día» de
 Inicio y Back regresa al mismo contexto.
 
-El encabezado global se limita a la marca SUI y el avatar. El avatar abre
+El encabezado global se limita a la marca Sui y el avatar. El avatar abre
 Ajustes, donde la sección Cuenta informa si los datos están «En la nube»,
 «Pendientes de sincronizar» o permanecen como «Datos locales».
 
@@ -116,11 +116,14 @@ Los tokens viven en `src/shared/theme/theme.ts` y deben consumirse mediante
 
 ### Color
 
-- **Primary — azul pizarra:** navegación, selección y acciones principales.
-- **Secondary — verde salvia:** hábitos, constancia y acompañamiento.
-- **Flame — naranja cálido:** rachas, prioridad y celebraciones.
-- **Background/surfaces:** grises verdosos de bajo contraste para reducir
-  fatiga sin perder separación entre elementos.
+- **Marca — azul Sui `#218ECE`:** isologo, isotipo e ilustración.
+- **Primary — azul acción `#1677A6`:** navegación, selección y acciones con
+  texto blanco accesible.
+- **Secondary — salvia `#55796F`:** hábitos, constancia y acompañamiento.
+- **Flame — naranja `#E87536`:** rachas, prioridad y celebraciones; usa texto
+  marino.
+- **Background/surfaces:** blanco, azulados suaves y marino para reducir fatiga
+  sin perder separación entre elementos.
 
 Existe un esquema oscuro equivalente. Los componentes deben usar pares
 semánticos (`primary/onPrimary`, `flame/onFlame`, etc.) para conservar
@@ -128,14 +131,17 @@ contraste en ambos esquemas.
 
 ### Tipografía
 
-La escala compartida reduce el uso de pesos 800–900. Las pantallas nuevas usan:
+Poppins Regular, Medium, SemiBold y Bold forman la interfaz. Fredoka One queda
+reservada para bienvenida, hitos, niveles y celebraciones. Las pantallas usan:
 
 - `headlineSm` para títulos de primer nivel;
 - `titleLg`, `titleMd` y `titleSm` para jerarquía interna;
 - `bodyMd` y `bodySm` para descripción y metadatos;
 - `labelLg`, `labelMd` y `labelSm` para acciones y estados.
 
-El ajuste de tamaño de texto continúa aplicándose desde `useSettingsStore`.
+El ajuste de tamaño de texto continúa aplicándose desde `useSettingsStore`. La
+guía completa de marca vive en
+[`product-brand-identity.md`](product-brand-identity.md).
 
 ### Formas y superficies
 
@@ -158,7 +164,7 @@ src/features/habits/components/HabitFormModal.tsx
 
 - Objetivos táctiles principales de al menos 40–44 dp.
 - Etiquetas e iconos visibles en las cuatro pestañas inferiores.
-- La acción central SUI tiene rol de botón; los destinos inferiores tienen rol
+- La acción central Sui tiene rol de botón; los destinos inferiores tienen rol
   de pestaña y exponen su estado seleccionado.
 - El contenido usa un padding inferior compartido para no quedar oculto por la
   barra ni por el safe area del dispositivo.
