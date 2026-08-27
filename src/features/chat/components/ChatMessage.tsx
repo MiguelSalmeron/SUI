@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { ChatMessage as ChatMessageType } from '../types/chat';
 
 interface Props {
@@ -12,8 +12,9 @@ interface Props {
  * el ancho, con tipografía diferenciada entre usuario y asistente.
  */
 export const ChatMessage = React.memo(({ message }: Props) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const isUser = message.role === 'user';
   const showThinking = message.streaming && message.content.length === 0;
 
@@ -26,7 +27,7 @@ export const ChatMessage = React.memo(({ message }: Props) => {
       {showThinking ? (
         <ActivityIndicator size="small" color={colors.secondary} style={styles.thinking} />
       ) : (
-        <Text style={[styles.text, isUser ? styles.textUser : styles.textBot]}>
+        <Text style={isUser ? styles.textUser : styles.textBot}>
           {message.content}
           {message.streaming && <Text style={styles.cursor}>▍</Text>}
           {message.error && (
@@ -38,14 +39,12 @@ export const ChatMessage = React.memo(({ message }: Props) => {
   );
 });
 
-const createStyles = (colors: ColorScheme) => StyleSheet.create({
+const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
   container: {
     marginBottom: SPACING.lg,
   },
   author: {
-    fontSize: 12,
-    fontWeight: '800',
-    fontFamily: 'Poppins-Bold',
+    ...type.labelMd,
     letterSpacing: 0.4,
     marginBottom: SPACING.xs,
   },
@@ -55,31 +54,24 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   authorBot: {
     color: colors.secondary,
   },
-  text: {
-    fontSize: 16,
-    fontFamily: 'Poppins-Regular',
-    lineHeight: 24,
-  },
   textUser: {
+    ...type.titleMd,
     color: colors.onSurface,
-    fontWeight: '600',
   },
   textBot: {
+    ...type.bodyLg,
     color: colors.onSurface,
-    fontWeight: '400',
   },
   cursor: {
+    ...type.titleMd,
     color: colors.secondary,
-    fontWeight: '700',
   },
   thinking: {
     alignSelf: 'flex-start',
     marginVertical: SPACING.xs,
   },
   errorTag: {
+    ...type.labelMd,
     color: colors.error,
-    fontSize: 13,
-    fontWeight: '700',
-    fontFamily: 'Poppins-Bold',
   },
 });

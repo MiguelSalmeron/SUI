@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
-import { SUI_FONTS } from '@/shared/theme/brand';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import type { Achievement } from '@/shared/domain/productivity/gamification';
 
 type Props = {
@@ -11,8 +10,9 @@ type Props = {
 };
 
 export const AchievementGrid = ({ achievements, compact = false }: Props) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors, compact), [colors, compact]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme, compact), [theme, compact]);
   const unlocked = achievements.filter((a) => a.unlocked);
   const locked = achievements.filter((a) => !a.unlocked);
   const display = compact ? unlocked.slice(0, 4) : achievements;
@@ -79,7 +79,7 @@ export const AchievementGrid = ({ achievements, compact = false }: Props) => {
   );
 };
 
-const createStyles = (colors: ColorScheme, compact: boolean) =>
+const createStyles = ({ colors, type }: AppTheme, compact: boolean) =>
   StyleSheet.create({
     section: {
       marginBottom: SPACING.md,
@@ -88,9 +88,7 @@ const createStyles = (colors: ColorScheme, compact: boolean) =>
       marginBottom: SPACING.sm,
     },
     sectionTitle: {
-      fontSize: 15,
-      fontWeight: '800',
-      fontFamily: 'Poppins-Bold',
+      ...type.titleMd,
       color: colors.onSurface,
       marginBottom: SPACING.sm,
     },
@@ -129,27 +127,21 @@ const createStyles = (colors: ColorScheme, compact: boolean) =>
       backgroundColor: colors.outlineVariant,
     },
     badgeTitle: {
-      fontSize: 13,
-      fontWeight: '400',
-      fontFamily: SUI_FONTS.display,
+      ...type.brandLabel,
       color: colors.onSurface,
     },
     badgeTitleLocked: {
       color: colors.onSurfaceVariant,
     },
     badgeDesc: {
-      fontSize: 11,
-      fontFamily: 'Poppins-Regular',
+      ...type.bodySm,
       color: colors.onSurfaceVariant,
       marginTop: 2,
-      lineHeight: 15,
     },
     hint: {
-      fontSize: 12,
+      ...type.labelMd,
       color: colors.onSurfaceVariant,
       marginTop: SPACING.sm,
-      fontWeight: '600',
-      fontFamily: 'Poppins-SemiBold',
     },
     horizontal: {
       gap: SPACING.sm,
@@ -175,10 +167,9 @@ const createStyles = (colors: ColorScheme, compact: boolean) =>
       marginBottom: 4,
     },
     compactTitle: {
-      fontSize: 11,
-      fontWeight: '400',
-      fontFamily: SUI_FONTS.display,
+      ...type.brandLabel,
       color: colors.onPrimaryContainer,
       textAlign: 'center',
+      minHeight: type.brandLabel.lineHeight * 2,
     },
   });

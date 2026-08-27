@@ -6,7 +6,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { MAX_INPUT_CHARS } from '../types/chat';
 
 interface Props {
@@ -16,8 +16,9 @@ interface Props {
 }
 
 export const ChatInput = ({ busy, onSend }: Props) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [text, setText] = useState('');
 
   const submit = () => {
@@ -63,7 +64,7 @@ export const ChatInput = ({ busy, onSend }: Props) => {
   );
 };
 
-const createStyles = (colors: ColorScheme) => StyleSheet.create({
+const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
   wrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -75,6 +76,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     backgroundColor: colors.surface,
   },
   input: {
+    ...type.bodyLg,
     flex: 1,
     maxHeight: 120,
     backgroundColor: colors.surfaceContainerLow,
@@ -83,8 +85,6 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     borderRadius: 20,
     paddingVertical: SPACING.sm + 2,
     paddingHorizontal: SPACING.md,
-    fontSize: 16,
-    fontFamily: 'Poppins-Regular',
     color: colors.onSurface,
   },
   sendButton: {

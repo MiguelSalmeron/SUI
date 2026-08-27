@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ColorScheme, MD3_RADIUS, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { AppTheme, MD3_RADIUS, SPACING, useAppTheme } from '@/shared/theme/theme';
 
 type Props = {
   /** Días consecutivos cumpliendo. 0 = sin racha activa. */
@@ -15,8 +15,9 @@ type Props = {
  * Si la racha es 0, invita a empezar (sin culpar).
  */
 export const StreakBadge = ({ streak }: Props) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const scale = useRef(new Animated.Value(1)).current;
   const active = streak > 0;
 
@@ -63,7 +64,7 @@ export const StreakBadge = ({ streak }: Props) => {
   );
 };
 
-const createStyles = (colors: ColorScheme) => StyleSheet.create({
+const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -98,21 +99,15 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     flex: 1,
   },
   count: {
-    fontSize: 26,
-    fontWeight: '900',
-    fontFamily: 'Poppins-Bold',
+    ...type.headlineMd,
     color: colors.flame,
   },
   countIdle: {
-    fontSize: 20,
-    fontWeight: '900',
-    fontFamily: 'Poppins-Bold',
+    ...type.titleLg,
     color: colors.onSurface,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '700',
-    fontFamily: 'Poppins-Bold',
+    ...type.labelMd,
     color: colors.onSurfaceVariant,
     marginTop: 2,
   },

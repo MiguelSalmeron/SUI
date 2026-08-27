@@ -10,7 +10,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { ChatMessage } from '../components/ChatMessage';
 import { ChatInput } from '../components/ChatInput';
 import { EmergencyOverlay } from '../components/EmergencyOverlay';
@@ -34,8 +34,9 @@ interface Props {
 }
 
 export const ChatScreen = ({ navigation }: Props) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const messages = useChatStore((s) => s.messages);
   const streamingId = useChatStore((s) => s.streamingId);
   const addUserMessage = useChatStore((s) => s.addUserMessage);
@@ -80,7 +81,7 @@ export const ChatScreen = ({ navigation }: Props) => {
         </TouchableOpacity>
       ),
     });
-  }, [navigation, confirmClear]);
+  }, [navigation, confirmClear, styles]);
 
   // Carga del diccionario de crisis + limpieza de historial caducado.
   useEffect(() => {
@@ -186,7 +187,7 @@ export const ChatScreen = ({ navigation }: Props) => {
   );
 };
 
-const createStyles = (colors: ColorScheme) => StyleSheet.create({
+const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
@@ -199,10 +200,8 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     paddingHorizontal: SPACING.xs,
   },
   headerBtnText: {
+    ...type.labelLg,
     color: colors.primary,
-    fontWeight: '700',
-    fontFamily: 'Poppins-Bold',
-    fontSize: 14,
   },
   listContent: {
     padding: SPACING.lg,
@@ -215,26 +214,20 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     padding: SPACING.xl,
   },
   emptyTitle: {
-    fontSize: 26,
-    fontWeight: '900',
-    fontFamily: 'Poppins-Bold',
+    ...type.headlineMd,
     color: colors.onSurface,
     marginBottom: SPACING.sm,
   },
   emptyText: {
-    fontSize: 16,
-    fontFamily: 'Poppins-Regular',
+    ...type.bodyLg,
     color: colors.onSurfaceVariant,
     textAlign: 'center',
-    lineHeight: 23,
     marginBottom: SPACING.md,
   },
   emptyNote: {
-    fontSize: 13,
-    fontFamily: 'Poppins-Regular',
+    ...type.bodySm,
     color: colors.onSurfaceVariant,
     textAlign: 'center',
-    lineHeight: 19,
     opacity: 0.8,
   },
 });

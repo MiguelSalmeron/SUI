@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
+  AppTheme,
   ColorScheme,
   SCREEN_CONTENT_BOTTOM_PADDING,
   SPACING,
@@ -19,8 +20,10 @@ import {
 } from '@/shared/domain/productivity/gamification';
 
 export const SummaryScreen = () => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const statBoxStyles = useMemo(() => createStatStyles(theme), [theme]);
 
   const goals = useHomeStore((s) => s.goals);
   const habits = useHomeStore((s) => s.habits);
@@ -91,24 +94,28 @@ export const SummaryScreen = () => {
           label="Metas"
           value={String(weekTotals.goalsDone)}
           colors={colors}
+          styles={statBoxStyles}
         />
         <StatBox
           icon="repeat"
           label="Hábitos"
           value={String(weekTotals.habitsDone)}
           colors={colors}
+          styles={statBoxStyles}
         />
         <StatBox
           icon="flame"
           label="Racha"
           value={`${streak} días`}
           colors={colors}
+          styles={statBoxStyles}
         />
         <StatBox
           icon="calendar"
           label="Días activos"
           value={`${weekTotals.activeDays}/7`}
           colors={colors}
+          styles={statBoxStyles}
         />
       </View>
 
@@ -132,17 +139,18 @@ type StatBoxProps = {
   label: string;
   value: string;
   colors: ColorScheme;
+  styles: ReturnType<typeof createStatStyles>;
 };
 
-const StatBox = ({ icon, label, value, colors }: StatBoxProps) => (
-  <View style={[statStyles.box, { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant }]}>
+const StatBox = ({ icon, label, value, colors, styles }: StatBoxProps) => (
+  <View style={[styles.box, { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant }]}>
     <Ionicons name={icon} size={18} color={colors.primary} />
-    <Text style={[statStyles.value, { color: colors.onSurface }]}>{value}</Text>
-    <Text style={[statStyles.label, { color: colors.onSurfaceVariant }]}>{label}</Text>
+    <Text style={[styles.value, { color: colors.onSurface }]}>{value}</Text>
+    <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>{label}</Text>
   </View>
 );
 
-const statStyles = StyleSheet.create({
+const createStatStyles = ({ type }: AppTheme) => StyleSheet.create({
   box: {
     width: '47%',
     borderRadius: 16,
@@ -152,19 +160,15 @@ const statStyles = StyleSheet.create({
     gap: 4,
   },
   value: {
-    fontSize: 22,
-    fontWeight: '700',
-    fontFamily: 'Poppins-Bold',
+    ...type.headlineSm,
   },
   label: {
-    fontSize: 11,
-    fontWeight: '700',
-    fontFamily: 'Poppins-Bold',
+    ...type.labelSm,
     textTransform: 'uppercase',
   },
 });
 
-const createStyles = (colors: ColorScheme) =>
+const createStyles = ({ colors, type }: AppTheme) =>
   StyleSheet.create({
     content: {
       padding: SPACING.lg,
@@ -190,12 +194,9 @@ const createStyles = (colors: ColorScheme) =>
       justifyContent: 'center',
     },
     insightText: {
+      ...type.bodyMd,
       flex: 1,
       color: colors.onSurface,
-      fontSize: 14,
-      lineHeight: 20,
-      fontWeight: '400',
-      fontFamily: 'Poppins-Regular',
     },
     statsGrid: {
       flexDirection: 'row',
@@ -210,9 +211,7 @@ const createStyles = (colors: ColorScheme) =>
       marginBottom: SPACING.md,
     },
     todayTitle: {
-      fontSize: 13,
-      fontWeight: '800',
-      fontFamily: 'Poppins-Bold',
+      ...type.labelMd,
       color: colors.onPrimaryContainer,
       textTransform: 'uppercase',
       opacity: 0.85,
@@ -224,16 +223,12 @@ const createStyles = (colors: ColorScheme) =>
       marginTop: 4,
     },
     todayStat: {
-      fontSize: 15,
-      fontWeight: '700',
-      fontFamily: 'Poppins-Bold',
+      ...type.titleMd,
       color: colors.onPrimaryContainer,
       flex: 1,
     },
     todayRate: {
-      fontSize: 28,
-      fontWeight: '700',
-      fontFamily: 'Poppins-Bold',
+      ...type.headlineLg,
       color: colors.primary,
     },
   });

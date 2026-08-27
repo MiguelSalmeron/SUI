@@ -2,13 +2,13 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
-import { SUI_FONTS } from '@/shared/theme/brand';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
 
 export const CelebrationToast = () => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
   const visible = useCelebrationStore((s) => s.visible);
   const title = useCelebrationStore((s) => s.title);
@@ -64,7 +64,7 @@ export const CelebrationToast = () => {
   );
 };
 
-const createStyles = (colors: ColorScheme) =>
+const createStyles = ({ colors, type }: AppTheme) =>
   StyleSheet.create({
     wrap: {
       position: 'absolute',
@@ -97,16 +97,12 @@ const createStyles = (colors: ColorScheme) =>
       flex: 1,
     },
     title: {
+      ...type.brandTitle,
       color: colors.onFlame,
-      fontSize: 16,
-      fontWeight: '400',
-      fontFamily: SUI_FONTS.display,
     },
     subtitle: {
+      ...type.labelMd,
       color: colors.onFlame,
-      fontSize: 13,
-      fontWeight: '700',
-      fontFamily: 'Poppins-Bold',
       opacity: 0.9,
       marginTop: 2,
     },

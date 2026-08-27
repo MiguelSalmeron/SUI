@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import type { DailySnapshot } from '@/shared/domain/productivity/gamification';
 import { getCompletionRate } from '@/shared/domain/productivity/gamification';
 
@@ -17,8 +17,9 @@ const formatDayLabel = (dateKey: string): string => {
 };
 
 export const WeeklyChart = ({ data }: Props) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const maxRate = 100;
 
   return (
@@ -65,7 +66,7 @@ export const WeeklyChart = ({ data }: Props) => {
   );
 };
 
-const createStyles = (colors: ColorScheme) =>
+const createStyles = ({ colors, type }: AppTheme) =>
   StyleSheet.create({
     card: {
       backgroundColor: colors.surfaceContainer,
@@ -76,9 +77,7 @@ const createStyles = (colors: ColorScheme) =>
       marginBottom: SPACING.md,
     },
     title: {
-      fontSize: 15,
-      fontWeight: '800',
-      fontFamily: 'Poppins-Bold',
+      ...type.titleMd,
       color: colors.onSurface,
       marginBottom: SPACING.md,
     },
@@ -107,20 +106,17 @@ const createStyles = (colors: ColorScheme) =>
       minHeight: 8,
     },
     dayLabel: {
-      fontSize: 11,
-      fontWeight: '700',
-      fontFamily: 'Poppins-Bold',
+      ...type.labelSm,
       color: colors.onSurfaceVariant,
       marginTop: 6,
     },
     dayLabelToday: {
       color: colors.primary,
-      fontWeight: '900',
+      fontFamily: type.titleSm.fontFamily,
+      fontWeight: type.titleSm.fontWeight,
     },
     rateLabel: {
-      fontSize: 9,
-      fontWeight: '700',
-      fontFamily: 'Poppins-Bold',
+      ...type.labelXs,
       color: colors.onSurfaceVariant,
       marginTop: 2,
     },

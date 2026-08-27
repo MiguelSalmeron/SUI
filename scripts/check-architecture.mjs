@@ -17,6 +17,12 @@ const legacyRoots = new Set([
   'theme',
   'types',
 ]);
+const rawTypographyPatterns = [
+  [/\bfontSize\s*:\s*\d/u, 'raw fontSize; use theme.type token'],
+  [/\blineHeight\s*:\s*\d/u, 'raw lineHeight; use theme.type token'],
+  [/\bfontWeight\s*:\s*['"]/u, 'raw fontWeight; use theme.type token'],
+  [/\bfontFamily\s*:\s*(?:['"]|SUI_FONTS\.)/u, 'raw fontFamily; use theme.type token'],
+];
 
 async function collectFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -46,6 +52,12 @@ for (const file of files) {
 
   if (sourcePath.startsWith('shared/') && /from\s+['"]@\/(?:application|features)\//.test(content)) {
     failures.push(`${projectPath}: shared layer cannot import application or features`);
+  }
+
+  if (extname(file) === '.tsx') {
+    for (const [pattern, message] of rawTypographyPatterns) {
+      if (pattern.test(content)) failures.push(`${projectPath}: ${message}`);
+    }
   }
 }
 

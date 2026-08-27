@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 
 export type HomeListItem = {
   id: string;
@@ -26,15 +26,16 @@ type Props = {
 
 type ItemRowProps = {
   item: HomeListItem;
-  colors: ColorScheme;
+  theme: AppTheme;
   onToggle: (itemId: string) => void;
   onEdit?: (item: HomeListItem) => void;
   onRemove: (itemId: string) => void;
   onItemCompleted?: (title: string) => void;
 };
 
-const HomeListItemRow = React.memo(({ item, colors, onToggle, onEdit, onRemove, onItemCompleted }: ItemRowProps) => {
-  const styles = useMemo(() => createStyles(colors), [colors]);
+const HomeListItemRow = React.memo(({ item, theme, onToggle, onEdit, onRemove, onItemCompleted }: ItemRowProps) => {
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
     <View style={[styles.itemRow, item.completed && styles.itemRowDone]}>
@@ -106,8 +107,9 @@ export const HomeListSection = ({
   onRemove,
   onItemCompleted,
 }: Props) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const completedCount = items.filter((item) => item.completed).length;
   const progress = items.length === 0 ? 0 : completedCount / items.length;
   const accentColor = accent === 'secondary' ? colors.secondary : colors.primary;
@@ -162,7 +164,7 @@ export const HomeListSection = ({
             <HomeListItemRow
               key={item.id}
               item={item}
-              colors={colors}
+              theme={theme}
               onToggle={onToggle}
               onEdit={onEdit}
               onRemove={onRemove}
@@ -175,7 +177,7 @@ export const HomeListSection = ({
   );
 };
 
-const createStyles = (colors: ColorScheme) => StyleSheet.create({
+const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
   sectionSpacing: {
     marginTop: SPACING.md,
   },
@@ -183,16 +185,13 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     marginBottom: SPACING.md,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    fontFamily: 'Poppins-Bold',
+    ...type.titleLg,
     color: colors.onSurface,
   },
   sectionSubtitle: {
+    ...type.bodyMd,
     marginTop: 4,
     color: colors.onSurfaceVariant,
-    fontSize: 14,
-    fontFamily: 'Poppins-Regular',
   },
   card: {
     backgroundColor: colors.surfaceContainer,
@@ -208,15 +207,11 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   progressText: {
-    fontSize: 14,
-    fontWeight: '700',
-    fontFamily: 'Poppins-Bold',
+    ...type.labelLg,
     color: colors.onSurface,
   },
   progressPercent: {
-    fontSize: 16,
-    fontWeight: '900',
-    fontFamily: 'Poppins-Bold',
+    ...type.titleMd,
   },
   progressTrack: {
     height: 6,
@@ -236,11 +231,9 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     marginBottom: SPACING.md,
   },
   emptyText: {
-    fontSize: 14,
-    fontFamily: 'Poppins-Regular',
+    ...type.bodyMd,
     color: colors.onSurfaceVariant,
     textAlign: 'center',
-    lineHeight: 20,
     paddingHorizontal: SPACING.md,
   },
   addButton: {
@@ -252,9 +245,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     gap: 6,
   },
   addButtonText: {
-    fontWeight: '800',
-    fontFamily: 'Poppins-Bold',
-    fontSize: 15,
+    ...type.titleMd,
   },
   list: {
     gap: SPACING.xs,
@@ -280,12 +271,9 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     justifyContent: 'center',
   },
   itemTitle: {
+    ...type.titleMd,
     flex: 1,
     color: colors.onSurface,
-    fontSize: 15,
-    fontWeight: '600',
-    fontFamily: 'Poppins-SemiBold',
-    lineHeight: 20,
   },
   itemTitleDone: {
     color: colors.onSurfaceVariant,

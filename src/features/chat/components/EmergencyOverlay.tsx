@@ -8,7 +8,7 @@ import {
   Linking,
   Alert,
 } from 'react-native';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { CrisisConfig } from '../services/crisisConfig';
 
 interface EmergencyOverlayProps {
@@ -26,8 +26,9 @@ export const EmergencyOverlay = ({
   config,
   onClose,
 }: EmergencyOverlayProps) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const call = async (phone: string) => {
     const url = `tel:${phone.replace(/\s+/g, '')}`;
@@ -85,7 +86,7 @@ export const EmergencyOverlay = ({
   );
 };
 
-const createStyles = (colors: ColorScheme) => StyleSheet.create({
+const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: colors.scrim,
@@ -109,22 +110,17 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   },
   badgeText: {
     color: colors.onError,
-    fontSize: 26,
-    fontWeight: '900',
-    fontFamily: 'Poppins-Bold',
+    fontSize: type.headlineMd.fontSize,
+    lineHeight: type.headlineMd.lineHeight,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '900',
-    fontFamily: 'Poppins-Bold',
+    ...type.headlineSm,
     color: colors.onSurface,
     textAlign: 'center',
     marginBottom: SPACING.sm,
   },
   message: {
-    fontSize: 15,
-    fontFamily: 'Poppins-Regular',
-    lineHeight: 22,
+    ...type.bodyMd,
     color: colors.onSurfaceVariant,
     textAlign: 'center',
     marginBottom: SPACING.lg,
@@ -141,27 +137,21 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     alignItems: 'center',
   },
   contactLabel: {
+    ...type.titleMd,
     color: colors.onError,
-    fontWeight: '900',
-    fontFamily: 'Poppins-Bold',
-    fontSize: 16,
   },
   contactPhone: {
+    ...type.labelMd,
     color: colors.onError,
     opacity: 0.95,
-    fontSize: 13,
     marginTop: 2,
-    fontWeight: '600',
-    fontFamily: 'Poppins-SemiBold',
   },
   closeBtn: {
     marginTop: SPACING.lg,
     paddingVertical: SPACING.sm,
   },
   closeText: {
+    ...type.labelLg,
     color: colors.primary,
-    fontWeight: '800',
-    fontFamily: 'Poppins-Bold',
-    fontSize: 15,
   },
 });

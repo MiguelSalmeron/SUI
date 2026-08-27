@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { useOnboardingStore } from '@/features/onboarding/store/useOnboardingStore';
 import { buildEmotionalProfile } from '@/features/chat/services/chatPrompt';
 import { buildReportPayload, DayStats, summarizeStats } from '@/features/chat/services/reportPrompt';
@@ -40,8 +40,9 @@ const offlineMessage = (stats: DayStats): string => {
  * desaparece. Si no hay red, muestra un cierre local cálido.
  */
 export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const profile = useOnboardingStore((s) => s.profile);
   const selectedGoals = useOnboardingStore((s) => s.selectedGoals);
 
@@ -119,7 +120,7 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
   );
 };
 
-const createStyles = (colors: ColorScheme) => StyleSheet.create({
+const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: colors.scrim,
@@ -142,14 +143,11 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     marginBottom: SPACING.md,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '900',
-    fontFamily: 'Poppins-Bold',
+    ...type.headlineSm,
     color: colors.onSurface,
   },
   subtitle: {
-    fontSize: 14,
-    fontFamily: 'Poppins-Regular',
+    ...type.bodyMd,
     color: colors.onSurfaceVariant,
     marginTop: 2,
     marginBottom: SPACING.md,
@@ -167,13 +165,11 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     paddingVertical: SPACING.md,
   },
   loadingText: {
+    ...type.bodyMd,
     color: colors.onSurfaceVariant,
-    fontWeight: '600',
   },
   reportText: {
-    fontSize: 16,
-    fontFamily: 'Poppins-Regular',
-    lineHeight: 24,
+    ...type.bodyLg,
     color: colors.onSurface,
   },
   closeButton: {
@@ -184,9 +180,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     marginTop: SPACING.lg,
   },
   closeButtonText: {
+    ...type.titleMd,
     color: colors.onPrimary,
-    fontWeight: '800',
-    fontFamily: 'Poppins-Bold',
-    fontSize: 16,
   },
 });

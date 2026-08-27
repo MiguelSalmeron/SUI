@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 
 interface ChatBubbleProps {
   from: 'bot' | 'user';
@@ -9,8 +9,9 @@ interface ChatBubbleProps {
 }
 
 export const ChatBubble = ({ from, text }: ChatBubbleProps) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const isBot = from === 'bot';
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -61,7 +62,7 @@ export const ChatBubble = ({ from, text }: ChatBubbleProps) => {
   );
 };
 
-const createStyles = (colors: ColorScheme) => StyleSheet.create({
+const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -100,15 +101,14 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   text: {
-    fontSize: 15,
-    fontFamily: 'Poppins-Regular',
-    lineHeight: 21,
+    ...type.bodyMd,
   },
   textBot: {
     color: colors.onSurface,
   },
   textUser: {
     color: colors.onPrimary,
-    fontWeight: '600',
+    fontFamily: type.titleSm.fontFamily,
+    fontWeight: type.titleSm.fontWeight,
   },
 });

@@ -18,6 +18,7 @@ import {
   NAV_BAR_HEIGHT,
   SPACING,
   type ColorScheme,
+  type TypographyScale,
   useAppTheme,
 } from '@/shared/theme/theme';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
@@ -81,6 +82,7 @@ export const TabHeader = React.memo(
 
 type MainTabBarProps = BottomTabBarProps & {
   colors: ColorScheme;
+  type: TypographyScale;
   onAssistant: () => void;
 };
 
@@ -89,9 +91,10 @@ export const MainTabBar = ({
   navigation,
   insets,
   colors,
+  type,
   onAssistant,
 }: MainTabBarProps) => {
-  const styles = useMemo(() => tabBarStyles(colors), [colors]);
+  const styles = useMemo(() => tabBarStyles(colors, type), [colors, type]);
 
   const assistantButton = (
     <TouchableOpacity
@@ -274,6 +277,7 @@ export const TabNavigator = () => {
           <MainTabBar
             {...props}
             colors={colors}
+            type={theme.type}
             onAssistant={openAssistant}
           />
         )}
@@ -341,7 +345,7 @@ const headerStyles = (colors: ColorScheme) =>
     },
   });
 
-const tabBarStyles = (colors: ColorScheme) =>
+const tabBarStyles = (colors: ColorScheme, type: TypographyScale) =>
   StyleSheet.create({
     barSurface: {
       backgroundColor: colors.surface,
@@ -377,10 +381,7 @@ const tabBarStyles = (colors: ColorScheme) =>
       backgroundColor: colors.primaryContainer,
     },
     tabLabel: {
-      fontSize: 10,
-      lineHeight: 14,
-      fontWeight: '600',
-      fontFamily: 'Poppins-SemiBold',
+      ...type.labelXs,
     },
     assistantSlot: {
       flex: 1,
@@ -406,10 +407,7 @@ const tabBarStyles = (colors: ColorScheme) =>
       elevation: 4,
     },
     assistantLabel: {
-      fontSize: 10,
-      lineHeight: 14,
-      fontWeight: '700',
-      fontFamily: 'Poppins-Bold',
+      ...type.labelXs,
       color: colors.primary,
       marginTop: 1,
     },

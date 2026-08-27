@@ -26,7 +26,23 @@ import React, {
 } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SUI_BRAND, SUI_FONTS } from './brand';
+import { SUI_BRAND } from './brand';
+import {
+  FONT_SCALE_MAP,
+  MD3_TYPE,
+  scaleTypography,
+  type TypographyScale,
+} from './typography';
+
+export {
+  FONT_SCALE_MAP,
+  MD3_TYPE,
+  TYPOGRAPHY,
+  scaleTypography,
+  type TypeStyle,
+  type TypographyScale,
+  type TypographyToken,
+} from './typography';
 
 // ──────────────────────────────────────────────────────────────────────────
 // THEME MODE STORE (mini-store local, persistido en AsyncStorage)
@@ -327,40 +343,6 @@ export const MD3_RADIUS = {
 // MD3 · TYPOGRAPHY (escala tipográfica)
 // ──────────────────────────────────────────────────────────────────────────
 
-export type TypeStyle = {
-  fontSize: number;
-  lineHeight: number;
-  fontWeight: '400' | '500' | '600' | '700' | '800' | '900';
-  fontFamily: string;
-  letterSpacing?: number;
-};
-
-export const MD3_TYPE: Record<string, TypeStyle> = {
-  brandDisplayLg: { fontSize: 42, lineHeight: 50, fontWeight: '400', fontFamily: SUI_FONTS.display },
-  brandDisplayMd: { fontSize: 32, lineHeight: 40, fontWeight: '400', fontFamily: SUI_FONTS.display },
-  brandDisplaySm: { fontSize: 24, lineHeight: 32, fontWeight: '400', fontFamily: SUI_FONTS.display },
-
-  displayLg: { fontSize: 52, lineHeight: 60, fontWeight: '700', fontFamily: SUI_FONTS.bold },
-  displayMd: { fontSize: 40, lineHeight: 48, fontWeight: '700', fontFamily: SUI_FONTS.bold },
-  displaySm: { fontSize: 32, lineHeight: 40, fontWeight: '700', fontFamily: SUI_FONTS.bold },
-
-  headlineLg: { fontSize: 30, lineHeight: 38, fontWeight: '700', fontFamily: SUI_FONTS.bold },
-  headlineMd: { fontSize: 26, lineHeight: 34, fontWeight: '700', fontFamily: SUI_FONTS.bold },
-  headlineSm: { fontSize: 22, lineHeight: 30, fontWeight: '700', fontFamily: SUI_FONTS.bold },
-
-  titleLg: { fontSize: 20, lineHeight: 28, fontWeight: '700', fontFamily: SUI_FONTS.bold },
-  titleMd: { fontSize: 16, lineHeight: 24, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.1 },
-  titleSm: { fontSize: 14, lineHeight: 20, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.1 },
-
-  bodyLg: { fontSize: 16, lineHeight: 24, fontWeight: '400', fontFamily: SUI_FONTS.regular },
-  bodyMd: { fontSize: 14, lineHeight: 20, fontWeight: '400', fontFamily: SUI_FONTS.regular },
-  bodySm: { fontSize: 12, lineHeight: 16, fontWeight: '400', fontFamily: SUI_FONTS.regular },
-
-  labelLg: { fontSize: 14, lineHeight: 20, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.1 },
-  labelMd: { fontSize: 12, lineHeight: 16, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.5 },
-  labelSm: { fontSize: 11, lineHeight: 16, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.5 },
-};
-
 // ──────────────────────────────────────────────────────────────────────────
 // MD3 · MOTION (easing curves + durations)
 // ──────────────────────────────────────────────────────────────────────────
@@ -421,30 +403,6 @@ export const SCREEN_CONTENT_BOTTOM_PADDING = SPACING.xl + SPACING.lg;
 
 import { useSettingsStore } from '@/shared/preferences/useSettingsStore';
 
-export const FONT_SCALE_MAP: Record<string, number> = {
-  small: 0.88,
-  medium: 1.0,
-  large: 1.15,
-};
-
-const scaleTypography = (
-  typeTokens: Record<string, TypeStyle>,
-  scale: number,
-): Record<string, TypeStyle> => {
-  if (scale === 1.0) return typeTokens;
-  const result: Record<string, TypeStyle> = {};
-  for (const key in typeTokens) {
-    const s = typeTokens[key];
-    if (!s) continue;
-    result[key] = {
-      ...s,
-      fontSize: Math.round(s.fontSize * scale),
-      lineHeight: Math.round(s.lineHeight * scale),
-    };
-  }
-  return result;
-};
-
 // ──────────────────────────────────────────────────────────────────────────
 // THEME OBJECT (light/dark)
 // ──────────────────────────────────────────────────────────────────────────
@@ -452,7 +410,7 @@ export type AppTheme = {
   colors: ColorScheme;
   elevation: Record<string, Elevation>;
   radius: typeof MD3_RADIUS;
-  type: Record<string, TypeStyle>;
+  type: TypographyScale;
   motion: typeof MD3_MOTION;
   stateLayer: typeof MD3_STATE_LAYER;
   spacing: typeof SPACING;

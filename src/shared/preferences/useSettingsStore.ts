@@ -7,7 +7,7 @@ export type FontSize = 'small' | 'medium' | 'large';
 export interface SettingsState {
   /** Notificaciones push habilitadas (UI stub — la lógica real se integra después) */
   notificationsEnabled: boolean;
-  /** Tamaño de fuente (UI stub — el escalado global se implementa después) */
+  /** Tamaño de fuente aplicado a la escala tipográfica global */
   fontSize: FontSize;
   /** Idioma (UI stub — internacionalización futura) */
   language: string;

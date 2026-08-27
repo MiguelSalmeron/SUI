@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 
 type Props = {
   /** Número de items completados hoy (metas + hábitos). */
@@ -16,8 +16,9 @@ type Props = {
  * porcentaje de cumplimiento (al marcar/desmarcar una meta o hábito).
  */
 export const DailyProgress = ({ completed, total, label }: Props) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
   const anim = useRef(new Animated.Value(0)).current;
 
@@ -57,7 +58,7 @@ export const DailyProgress = ({ completed, total, label }: Props) => {
   );
 };
 
-const createStyles = (colors: ColorScheme) => StyleSheet.create({
+const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
     card: {
       backgroundColor: colors.surfaceContainer,
       borderRadius: 16,
@@ -73,15 +74,11 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   title: {
-    fontSize: 15,
-    fontWeight: '800',
-    fontFamily: 'Poppins-Bold',
+    ...type.titleMd,
     color: colors.onSurface,
   },
   percent: {
-    fontSize: 18,
-    fontWeight: '900',
-    fontFamily: 'Poppins-Bold',
+    ...type.titleLg,
     color: colors.primary,
   },
   track: {
@@ -96,10 +93,8 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     backgroundColor: colors.success,
   },
   message: {
+    ...type.labelMd,
     marginTop: SPACING.sm,
-    fontSize: 13,
     color: colors.onSurfaceVariant,
-    fontWeight: '600',
-    fontFamily: 'Poppins-SemiBold',
   },
 });
