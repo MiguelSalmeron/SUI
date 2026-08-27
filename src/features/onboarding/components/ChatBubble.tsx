@@ -101,6 +101,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   },
   text: {
     fontSize: 15,
+    fontFamily: 'Poppins-Regular',
     lineHeight: 21,
   },
   textBot: {

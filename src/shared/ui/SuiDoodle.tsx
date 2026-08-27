@@ -27,7 +27,6 @@ export const SuiDoodle = ({ variant, size = 88, color }: Props) => {
       height={size * 0.72}
       viewBox="0 0 120 86"
       accessible={false}
-      importantForAccessibility="no"
     >
       {variant === 'sprout' ? (
         <>

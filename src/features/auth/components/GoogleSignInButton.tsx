@@ -71,6 +71,7 @@ const buttonStyles = (colors: ColorScheme) =>
     label: {
       color: colors.onSurface,
       fontWeight: '700',
+      fontFamily: 'Poppins-Bold',
       fontSize: 15,
     },
   });

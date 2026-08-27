@@ -3,6 +3,7 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { SUI_FONTS } from '@/shared/theme/brand';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
 
 export const CelebrationToast = () => {
@@ -52,7 +53,7 @@ export const CelebrationToast = () => {
     >
       <View style={styles.card}>
         <View style={styles.iconWrap}>
-          <Ionicons name="sparkles" size={22} color={colors.onSecondary} />
+          <Ionicons name="sparkles" size={22} color={colors.flame} />
         </View>
         <View style={styles.textCol}>
           <Text style={styles.title}>{title}</Text>
@@ -76,7 +77,7 @@ const createStyles = (colors: ColorScheme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: SPACING.md,
-      backgroundColor: colors.primary,
+      backgroundColor: colors.flame,
       borderRadius: 16,
       padding: SPACING.md,
       shadowColor: '#000000',
@@ -88,7 +89,7 @@ const createStyles = (colors: ColorScheme) =>
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: colors.secondary,
+      backgroundColor: colors.onFlame,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -96,14 +97,16 @@ const createStyles = (colors: ColorScheme) =>
       flex: 1,
     },
     title: {
-      color: colors.onPrimary,
+      color: colors.onFlame,
       fontSize: 16,
-      fontWeight: '900',
+      fontWeight: '400',
+      fontFamily: SUI_FONTS.display,
     },
     subtitle: {
-      color: colors.onPrimary,
+      color: colors.onFlame,
       fontSize: 13,
       fontWeight: '700',
+      fontFamily: 'Poppins-Bold',
       opacity: 0.9,
       marginTop: 2,
     },

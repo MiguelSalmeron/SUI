@@ -144,10 +144,12 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '900',
+    fontFamily: 'Poppins-Bold',
     color: colors.onSurface,
   },
   subtitle: {
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
     color: colors.onSurfaceVariant,
     marginTop: 2,
     marginBottom: SPACING.md,
@@ -170,6 +172,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   },
   reportText: {
     fontSize: 16,
+    fontFamily: 'Poppins-Regular',
     lineHeight: 24,
     color: colors.onSurface,
   },
@@ -183,6 +186,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   closeButtonText: {
     color: colors.onPrimary,
     fontWeight: '800',
+    fontFamily: 'Poppins-Bold',
     fontSize: 16,
   },
 });

@@ -49,7 +49,6 @@ export const SuiMark = ({
       accessible={accessible}
       accessibilityRole={accessible ? 'image' : undefined}
       accessibilityLabel={accessible ? accessibilityLabel : undefined}
-      importantForAccessibility={accessible ? 'auto' : 'no'}
     />
   );
 };

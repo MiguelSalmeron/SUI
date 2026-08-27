@@ -78,6 +78,7 @@ const createStyles = (colors: ColorScheme) =>
     title: {
       fontSize: 15,
       fontWeight: '800',
+      fontFamily: 'Poppins-Bold',
       color: colors.onSurface,
       marginBottom: SPACING.md,
     },
@@ -108,6 +109,7 @@ const createStyles = (colors: ColorScheme) =>
     dayLabel: {
       fontSize: 11,
       fontWeight: '700',
+      fontFamily: 'Poppins-Bold',
       color: colors.onSurfaceVariant,
       marginTop: 6,
     },
@@ -118,6 +120,7 @@ const createStyles = (colors: ColorScheme) =>
     rateLabel: {
       fontSize: 9,
       fontWeight: '700',
+      fontFamily: 'Poppins-Bold',
       color: colors.onSurfaceVariant,
       marginTop: 2,
     },

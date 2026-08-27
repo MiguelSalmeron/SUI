@@ -20,7 +20,7 @@ export const ChatMessage = React.memo(({ message }: Props) => {
   return (
     <View style={styles.container}>
       <Text style={[styles.author, isUser ? styles.authorUser : styles.authorBot]}>
-        {isUser ? 'Tú' : 'SUI'}
+        {isUser ? 'Tú' : 'Sui'}
       </Text>
 
       {showThinking ? (
@@ -45,8 +45,8 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   author: {
     fontSize: 12,
     fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    fontFamily: 'Poppins-Bold',
+    letterSpacing: 0.4,
     marginBottom: SPACING.xs,
   },
   authorUser: {
@@ -57,6 +57,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   },
   text: {
     fontSize: 16,
+    fontFamily: 'Poppins-Regular',
     lineHeight: 24,
   },
   textUser: {
@@ -79,5 +80,6 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     color: colors.error,
     fontSize: 13,
     fontWeight: '700',
+    fontFamily: 'Poppins-Bold',
   },
 });

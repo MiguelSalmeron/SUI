@@ -446,7 +446,9 @@ export const OnboardingScreen = () => {
       <View style={[styles.header, { paddingTop: insets.top + SPACING.sm }]}> 
         <View style={styles.headerBrand}>
           <SuiMark variant="isologo" size={34} accessible />
-          <Text style={styles.headerTitle}>Cultiva tu vida</Text>
+          {step === 'welcome' ? (
+            <Text style={styles.headerTitle}>Cultiva tu vida</Text>
+          ) : null}
         </View>
         <Text style={styles.headerSubtitle}>Configuremos tu espacio preventivo</Text>
       </View>
@@ -495,6 +497,7 @@ const createStyles = (colors: ColorScheme) =>
     },
     headerSubtitle: {
       fontSize: 13,
+      fontFamily: 'Poppins-Regular',
       color: colors.onSurfaceVariant,
       marginTop: 2,
     },
@@ -527,12 +530,14 @@ const createStyles = (colors: ColorScheme) =>
     primaryButtonText: {
       color: colors.onPrimary,
       fontWeight: '800',
+      fontFamily: 'Poppins-Bold',
       fontSize: 16,
     },
     googleErrorText: {
       color: colors.error,
       fontSize: 13,
       fontWeight: '600',
+      fontFamily: 'Poppins-SemiBold',
       textAlign: 'center',
       marginTop: SPACING.xs,
     },
@@ -554,12 +559,14 @@ const createStyles = (colors: ColorScheme) =>
     chipText: {
       color: colors.primary,
       fontWeight: '700',
+      fontFamily: 'Poppins-Bold',
       fontSize: 15,
     },
     chipSubText: {
       color: colors.onSurfaceVariant,
       fontSize: 12,
       fontWeight: '500',
+      fontFamily: 'Poppins-Medium',
       marginTop: 1,
     },
     popularCareersGrid: {
@@ -583,6 +590,7 @@ const createStyles = (colors: ColorScheme) =>
       color: colors.onSurface,
       fontSize: 13,
       fontWeight: '700',
+      fontFamily: 'Poppins-Bold',
     },
     otherCareerBtn: {
       flexDirection: 'row',
@@ -595,6 +603,7 @@ const createStyles = (colors: ColorScheme) =>
       color: colors.onSurfaceVariant,
       fontSize: 13,
       fontWeight: '600',
+      fontFamily: 'Poppins-SemiBold',
       textDecorationLine: 'underline',
     },
     goalsGrid: {
@@ -624,6 +633,7 @@ const createStyles = (colors: ColorScheme) =>
     goalLabel: {
       color: colors.onSurface,
       fontWeight: '600',
+      fontFamily: 'Poppins-SemiBold',
       fontSize: 14,
     },
     goalLabelSelected: {
@@ -633,6 +643,7 @@ const createStyles = (colors: ColorScheme) =>
       color: colors.onSurfaceVariant,
       fontSize: 13,
       fontWeight: '600',
+      fontFamily: 'Poppins-SemiBold',
       marginBottom: SPACING.sm,
     },
     loadingScreen: {
@@ -670,6 +681,7 @@ const createStyles = (colors: ColorScheme) =>
       fontSize: 14,
       color: colors.primary,
       fontWeight: '700',
+      fontFamily: 'Poppins-Bold',
       marginBottom: SPACING.lg,
     },
     progressTrack: {

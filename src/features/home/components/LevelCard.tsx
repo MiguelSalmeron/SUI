@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { SUI_FONTS } from '@/shared/theme/brand';
 import { calculateLevel } from '@/shared/domain/productivity/gamification';
 
 type Props = {
@@ -74,6 +75,7 @@ const createStyles = (colors: ColorScheme) =>
     levelNumber: {
       fontSize: 20,
       fontWeight: '700',
+      fontFamily: 'Poppins-Bold',
       color: colors.primary,
     },
     textCol: {
@@ -81,12 +83,14 @@ const createStyles = (colors: ColorScheme) =>
     },
     title: {
       fontSize: 17,
-      fontWeight: '700',
+      fontWeight: '400',
+      fontFamily: SUI_FONTS.display,
       color: colors.onSurface,
     },
     subtitle: {
       fontSize: 12,
       fontWeight: '600',
+      fontFamily: 'Poppins-SemiBold',
       color: colors.onSurfaceVariant,
       opacity: 0.8,
       marginTop: 2,
@@ -94,6 +98,7 @@ const createStyles = (colors: ColorScheme) =>
     xpTotal: {
       fontSize: 14,
       fontWeight: '700',
+      fontFamily: 'Poppins-Bold',
       color: colors.primary,
     },
     track: {

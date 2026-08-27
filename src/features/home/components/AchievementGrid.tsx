@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { SUI_FONTS } from '@/shared/theme/brand';
 import type { Achievement } from '@/shared/domain/productivity/gamification';
 
 type Props = {
@@ -89,6 +90,7 @@ const createStyles = (colors: ColorScheme, compact: boolean) =>
     sectionTitle: {
       fontSize: 15,
       fontWeight: '800',
+      fontFamily: 'Poppins-Bold',
       color: colors.onSurface,
       marginBottom: SPACING.sm,
     },
@@ -128,7 +130,8 @@ const createStyles = (colors: ColorScheme, compact: boolean) =>
     },
     badgeTitle: {
       fontSize: 13,
-      fontWeight: '800',
+      fontWeight: '400',
+      fontFamily: SUI_FONTS.display,
       color: colors.onSurface,
     },
     badgeTitleLocked: {
@@ -136,6 +139,7 @@ const createStyles = (colors: ColorScheme, compact: boolean) =>
     },
     badgeDesc: {
       fontSize: 11,
+      fontFamily: 'Poppins-Regular',
       color: colors.onSurfaceVariant,
       marginTop: 2,
       lineHeight: 15,
@@ -145,6 +149,7 @@ const createStyles = (colors: ColorScheme, compact: boolean) =>
       color: colors.onSurfaceVariant,
       marginTop: SPACING.sm,
       fontWeight: '600',
+      fontFamily: 'Poppins-SemiBold',
     },
     horizontal: {
       gap: SPACING.sm,
@@ -171,7 +176,8 @@ const createStyles = (colors: ColorScheme, compact: boolean) =>
     },
     compactTitle: {
       fontSize: 11,
-      fontWeight: '800',
+      fontWeight: '400',
+      fontFamily: SUI_FONTS.display,
       color: colors.onPrimaryContainer,
       textAlign: 'center',
     },

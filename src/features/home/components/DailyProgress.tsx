@@ -75,11 +75,13 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '800',
+    fontFamily: 'Poppins-Bold',
     color: colors.onSurface,
   },
   percent: {
     fontSize: 18,
     fontWeight: '900',
+    fontFamily: 'Poppins-Bold',
     color: colors.primary,
   },
   track: {
@@ -98,5 +100,6 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     fontSize: 13,
     color: colors.onSurfaceVariant,
     fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
   },
 });

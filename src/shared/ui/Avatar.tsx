@@ -78,6 +78,7 @@ const createStyles = (
     initial: {
       fontSize: font,
       fontWeight: '800',
+      fontFamily: 'Poppins-Bold',
       color: variant === 'primary' ? colors.onPrimary : colors.onSurface,
     },
   });

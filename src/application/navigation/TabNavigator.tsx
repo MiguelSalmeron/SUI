@@ -380,6 +380,7 @@ const tabBarStyles = (colors: ColorScheme) =>
       fontSize: 10,
       lineHeight: 14,
       fontWeight: '600',
+      fontFamily: 'Poppins-SemiBold',
     },
     assistantSlot: {
       flex: 1,
@@ -408,6 +409,7 @@ const tabBarStyles = (colors: ColorScheme) =>
       fontSize: 10,
       lineHeight: 14,
       fontWeight: '700',
+      fontFamily: 'Poppins-Bold',
       color: colors.primary,
       marginTop: 1,
     },

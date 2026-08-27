@@ -3,9 +3,9 @@ import {
   View,
   TextInput,
   TouchableOpacity,
-  Text,
   StyleSheet,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { ColorScheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { MAX_INPUT_CHARS } from '../types/chat';
 
@@ -53,7 +53,11 @@ export const ChatInput = ({ busy, onSend }: Props) => {
         accessibilityLabel="Enviar mensaje"
         accessibilityState={{ disabled }}
       >
-        <Text style={styles.sendText}>↑</Text>
+        <Ionicons
+          name="arrow-up"
+          size={22}
+          color={disabled ? colors.onSurfaceVariant : colors.onPrimary}
+        />
       </TouchableOpacity>
     </View>
   );
@@ -80,6 +84,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     paddingVertical: SPACING.sm + 2,
     paddingHorizontal: SPACING.md,
     fontSize: 16,
+    fontFamily: 'Poppins-Regular',
     color: colors.onSurface,
   },
   sendButton: {
@@ -92,11 +97,5 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: colors.surfaceContainerHighest,
-  },
-  sendText: {
-    color: colors.onPrimary,
-    fontSize: 22,
-    fontWeight: '900',
-    lineHeight: 24,
   },
 });

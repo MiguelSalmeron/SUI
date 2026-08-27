@@ -99,6 +99,7 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.md,
     fontSize: 16,
+    fontFamily: 'Poppins-Regular',
     color: colors.onSurface,
   },
   inputError: {
@@ -115,12 +116,14 @@ const createStyles = (colors: ColorScheme) => StyleSheet.create({
   sendText: {
     color: colors.onPrimary,
     fontWeight: '800',
+    fontFamily: 'Poppins-Bold',
     fontSize: 15,
   },
   errorText: {
     color: colors.error,
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     marginLeft: SPACING.xs,
   },
 });
