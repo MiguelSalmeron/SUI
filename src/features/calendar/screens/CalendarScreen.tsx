@@ -13,6 +13,7 @@ import {
   useAppTheme,
 } from '@/shared/theme/theme';
 import { ScreenIntro } from '@/shared/ui/ScreenIntro';
+import { SuiDoodle } from '@/shared/ui/SuiDoodle';
 import { PromptModal } from '@/shared/ui/PromptModal';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { isHabitDueToday, localDateKey } from '@/shared/domain/productivity/homeStorage';
@@ -303,7 +304,7 @@ export const CalendarScreen = () => {
       <View style={styles.dayList}>
         {totalForSelectedDay === 0 ? (
           <View style={styles.emptyDay}>
-            <Ionicons name="calendar-clear-outline" size={24} color={colors.secondary} />
+            <SuiDoodle variant="calendar" size={58} color={colors.secondary} />
             <Text style={styles.emptyText}>Este día está libre.</Text>
           </View>
         ) : (

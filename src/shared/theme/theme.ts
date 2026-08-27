@@ -26,6 +26,7 @@ import React, {
 } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SUI_BRAND, SUI_FONTS } from './brand';
 
 // ──────────────────────────────────────────────────────────────────────────
 // THEME MODE STORE (mini-store local, persistido en AsyncStorage)
@@ -139,37 +140,37 @@ export type ColorScheme = {
 // MD3 · COLOR (light scheme)
 // ──────────────────────────────────────────────────────────────────────────
 export const MD3_LIGHT: ColorScheme = {
-  // Azul pizarra: sereno y con suficiente presencia para acciones rápidas.
-  primary: '#355F78',
+  // Azul de acción oscurecido: conserva la marca y alcanza AA con blanco.
+  primary: SUI_BRAND.actionBlue,
   onPrimary: '#FFFFFF',
-  primaryContainer: '#DCEAF1',
-  onPrimaryContainer: '#132F3E',
+  primaryContainer: '#D9EEF8',
+  onPrimaryContainer: '#0B344A',
 
   // Verde salvia: acompañamiento, progreso sostenido y estados positivos.
-  secondary: '#55796F',
+  secondary: SUI_BRAND.sage,
   onSecondary: '#FFFFFF',
   secondaryContainer: '#DCEBE5',
   onSecondaryContainer: '#17352E',
 
-  tertiary: '#746B83',
+  tertiary: '#596B86',
   onTertiary: '#FFFFFF',
-  tertiaryContainer: '#ECE5F1',
-  onTertiaryContainer: '#332B3D',
+  tertiaryContainer: '#E2EAF5',
+  onTertiaryContainer: '#1C2A40',
 
-  background: '#F5F7F5',
-  onBackground: '#202522',
-  surface: '#FDFEFC',
-  onSurface: '#202522',
-  surfaceVariant: '#E1E7E3',
-  onSurfaceVariant: '#59635E',
-  surfaceContainer: '#EEF2EF',
-  surfaceContainerHigh: '#E7ECE8',
-  surfaceContainerHighest: '#DFE6E1',
-  surfaceContainerLow: '#F4F7F5',
+  background: '#F6FAFC',
+  onBackground: SUI_BRAND.navy,
+  surface: '#FFFFFF',
+  onSurface: SUI_BRAND.navy,
+  surfaceVariant: '#E3EDF2',
+  onSurfaceVariant: '#516473',
+  surfaceContainer: '#EEF5F8',
+  surfaceContainerHigh: '#E6F0F4',
+  surfaceContainerHighest: '#DCE9EF',
+  surfaceContainerLow: '#F5F9FB',
   surfaceContainerLowest: '#FFFFFF',
 
-  outline: '#76817B',
-  outlineVariant: '#D3DBD6',
+  outline: '#607786',
+  outlineVariant: '#CAD9E0',
 
   error: '#BA1A1A',
   onError: '#FFFFFF',
@@ -181,15 +182,15 @@ export const MD3_LIGHT: ColorScheme = {
   onSuccessContainer: '#07250B',
 
   // Único acento energético; reservar para rachas y celebraciones.
-  flame: '#E87536',
-  onFlame: '#FFFFFF',
+  flame: SUI_BRAND.flame,
+  onFlame: SUI_BRAND.navy,
   flameContainer: '#FCE9DC',
   onFlameContainer: '#4A250F',
   flameOutline: '#F2C8AC',
 
-  inverseSurface: '#2F3033',
-  inverseOnSurface: '#F1F0F4',
-  inversePrimary: '#A8CADC',
+  inverseSurface: SUI_BRAND.navy,
+  inverseOnSurface: '#F5F8FA',
+  inversePrimary: '#62C4F2',
 
   scrim: 'rgba(0, 0, 0, 0.32)',
 };
@@ -198,35 +199,35 @@ export const MD3_LIGHT: ColorScheme = {
 // MD3 · COLOR (dark scheme)
 // ──────────────────────────────────────────────────────────────────────────
 export const MD3_DARK: ColorScheme = {
-  primary: '#A8CADC',
-  onPrimary: '#143445',
-  primaryContainer: '#294F64',
-  onPrimaryContainer: '#DCEAF1',
+  primary: '#62C4F2',
+  onPrimary: '#06283A',
+  primaryContainer: '#174D69',
+  onPrimaryContainer: '#D9EEF8',
 
   secondary: '#AACDC1',
   onSecondary: '#193B32',
   secondaryContainer: '#365A50',
   onSecondaryContainer: '#DCEBE5',
 
-  tertiary: '#D0C3D9',
-  onTertiary: '#3B3145',
-  tertiaryContainer: '#52475E',
-  onTertiaryContainer: '#ECE5F1',
+  tertiary: '#BDC9E5',
+  onTertiary: '#24324A',
+  tertiaryContainer: '#3A4966',
+  onTertiaryContainer: '#E2EAF5',
 
-  background: '#111613',
-  onBackground: '#E2E8E4',
-  surface: '#181E1A',
-  onSurface: '#E2E8E4',
-  surfaceVariant: '#414944',
-  onSurfaceVariant: '#BDC7C1',
-  surfaceContainer: '#1E2521',
-  surfaceContainerHigh: '#28302B',
-  surfaceContainerHighest: '#323B35',
-  surfaceContainerLow: '#191F1B',
-  surfaceContainerLowest: '#0F1411',
+  background: SUI_BRAND.navy,
+  onBackground: '#F5F8FA',
+  surface: '#111C32',
+  onSurface: '#F5F8FA',
+  surfaceVariant: '#2B3A55',
+  onSurfaceVariant: '#C1CED8',
+  surfaceContainer: '#16233D',
+  surfaceContainerHigh: '#1C2C49',
+  surfaceContainerHighest: '#243654',
+  surfaceContainerLow: '#101A2F',
+  surfaceContainerLowest: '#081023',
 
-  outline: '#88948D',
-  outlineVariant: '#414944',
+  outline: '#91A6B5',
+  outlineVariant: '#344861',
 
   error: '#FFB4AB',
   onError: '#690005',
@@ -237,15 +238,15 @@ export const MD3_DARK: ColorScheme = {
   successContainer: '#1F5124',
   onSuccessContainer: '#CFE9D2',
 
-  flame: '#FFB385',
-  onFlame: '#3A1A00',
+  flame: '#FFB078',
+  onFlame: SUI_BRAND.navy,
   flameContainer: '#4A2D1A',
   onFlameContainer: '#FFE0C7',
   flameOutline: '#6B4325',
 
   inverseSurface: '#E3E3E9',
   inverseOnSurface: '#2F3033',
-  inversePrimary: '#355F78',
+  inversePrimary: SUI_BRAND.actionBlue,
 
   scrim: 'rgba(0, 0, 0, 0.55)',
 };
@@ -330,29 +331,34 @@ export type TypeStyle = {
   fontSize: number;
   lineHeight: number;
   fontWeight: '400' | '500' | '600' | '700' | '800' | '900';
+  fontFamily: string;
   letterSpacing?: number;
 };
 
 export const MD3_TYPE: Record<string, TypeStyle> = {
-  displayLg: { fontSize: 52, lineHeight: 60, fontWeight: '800' },
-  displayMd: { fontSize: 40, lineHeight: 48, fontWeight: '800' },
-  displaySm: { fontSize: 32, lineHeight: 40, fontWeight: '800' },
+  brandDisplayLg: { fontSize: 42, lineHeight: 50, fontWeight: '400', fontFamily: SUI_FONTS.display },
+  brandDisplayMd: { fontSize: 32, lineHeight: 40, fontWeight: '400', fontFamily: SUI_FONTS.display },
+  brandDisplaySm: { fontSize: 24, lineHeight: 32, fontWeight: '400', fontFamily: SUI_FONTS.display },
 
-  headlineLg: { fontSize: 30, lineHeight: 38, fontWeight: '700' },
-  headlineMd: { fontSize: 26, lineHeight: 34, fontWeight: '700' },
-  headlineSm: { fontSize: 22, lineHeight: 30, fontWeight: '700' },
+  displayLg: { fontSize: 52, lineHeight: 60, fontWeight: '700', fontFamily: SUI_FONTS.bold },
+  displayMd: { fontSize: 40, lineHeight: 48, fontWeight: '700', fontFamily: SUI_FONTS.bold },
+  displaySm: { fontSize: 32, lineHeight: 40, fontWeight: '700', fontFamily: SUI_FONTS.bold },
 
-  titleLg: { fontSize: 20, lineHeight: 28, fontWeight: '700' },
-  titleMd: { fontSize: 16, lineHeight: 24, fontWeight: '600', letterSpacing: 0.1 },
-  titleSm: { fontSize: 14, lineHeight: 20, fontWeight: '600', letterSpacing: 0.1 },
+  headlineLg: { fontSize: 30, lineHeight: 38, fontWeight: '700', fontFamily: SUI_FONTS.bold },
+  headlineMd: { fontSize: 26, lineHeight: 34, fontWeight: '700', fontFamily: SUI_FONTS.bold },
+  headlineSm: { fontSize: 22, lineHeight: 30, fontWeight: '700', fontFamily: SUI_FONTS.bold },
 
-  bodyLg: { fontSize: 16, lineHeight: 24, fontWeight: '400' },
-  bodyMd: { fontSize: 14, lineHeight: 20, fontWeight: '400' },
-  bodySm: { fontSize: 12, lineHeight: 16, fontWeight: '400' },
+  titleLg: { fontSize: 20, lineHeight: 28, fontWeight: '700', fontFamily: SUI_FONTS.bold },
+  titleMd: { fontSize: 16, lineHeight: 24, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.1 },
+  titleSm: { fontSize: 14, lineHeight: 20, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.1 },
 
-  labelLg: { fontSize: 14, lineHeight: 20, fontWeight: '700', letterSpacing: 0.1 },
-  labelMd: { fontSize: 12, lineHeight: 16, fontWeight: '700', letterSpacing: 0.5 },
-  labelSm: { fontSize: 11, lineHeight: 16, fontWeight: '700', letterSpacing: 0.5 },
+  bodyLg: { fontSize: 16, lineHeight: 24, fontWeight: '400', fontFamily: SUI_FONTS.regular },
+  bodyMd: { fontSize: 14, lineHeight: 20, fontWeight: '400', fontFamily: SUI_FONTS.regular },
+  bodySm: { fontSize: 12, lineHeight: 16, fontWeight: '400', fontFamily: SUI_FONTS.regular },
+
+  labelLg: { fontSize: 14, lineHeight: 20, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.1 },
+  labelMd: { fontSize: 12, lineHeight: 16, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.5 },
+  labelSm: { fontSize: 11, lineHeight: 16, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.5 },
 };
 
 // ──────────────────────────────────────────────────────────────────────────

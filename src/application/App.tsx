@@ -96,6 +96,11 @@ export default function App() {
   // → @expo/vector-icons deja <Text /> vacío (badge sí, icono no).
   const [fontsLoaded, fontError] = useFonts({
     ionicons: require('../../assets/fonts/Ionicons.ttf'),
+    'Poppins-Regular': require('../../assets/fonts/Poppins-Regular.ttf'),
+    'Poppins-Medium': require('../../assets/fonts/Poppins-Medium.ttf'),
+    'Poppins-SemiBold': require('../../assets/fonts/Poppins-SemiBold.ttf'),
+    'Poppins-Bold': require('../../assets/fonts/Poppins-Bold.ttf'),
+    'FredokaOne-Regular': require('../../assets/fonts/FredokaOne-Regular.ttf'),
   });
 
   if (!fontsLoaded && !fontError) {

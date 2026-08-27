@@ -27,6 +27,7 @@ import {
 } from '@/shared/domain/productivity/homeStorage';
 import { useOnboardingStore } from '@/features/onboarding/store/useOnboardingStore';
 import { Avatar } from '@/shared/ui/Avatar';
+import { SuiMark } from '@/shared/ui/SuiMark';
 import type {
   MainTabParamList,
   RootStackNavigationProp,
@@ -61,7 +62,7 @@ export const TabHeader = React.memo(
     return (
       <View style={[styles.headerShell, { paddingTop: topInset + SPACING.sm }]}>
         <View style={styles.headerContent}>
-          <Text style={styles.brand}>SUI</Text>
+          <SuiMark variant="isologo" size={28} accessible />
           <TouchableOpacity
             style={styles.avatarButton}
             onPress={onSettings}
@@ -99,18 +100,14 @@ export const MainTabBar = ({
       onPress={onAssistant}
       activeOpacity={0.82}
       accessibilityRole="button"
-      accessibilityLabel="Hablar con SUI"
+      accessibilityLabel="Hablar con Sui"
       accessibilityHint="Abre el chat de acompañamiento"
       testID="assistant-tab-button"
     >
       <View style={styles.assistantButton}>
-        <Ionicons
-          name="chatbubble-ellipses"
-          size={22}
-          color={colors.onPrimary}
-        />
+        <SuiMark variant="isotype" tone="inverse" size={25} />
       </View>
-      <Text style={styles.assistantLabel}>SUI</Text>
+      <Text style={styles.assistantLabel}>Sui</Text>
     </TouchableOpacity>
   );
 
@@ -335,12 +332,6 @@ const headerStyles = (colors: ColorScheme) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-    },
-    brand: {
-      fontSize: 19,
-      fontWeight: '700',
-      letterSpacing: 0.5,
-      color: colors.onSurface,
     },
     avatarButton: {
       minWidth: 44,

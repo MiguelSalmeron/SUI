@@ -14,6 +14,7 @@ import {
   useAppTheme,
 } from '@/shared/theme/theme';
 import { ScreenIntro } from '@/shared/ui/ScreenIntro';
+import { SuiDoodle } from '@/shared/ui/SuiDoodle';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
 import { isHabitDueToday, localDateKey } from '@/shared/domain/productivity/homeStorage';
@@ -144,9 +145,7 @@ export const HabitsScreen = () => {
 
       {visibleHabits.length === 0 ? (
         <View style={styles.emptyCard}>
-          <View style={styles.emptyIcon}>
-            <Ionicons name="repeat-outline" size={28} color={colors.secondary} />
-          </View>
+          <SuiDoodle variant="rhythm" size={76} color={colors.secondary} />
           <Text style={styles.emptyTitle}>
             {filter === 'today' ? 'No hay hábitos para hoy' : 'Aún no tienes hábitos'}
           </Text>
