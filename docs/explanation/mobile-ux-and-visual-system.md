@@ -18,8 +18,9 @@ La dirección visual se resume en tres principios:
 
 ## Arquitectura de información
 
-La navegación inferior conserva cinco destinos. Metas y Hábitos permanecen
-separados porque representan modelos distintos, aunque puedan relacionarse.
+La navegación inferior prioriza cuatro destinos operativos. Metas y Hábitos
+permanecen separados porque representan modelos distintos, aunque puedan
+relacionarse.
 
 | Pestaña | Pregunta que responde | Responsabilidad |
 | --- | --- | --- |
@@ -27,10 +28,15 @@ separados porque representan modelos distintos, aunque puedan relacionarse.
 | Metas | ¿Qué quiero terminar? | Resultados finitos, fechas, progreso e hitos |
 | Hábitos | ¿Qué quiero repetir? | Frecuencia, cumplimiento diario, racha y vínculos |
 | Agenda | ¿Cuándo ocurre? | Calendario mensual y actividades por fecha |
-| Progreso | ¿Cómo me ha ido? | Semana, XP, constancia, métricas y logros |
 
-El botón flotante de SUI abre el acompañamiento conversacional sin ocupar una
-pestaña adicional.
+La acción central **SUI** se inserta entre Metas y Hábitos. Abre el Chat como
+pantalla completa del stack y no cambia la pestaña seleccionada. **Progreso**
+es una pantalla secundaria: se abre desde la tarjeta «Progreso del día» de
+Inicio y Back regresa al mismo contexto.
+
+El encabezado global se limita a la marca SUI y el avatar. El avatar abre
+Ajustes, donde la sección Cuenta informa si los datos están «En la nube»,
+«Pendientes de sincronizar» o permanecen como «Datos locales».
 
 ### Relación entre metas y hábitos
 
@@ -49,7 +55,7 @@ orden visual es:
 
 1. fecha y mensaje breve;
 2. próxima actividad;
-3. progreso del día, racha y XP;
+3. progreso del día, racha y XP, con acceso al detalle de Progreso;
 4. agenda cronológica.
 
 Los eventos pasados de Google Calendar no se presentan como la próxima
@@ -99,8 +105,9 @@ calendario fuera del primer viewport.
 ### Progreso
 
 Progreso concentra nivel, XP, insight semanal, gráfica, métricas y logros. No
-incluye acciones de planificación. Las superficies sustituyen los grandes
-bloques saturados para mantener la lectura tranquila.
+incluye acciones de planificación ni ocupa una pestaña inferior. Las
+superficies sustituyen los grandes bloques saturados para mantener la lectura
+tranquila.
 
 ## Sistema visual
 
@@ -150,7 +157,11 @@ src/features/habits/components/HabitFormModal.tsx
 ## Reglas de interacción móvil
 
 - Objetivos táctiles principales de al menos 40–44 dp.
-- Etiquetas visibles en todas las pestañas inferiores.
+- Etiquetas e iconos visibles en las cuatro pestañas inferiores.
+- La acción central SUI tiene rol de botón; los destinos inferiores tienen rol
+  de pestaña y exponen su estado seleccionado.
+- El contenido usa un padding inferior compartido para no quedar oculto por la
+  barra ni por el safe area del dispositivo.
 - Acciones destructivas fuera del flujo principal y con confirmación.
 - Estados vacíos con una acción siguiente clara.
 - Una acción primaria por formulario.
