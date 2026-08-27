@@ -244,5 +244,12 @@ Siguiendo las pautas de accesibilidad para móviles de Apple e iOS/Android:
 
 ### 7. Navegación e Insets Seguros
 
-La barra inferior de `TabNavigator` usa `NAV_BAR_HEIGHT = 72` y permanece fuera del flujo de las pantallas con scroll. Incorpora:
-*   **`useSafeAreaInsets()`:** Lectura nativa de los insets del dispositivo para añadir padding inferior de forma automática en terminales con "home indicators" (iPhone modernos) sin romper la consistencia visual en pantallas tradicionales de Android.
+La barra personalizada de `TabNavigator` usa `NAV_BAR_HEIGHT = 72` y expone
+cuatro rutas reales: `Overview`, `Goals`, `Habits` y `Calendar`. La acción SUI
+se inserta visualmente entre Metas y Hábitos, pero navega a `Chat` en el stack
+raíz para conservar seleccionada la pestaña anterior.
+
+*   **`useSafeAreaInsets()`:** añade padding inferior en dispositivos con home indicator sin alterar Android.
+*   **`SCREEN_CONTENT_BOTTOM_PADDING`:** reserva de espacio compartida por las pantallas con scroll para impedir que la barra cubra el final de una lista.
+*   **`Progress`:** ruta secundaria del stack raíz, abierta desde la tarjeta de progreso de Inicio.
+*   **Accesibilidad:** los cuatro destinos usan rol `tab`, estado `selected` y etiquetas visibles; SUI y el avatar usan rol `button`.

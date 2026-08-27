@@ -85,5 +85,5 @@ Esta guía contiene el checklist para conectar y verificar la aplicación móvil
 * [ ] Abre la app en tu celular sin cables.
 * [ ] Completa el onboarding. Si pasa a la pantalla de **Inicio** sin alertas de error, el **Login Anónimo** funciona.
 * [ ] Ve a la pestaña **Hábitos**, completa uno y recarga. Si se mantiene guardado al reabrir la app, **Cloud Firestore** sincroniza bien.
-* [ ] Toca el botón flotante **"Hablar con SUI"** y envía un mensaje. Si el bot responde con empatía en pocos segundos (streaming visible), la **Cloud Function + Azure Foundry** están 100% activos.
+* [ ] Toca la acción central **SUI** de la barra inferior y envía un mensaje. Si el bot responde con empatía en pocos segundos (streaming visible), la **Cloud Function + Azure Foundry** están 100% activos.
 * [ ] Espera a las 21:30 (o abre manualmente desde *Inicio → "Resumen nocturno con IA"*). Si aparece el modal con el resumen del día en streaming, el **Resumen Nocturno** está activo.

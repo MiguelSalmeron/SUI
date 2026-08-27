@@ -87,8 +87,8 @@ La UI no espera indefinidamente a la nube. La carga remota tiene timeout y los f
 
 ## Navegación
 
-- `AppNavigator`: controla onboarding, home, chat y ajustes.
-- `TabNavigator`: compone overview, metas, hábitos, radar y resumen.
+- `AppNavigator`: controla onboarding, home, chat, progreso y ajustes.
+- `TabNavigator`: compone las cuatro rutas operativas: overview, metas, hábitos y agenda. La acción central SUI abre Chat sin formar parte del estado de tabs.
 - El gate inicial depende de la rehidratación del onboarding y del estado de Firebase Auth.
 - El splash permanece visible hasta que ambos estados estén listos o alcancen su timeout de seguridad.
 
