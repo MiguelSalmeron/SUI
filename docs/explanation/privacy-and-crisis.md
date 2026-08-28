@@ -1,67 +1,89 @@
-# Privacidad Local-First & Protocolo de Crisis 🛡️🚨
+# Privacidad local-first y protocolo de crisis
 
-La salud mental y el bienestar emocional requieren un estándar elevado de confidencialidad. Este documento explica el flujo local de datos conversacionales y el protocolo de crisis implementado en SUI.
+Sui trata conversación y productividad como datos con perfiles distintos.
+Productividad puede respaldarse bajo cuenta verificada; Chat permanece local y
+temporal.
 
----
+## Chat local
 
-## 🔒 Privacidad Local-First y Auto-limpieza (48h TTL)
+- Historial vive en AsyncStorage bajo `sui-chat-v1`.
+- TTL: 48 horas (`CHAT_TTL_MS`).
+- Rehidratación/envío ejecutan `pruneExpired`.
+- Historial nunca se escribe en Firestore.
+- Sólo ventana reciente necesaria viaja al proxy.
+- Logs y telemetría excluyen mensajes, prompts, headers, tokens y cuerpos HTTP.
 
-SUI utiliza una **política estricta de aislamiento de datos sensibles**:
-
-*   **Cero persistencia en la nube para Chat:** El historial de conversaciones **nunca** se respalda en Firebase Cloud Firestore ni en bases de datos externas. No existen tablas de chat en el servidor.
-*   **Persistencia Temporal Local:** El historial conversacional reside únicamente en el almacenamiento local del dispositivo del usuario (`AsyncStorage` en la app móvil bajo la clave `sui-chat-v1`).
-*   **Auto-limpieza Activa (TTL de 48 Horas):** El store de Zustand implementa una rutina automática de descarte (`pruneExpired`). Cada vez que la aplicación se inicia o que el usuario envía un nuevo mensaje, el sistema analiza el timestamp de cada elemento y elimina de manera definitiva cualquier mensaje cuya antigüedad sea superior a 48 horas (`CHAT_TTL_MS = 172800000`).
-
-```mermaid
-graph TD;
-    A[Enviar Mensaje / Iniciar App] --> B(Calcular marca de tiempo límite: Date.now - 48h)
-    B --> C[Filtrar mensajes: createdAt >= limite]
-    C --> D[Guardar nuevo arreglo filtrado en AsyncStorage]
-    D --> E[Eliminar definitivamente del dispositivo los mensajes antiguos]
+```text
+Abrir/enviar → calcular límite 48 h → filtrar → persistir local
 ```
 
----
+TTL reduce retención; no equivale a cifrado de extremo a extremo. Seguridad del
+almacenamiento depende también de plataforma/dispositivo.
 
-## ⚠️ Protocolo de Detección de Crisis (Intervención Local)
+## Productividad
 
-Para garantizar la seguridad física y emocional de los estudiantes en situaciones de alta criticidad (manifestación de ideaciones suicidas, autolesión u otras crisis de salud mental), la aplicación cuenta con un protocolo preventivo de doble validación:
+- Invitado: datos sólo locales.
+- Cuenta registrada/verificada: respaldo cloud opcional.
+- Cuenta password no verificada: datos permanecen locales.
+- Fusión exige elección; ninguna fuente se elimina antes de completar.
+- Logout separa caché autenticada de espacio invitado.
+- Eliminación de cuenta borra Auth, documentos/subcolecciones y conexiones.
 
-### 1. Validación Previa en el Cliente (Regex Robustas)
-Antes de despachar cualquier entrada de texto libre hacia el proxy de Azure OpenAI, el cliente móvil evalúa el mensaje de forma síncrona:
+## Detección de crisis
 
-*   **Normalización Estricta:** Se eliminan mayúsculas, acentos, diacríticos y caracteres especiales para evitar evasiones de coincidencia (ej. `"SUICIDARME"`, `"suícidarmé"` y `"s-u-i-c-i-d-a-r-m-e"` son convertidos a una base común normalizada).
-*   ** Regex de Frontera de Palabra:** Se compila dinámicamente un RegExp utilizando límites de palabra (`\b` o exclusión de letras unicode `[^\p{L}]`). Esto evita falsos positivos parciales (ej. evitar que la palabra `"matarme"` se active erróneamente con `"matarmela"` en otros contextos o modismos).
+Detección ocurre en cliente antes de abrir SSE:
 
-### 2. Diccionario Dinámico de Emergencia
-*   **Sincronización:** Al abrir Chat, cliente carga `app_config/crisis/regions/{COUNTRY}-{locale}`. Si falta, prueba `app_config/crisis`.
-*   **Resiliencia Offline:** Si el usuario no cuenta con cobertura de red o la base de datos Firestore está inactiva, la función captura el error de forma segura y carga el `DEFAULT_CRISIS_CONFIG` (diccionario local de respaldo). **El protocolo de emergencia nunca puede fallar por falta de red**.
+1. Normalizar texto: minúsculas, diacríticos y separadores.
+2. Comparar términos/frases con fronteras robustas.
+3. Si coincide, cancelar envío al modelo.
+4. Mostrar `EmergencyOverlay` con apoyo y contactos.
+5. Permitir llamada directa o cierre del overlay.
 
-```mermaid
-graph TD;
-    A[Usuario escribe mensaje] --> B{¿Coincide con palabras clave del diccionario?}
-    B -- Sí (Se detecta Crisis) --> C[Bloquear flujo de envío a la IA]
-    C --> D[Mostrar EmergencyOverlay en pantalla completa]
-    D --> E[Presentar mensaje de apoyo y botones de llamada rápida]
-    B -- No (Conversación segura) --> F[Proceder con llamada SSE al proxy del Chat de IA]
+Detección por palabras no diagnostica ni garantiza identificar toda crisis. Es
+una barrera preventiva, no servicio de emergencia.
+
+## Configuración regional
+
+Orden de carga:
+
+```text
+app_config/crisis/regions/{COUNTRY}-{locale}
+→ app_config/crisis
+→ DEFAULT_CRISIS_CONFIG empaquetado
 ```
 
----
+Fallback local mantiene interfaz disponible offline. Ningún mercado se activa
+sin validar idioma, teléfonos, disponibilidad y texto legal.
 
-## 📱 Interfaz de Emergencia (Emergency Overlay)
+Respaldo Nicaragua:
 
-El componente `EmergencyOverlay.tsx` se superpone por completo a la conversación de chat e interrumpe cualquier petición asíncrona en curso. Sus especificaciones de diseño son:
+- Policía Nacional: `118`.
+- Bomberos: `115`.
 
-1.  **Copia Empática:** Presenta un mensaje claro, cercano, diseñado por psicólogos para calmar la ansiedad inmediata del estudiante.
-2.  **Enlace Telefónico Directo (Linking API):** Expone botones con contactos verificados del mercado aprobado. Respaldo Nicaragua usa Policía `118` y Bomberos `115`, según fuentes oficiales.
-    ```typescript
-    import { Linking } from 'react-native';
-    
-    const handleCall = (phone: string) => {
-      Linking.openURL(`tel:${phone}`).catch(() => {
-        Alert.alert(t('crisis.callUnavailable'), t('crisis.dialManually', { phone }));
-      });
-    };
-    ```
-3.  **Continuidad:** Permite cerrar overlay y seguir conversando. Chat no reemplaza servicios de emergencia.
+Fuentes: [Policía Nacional, 118](https://www.policia.gob.ni/?p=145448) y
+[Policía Nacional, 118/115](https://www.policia.gob.ni/?p=114378).
 
-Fuentes Nicaragua: [Policía Nacional, 118](https://www.policia.gob.ni/?p=145448) y [Policía Nacional, 118/115](https://www.policia.gob.ni/?p=114378). Cada país nuevo requiere verificación y revisión legal antes de habilitarse.
+## Interfaz de emergencia
+
+`EmergencyOverlay`:
+
+- interrumpe request pendiente;
+- explica que persona merece apoyo inmediato;
+- ofrece contactos marcables;
+- permite indicar número manual si `Linking` falla;
+- aclara que Chat no reemplaza ayuda profesional/emergencias.
+
+Contenido debe revisarse con especialistas antes de release. No prometer
+respuesta, confidencialidad clínica ni cobertura donde no exista.
+
+## Controles productivos
+
+- CORS con allowlist.
+- Firebase Auth obligatorio para proxy.
+- App Check: monitor, medición, luego enforcement.
+- Rate limit por UID.
+- Secretos en Secret Manager.
+- Sentry con `sendDefaultPii: false`, sin request/user/extra.
+- Retención de logs revisada por ambiente.
+
+Checklist completo: [rollout productivo](../how-to/production-rollout.md).

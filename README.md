@@ -1,108 +1,101 @@
-# SUI
+# Sui
 
-Aplicación multiplataforma de productividad y bienestar para estudiantes. Combina metas, hábitos, calendario, gamificación y acompañamiento conversacional con IA bajo un enfoque offline-first.
+Aplicación móvil de productividad y acompañamiento. Organiza metas finitas,
+hábitos recurrentes, agenda y progreso con funcionamiento local-first, cuenta
+opcional y respaldo cloud.
 
-## Capacidades principales
+## Producto actual
 
-- Panel diario con progreso, XP, niveles y rachas.
-- Gestión de metas, hitos y hábitos.
-- Agenda unificada con Google Calendar en modo de solo lectura.
-- Onboarding conversacional con sesión anónima de Firebase.
-- Chat de acompañamiento con streaming SSE, historial local de 48 horas y protocolo de crisis.
-- Resumen nocturno y notificaciones locales.
-- Temas claro, oscuro y del sistema.
+- Bienvenida visual breve: cuenta, acceso o modo local.
+- Inicio vacío guiado; cero datos sembrados.
+- Metas y Hábitos separados, vinculables opcionalmente.
+- Navegación: Inicio · Metas · Sui · Hábitos · Agenda.
+- Chat local con TTL de 48 horas y protocolo de crisis por mercado/idioma.
+- Cuenta por correo, Google y Apple iOS; verificación antes de sync.
+- Repositorio local-first v7, outbox, tombstones y fusión explícita.
+- Google Calendar opcional, sólo lectura, OAuth Code + PKCE.
+- ES/EN, claro/oscuro, escala tipográfica y diseño móvil accesible.
+
+- Fuente de producto: [PRD](docs/product/PRD.md).
+- Fuente visual: [sistema de diseño](docs/product/DESIGN_SYSTEM.md).
 
 ## Stack
 
-- Expo SDK 56, React Native 0.85 y React 19.
-- TypeScript estricto.
+- Expo SDK 57, React Native 0.86, React 19, TypeScript.
 - React Navigation 7.
-- Zustand y AsyncStorage.
-- Firebase Authentication, Firestore, Hosting y Cloud Functions v2.
-- Azure OpenAI Foundry mediante proxy autenticado.
-- Jest y Testing Library.
+- Zustand + AsyncStorage.
+- Firebase Auth, Firestore, App Check y Cloud Functions v2.
+- Azure OpenAI mediante proxy SSE autenticado.
+- Jest, Firebase Emulator Suite y EAS.
 
-## Inicio rápido
+## Desarrollo
 
 ```bash
 npm install
 cp .env.example .env
-npm start
+npm run web
 ```
 
-Configura las variables públicas de Firebase, Google OAuth y la URL del proxy en `.env`. Nunca guardes secretos del proveedor de IA en la aplicación móvil.
+Variables `EXPO_PUBLIC_*` pueden entrar en bundle; nunca contienen secretos.
+Consulta [configuración cloud](docs/how-to/complete-cloud-configuration.md).
 
-## Verificación
+## Calidad
 
 ```bash
 npm run check
+npm run export:web
+npx expo-doctor
 ```
 
-El comando ejecuta el typecheck de la aplicación, los tests unitarios y la compilación de Cloud Functions.
-
-Comandos individuales:
-
-```bash
-npm run typecheck
-npm test
-npm run functions:build
-npm run functions:test
-```
+`npm run check` valida arquitectura, config productiva, TypeScript, unit tests,
+Functions y reglas Firestore.
 
 ## Arquitectura
 
-El código móvil usa módulos orientados por funcionalidad:
-
 ```text
 src/
-├── application/                 # Bootstrap y navegación
-├── features/                    # Auth, onboarding, chat, home, goals, habits, calendar, settings
-└── shared/                      # UI, tema, Firebase, preferencias y dominio compartido
+├── application/        # bootstrap y navegación
+├── features/           # auth, onboarding, home, goals, habits, calendar, chat
+└── shared/             # tema, UI, i18n, cuenta, repositorio, Firebase
+
+functions/src/
+├── account/            # eliminación completa
+├── chat/               # proxy, validación, rate limit, SSE
+├── connections/        # OAuth Calendar backend-only
+└── http/               # CORS y App Check
 ```
 
-Cloud Functions mantiene un punto de entrada pequeño y módulos separados para autenticación, validación, rate limiting, Azure y streaming SSE.
+Reglas: `application` compone; `features` depende de `shared`; `shared` nunca
+depende de `features`. React Navigation permanece; no Expo Router.
 
-Reglas de dependencia:
+## Ambientes
 
-1. `application` compone funcionalidades.
-2. `features` puede depender de `shared`.
-3. `shared` no depende de `features`.
-4. Componentes privados permanecen dentro de su funcionalidad.
-5. Tests unitarios se colocan junto al módulo probado.
+`development`, `staging`, `production` usan Firebase/EAS/OAuth separados.
 
-No se usa Expo Router. `src/application` evita reservar una carpeta de rutas basada en archivos.
+```bash
+eas build --platform android --profile staging
+eas build --platform ios --profile staging
+```
+
+Release requiere legal ES/EN, mercado aprobado, crisis config, App Check,
+observabilidad y matriz real. Consulta [rollout](docs/how-to/production-rollout.md).
 
 ## Documentación
 
-- [Índice de documentación](docs/README.md)
-- [Primeros pasos](docs/tutorials/getting-started.md)
+- [Índice](docs/README.md)
+- [PRD](docs/product/PRD.md)
+- [Sistema de diseño](docs/product/DESIGN_SYSTEM.md)
 - [Arquitectura](docs/explanation/architecture.md)
-- [UX móvil y sistema visual](docs/explanation/mobile-ux-and-visual-system.md)
-- [Chatbot](docs/explanation/chatbot.md)
-- [Guía del desarrollador](docs/reference/developer-guide.md)
-- [Configuración de Firebase](docs/how-to/firebase-config.md)
-- [Despliegue del proxy de chat](docs/how-to/deploy-chat-proxy.md)
 - [Roadmap](docs/roadmap.md)
-
-## Builds
-
-```bash
-eas build --platform android --profile preview
-```
-
-Exportación web:
-
-```bash
-npm run export:web
-firebase deploy --only hosting
-```
+- [Guía de desarrollo](docs/reference/developer-guide.md)
 
 ## Seguridad
 
-- `.env`, secretos de Functions y artefactos generados están ignorados por Git.
-- `AZURE_OPENAI_API_KEY` vive en Firebase Secret Manager.
-- El proxy exige un Firebase ID token válido antes de consumir IA.
-- El historial del chat no se almacena en Firestore.
+- Productividad invitada permanece local.
+- Password sin verificar no sincroniza.
+- Refresh tokens Calendar viven sólo en backend.
+- Chat no entra en Firestore ni telemetría.
+- Secretos viven en Secret Manager/EAS, nunca cliente o Git.
 
 ## Licencia
 
