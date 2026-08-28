@@ -5,21 +5,21 @@ import { openAzureStream, isUpstreamTimeout } from "./chat/azure";
 import {
   AZURE_MODEL,
   AZURE_OPENAI_API_KEY,
-  AZURE_URL,
   MIN_INSTANCES,
 } from "./chat/config";
 import { checkRateLimit } from "./chat/rateLimit";
 import { relayAzureSse } from "./chat/sse";
 import { sanitizeMessages } from "./chat/validation";
+import { setCorsHeaders } from "./http/cors";
+import { verifyAppCheckHeader } from "./http/appCheck";
 
-type HeaderResponse = { set: (key: string, value: string) => void };
-
-function setCorsHeaders(response: HeaderResponse): void {
-  response.set("Access-Control-Allow-Origin", "*");
-  response.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-  response.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  response.set("Access-Control-Max-Age", "3600");
-}
+export {
+  googleCalendarConnect,
+  googleCalendarDisconnect,
+  googleCalendarStatus,
+  googleCalendarSync,
+} from "./connections/googleCalendar";
+export { deleteAccount } from "./account/deleteAccount";
 
 /**
  * Authenticated Firebase proxy for Azure OpenAI streaming chat completions.
@@ -29,13 +29,16 @@ function setCorsHeaders(response: HeaderResponse): void {
 export const chatProxy = onRequest(
   {
     secrets: [AZURE_OPENAI_API_KEY],
-    cors: true,
+    cors: false,
     minInstances: MIN_INSTANCES,
     timeoutSeconds: 120,
     memory: "256MiB",
   },
   async (request, response): Promise<void> => {
-    setCorsHeaders(response);
+    if (!setCorsHeaders(request, response)) {
+      response.status(403).json({ error: "Origin not allowed" });
+      return;
+    }
     logger.info("chatProxy invoked", {
       method: request.method,
       path: request.path,
@@ -50,6 +53,17 @@ export const chatProxy = onRequest(
     if (request.method !== "POST") {
       logger.warn("405 method not allowed", { method: request.method });
       response.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    const appCheckOk = await verifyAppCheckHeader(
+      typeof request.headers["x-firebase-appcheck"] === "string"
+        ? request.headers["x-firebase-appcheck"]
+        : undefined,
+      "chatProxy",
+    );
+    if (!appCheckOk) {
+      response.status(401).json({ error: "Invalid App Check token" });
       return;
     }
 
@@ -119,19 +133,14 @@ export const chatProxy = onRequest(
     }
 
     if (!upstream.ok || !upstream.body) {
-      const detail = await upstream.text().catch(() => "");
       logger.error("Azure upstream non-ok", {
         status: upstream.status,
         statusText: upstream.statusText,
-        detail: detail.slice(0, 500),
         model: AZURE_MODEL.value(),
-        url: AZURE_URL,
-        keyLen: AZURE_OPENAI_API_KEY.value().length,
       });
       response.status(502).json({
         error: "Upstream error",
         status: upstream.status,
-        detail: detail.slice(0, 300),
       });
       return;
     }
