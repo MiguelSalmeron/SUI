@@ -1,7 +1,9 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { initializeAuth, getAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getToken, initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from 'firebase/app-check';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -24,18 +26,41 @@ if (missingConfigKeys.length > 0) {
 }
 
 // Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+export const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 // Persist the auth session to AsyncStorage so the anonymous user survives
 // app restarts. initializeAuth throws if auth was already initialized on this
 // app (happens on Fast Refresh), so fall back to the existing instance.
 export const auth = (() => {
   try {
-    return initializeAuth(app, {
+    return initializeAuth(firebaseApp, {
       persistence: getReactNativePersistence(AsyncStorage),
     });
   } catch {
-    return getAuth(app);
+    return getAuth(firebaseApp);
   }
 })();
-export const db = getFirestore(app);
+export const db = getFirestore(firebaseApp);
+
+const appCheckSiteKey = process.env.EXPO_PUBLIC_FIREBASE_APP_CHECK_SITE_KEY?.trim() ?? '';
+
+export const appCheck: AppCheck | null = (() => {
+  if (Platform.OS !== 'web' || !appCheckSiteKey) return null;
+  try {
+    return initializeAppCheck(firebaseApp, {
+      provider: new ReCaptchaV3Provider(appCheckSiteKey),
+      isTokenAutoRefreshEnabled: true,
+    });
+  } catch {
+    return null;
+  }
+})();
+
+export const getAppCheckToken = async (): Promise<string> => {
+  if (!appCheck) return '';
+  try {
+    return (await getToken(appCheck)).token;
+  } catch {
+    return '';
+  }
+};

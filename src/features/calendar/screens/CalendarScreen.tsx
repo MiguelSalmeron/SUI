@@ -19,24 +19,22 @@ import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { isHabitDueToday, localDateKey } from '@/shared/domain/productivity/homeStorage';
 import type { GoalGravity } from '@/shared/types/models';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
-
-const DAYS_HEADER = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+import { useNavigation } from '@react-navigation/native';
+import type { RootStackNavigationProp } from '@/application/navigation/types';
+import { useI18n } from '@/shared/i18n/i18n';
 
 export const CalendarScreen = () => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const navigation = useNavigation<RootStackNavigationProp>();
+  const { locale, t, formatDate } = useI18n();
+  const daysHeader = locale === 'es'
+    ? ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+    : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   const {
     events: googleEvents,
-    lastSyncedAt,
-    status: calendarStatus,
-    error: calendarError,
-    configured: calendarConfigured,
-    ready: calendarReady,
     connected: calendarConnected,
-    platformHint,
-    connectAndSync,
-    disconnect,
   } = useGoogleCalendar();
 
   const goals = useHomeStore((s) => s.goals);
@@ -103,17 +101,6 @@ export const CalendarScreen = () => {
     }
   };
 
-  const syncLabel =
-    calendarStatus === 'syncing'
-      ? 'Sincronizando…'
-      : calendarStatus === 'loading-cache'
-        ? 'Cargando…'
-        : calendarStatus === 'offline'
-          ? 'Datos locales'
-          : calendarConnected
-            ? 'Conectado'
-            : 'Sin conectar';
-  const syncBusy = calendarStatus === 'syncing' || calendarStatus === 'loading-cache';
   const totalForSelectedDay =
     selectedDayInfo.goals.length +
     selectedDayInfo.habits.length +
@@ -125,66 +112,23 @@ export const CalendarScreen = () => {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <ScreenIntro title="Agenda" subtitle="Todo lo que tiene fecha, reunido en un lugar." />
+      <ScreenIntro title={t('calendar.title')} subtitle={t('calendar.subtitle')} />
 
-      <View style={styles.connectionCard}>
-        <View style={styles.connectionIcon}>
-          <Ionicons name="logo-google" size={19} color={colors.primary} />
-        </View>
-        <View style={styles.connectionCopy}>
-          <Text style={styles.connectionTitle}>Google Calendar</Text>
-          <View style={styles.statusRow}>
-            <View
-              style={[
-                styles.statusDot,
-                { backgroundColor: calendarConnected ? colors.success : colors.outline },
-              ]}
-            />
-            <Text style={styles.connectionStatus}>{syncLabel}</Text>
-          </View>
-        </View>
+      {!calendarConnected ? (
         <TouchableOpacity
-          style={[styles.syncButton, (!calendarReady || syncBusy) && styles.syncButtonDisabled]}
-          onPress={() => void connectAndSync()}
-          disabled={!calendarReady || syncBusy}
+          style={styles.connectionCta}
+          onPress={() => navigation.navigate('Connections')}
           accessibilityRole="button"
-          accessibilityLabel={calendarConnected ? 'Actualizar calendario' : 'Conectar calendario'}
         >
-          <Ionicons
-            name={calendarConnected ? 'refresh' : 'link-outline'}
-            size={17}
-            color={colors.primary}
-          />
-          <Text style={styles.syncButtonText}>{calendarConnected ? 'Actualizar' : 'Conectar'}</Text>
+          <View style={styles.connectionIcon}>
+            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+          </View>
+          <View style={styles.connectionCopy}>
+            <Text style={styles.connectionTitle}>{t('calendar.connectTitle')}</Text>
+            <Text style={styles.connectionStatus}>{t('calendar.connectBody')}</Text>
+          </View>
+          <Text style={styles.connectionAction}>{t('calendar.connectAction')}</Text>
         </TouchableOpacity>
-      </View>
-      {calendarError || platformHint || !calendarConfigured ? (
-        <View style={styles.connectionMessage}>
-          <Text style={[styles.connectionMessageText, calendarError && { color: colors.error }]}>
-            {calendarError ?? platformHint ?? 'Configura el Client ID de Google para activar la conexión.'}
-          </Text>
-          {calendarConnected ? (
-            <TouchableOpacity onPress={() => void disconnect()}>
-              <Text style={styles.disconnectText}>Desconectar</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      ) : lastSyncedAt ? (
-        <View style={styles.connectionFooter}>
-          <Text style={styles.lastSyncText}>
-            Actualizado {new Date(lastSyncedAt).toLocaleDateString('es-ES', {
-              day: 'numeric',
-              month: 'short',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </Text>
-          {calendarConnected ? (
-            <TouchableOpacity onPress={() => void disconnect()}>
-              <Text style={styles.disconnectText}>Desconectar</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
       ) : null}
 
       <View style={styles.calendarCard}>
@@ -193,13 +137,13 @@ export const CalendarScreen = () => {
             style={styles.monthButton}
             onPress={() => moveMonth(-1)}
             accessibilityRole="button"
-            accessibilityLabel="Mes anterior"
+            accessibilityLabel={t('calendar.previousMonth')}
           >
             <Ionicons name="chevron-back" size={20} color={colors.onSurfaceVariant} />
           </TouchableOpacity>
           <View style={styles.monthCopy}>
             <Text style={styles.monthTitle}>
-              {visibleMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+              {formatDate(visibleMonth, { month: 'long', year: 'numeric' })}
             </Text>
             {visibleMonth.getMonth() !== new Date().getMonth() ||
             visibleMonth.getFullYear() !== new Date().getFullYear() ? (
@@ -210,7 +154,7 @@ export const CalendarScreen = () => {
                   setSelectedDate(todayKey);
                 }}
               >
-                <Text style={styles.todayLink}>Volver a hoy</Text>
+                <Text style={styles.todayLink}>{t('calendar.backToday')}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -218,15 +162,15 @@ export const CalendarScreen = () => {
             style={styles.monthButton}
             onPress={() => moveMonth(1)}
             accessibilityRole="button"
-            accessibilityLabel="Mes siguiente"
+            accessibilityLabel={t('calendar.nextMonth')}
           >
             <Ionicons name="chevron-forward" size={20} color={colors.onSurfaceVariant} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.daysHeader}>
-          {DAYS_HEADER.map((day) => (
-            <Text key={day} style={styles.dayHeaderCell}>{day}</Text>
+          {daysHeader.map((day, index) => (
+            <Text key={`${day}-${index}`} style={styles.dayHeaderCell}>{day}</Text>
           ))}
         </View>
 
@@ -241,7 +185,7 @@ export const CalendarScreen = () => {
                 activeOpacity={0.72}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
-                accessibilityLabel={day.date.toLocaleDateString('es-ES', {
+                accessibilityLabel={formatDate(day.date, {
                   weekday: 'long', day: 'numeric', month: 'long',
                 })}
               >
@@ -283,19 +227,19 @@ export const CalendarScreen = () => {
       <View style={styles.detailHeader}>
         <View style={styles.detailHeaderCopy}>
           <Text style={styles.detailTitle}>
-            {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', {
+            {formatDate(new Date(`${selectedDate}T00:00:00`), {
               weekday: 'long', day: 'numeric', month: 'long',
             })}
           </Text>
           <Text style={styles.detailMeta}>
-            {totalForSelectedDay} {totalForSelectedDay === 1 ? 'actividad' : 'actividades'}
+            {totalForSelectedDay} {totalForSelectedDay === 1 ? t('calendar.activity') : t('calendar.activities')}
           </Text>
         </View>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => setAddGoalModalVisible(true)}
           accessibilityRole="button"
-          accessibilityLabel="Añadir entrega en esta fecha"
+          accessibilityLabel={t('calendar.addDate')}
         >
           <Ionicons name="add" size={20} color={colors.onPrimary} />
         </TouchableOpacity>
@@ -305,7 +249,7 @@ export const CalendarScreen = () => {
         {totalForSelectedDay === 0 ? (
           <View style={styles.emptyDay}>
             <SuiDoodle variant="calendar" size={58} color={colors.secondary} />
-            <Text style={styles.emptyText}>Este día está libre.</Text>
+            <Text style={styles.emptyText}>{t('calendar.freeDay')}</Text>
           </View>
         ) : (
           <>
@@ -313,8 +257,8 @@ export const CalendarScreen = () => {
               <DayRow
                 key={`google-${event.id}`}
                 icon="calendar-outline"
-                title={event.title}
-                meta={event.allDay ? 'Todo el día · Google Calendar' : `${event.time ?? ''} · Google Calendar`}
+                title={event.title || t('calendar.untitledEvent')}
+                meta={event.allDay ? `${t('calendar.allDay')} · Google Calendar` : `${event.time ?? ''} · Google Calendar`}
                 color={colors.primary}
                 backgroundColor={colors.primaryContainer}
               />
@@ -324,7 +268,7 @@ export const CalendarScreen = () => {
                 key={goal.id}
                 icon="flag-outline"
                 title={goal.title}
-                meta="Fecha límite · Meta"
+                meta={t('calendar.goalDeadline')}
                 color={goal.gravity === 'high' ? colors.flame : colors.primary}
                 backgroundColor={goal.gravity === 'high' ? colors.flameContainer : colors.primaryContainer}
               />
@@ -334,7 +278,7 @@ export const CalendarScreen = () => {
                 key={habit.id}
                 icon="repeat"
                 title={habit.title}
-                meta="Repetición · Hábito"
+                meta={t('calendar.habitRepeat')}
                 color={colors.secondary}
                 backgroundColor={colors.secondaryContainer}
               />
@@ -345,12 +289,12 @@ export const CalendarScreen = () => {
 
       <PromptModal
         visible={addGoalModalVisible}
-        title="Nueva entrega"
-        hint={`Se añadirá a Metas con fecha ${new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-ES', {
+        title={t('calendar.newDelivery')}
+        hint={`${t('calendar.newDeliveryHint')} ${formatDate(new Date(`${selectedDate}T00:00:00`), {
           day: 'numeric', month: 'long',
         })}.`}
-        placeholder="Ej. Examen parcial de Física"
-        validate={(value) => (value ? null : 'Escribe un título')}
+        placeholder={t('calendar.newDeliveryPlaceholder')}
+        validate={(value) => (value ? null : t('calendar.titleRequired'))}
         onSubmit={(title) => {
           addGoal({ title, deadline: selectedDate, gravity: goalGravity });
           setAddGoalModalVisible(false);
@@ -393,7 +337,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       paddingTop: SPACING.sm,
       paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING,
     },
-    connectionCard: {
+    connectionCta: {
       minHeight: 66,
       flexDirection: 'row',
       alignItems: 'center',
@@ -418,6 +362,12 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 1 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
     connectionStatus: { ...type.bodySm, color: colors.onSurfaceVariant },
+    connectionAction: {
+      ...type.labelMd,
+      color: colors.primary,
+      flexShrink: 1,
+      textAlign: 'right',
+    },
     syncButton: {
       minHeight: 40,
       flexDirection: 'row',

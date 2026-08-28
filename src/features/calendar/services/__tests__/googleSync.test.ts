@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   buildUnifiedTimeline,
-  fetchGoogleCalendarEvents,
   loadGoogleCalendarCache,
+  saveGoogleEventsCache,
 } from '../googleSync';
 import type { GoogleEvent, Goal, Habit } from '@/shared/types/models';
 
@@ -43,17 +43,13 @@ const googleEvent: GoogleEvent = {
 };
 
 describe('googleSync', () => {
-  const originalFetch = global.fetch;
-
   beforeEach(() => {
     mockedStorage.getItem.mockResolvedValue(null);
     mockedStorage.setItem.mockResolvedValue(undefined);
     mockedStorage.removeItem.mockResolvedValue(undefined);
-    global.fetch = jest.fn() as unknown as typeof fetch;
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
     jest.restoreAllMocks();
   });
 
@@ -64,45 +60,12 @@ describe('googleSync', () => {
     });
   });
 
-  it('normaliza eventos reales de Google y omite cancelados', async () => {
-    const response = {
-      ok: true,
-      status: 200,
-      json: async () => ({
-        items: [
-          {
-            id: 'timed-1',
-            summary: 'Clase',
-            start: { dateTime: '2026-08-11T08:00:00-06:00', timeZone: 'America/Managua' },
-            end: { dateTime: '2026-08-11T09:00:00-06:00', timeZone: 'America/Managua' },
-          },
-          {
-            id: 'cancelled-1',
-            status: 'cancelled',
-            summary: 'Cancelado',
-            start: { date: '2026-08-11' },
-            end: { date: '2026-08-12' },
-          },
-        ],
-      }),
-    };
-    (global.fetch as jest.Mock).mockResolvedValue(response);
-
-    const events = await fetchGoogleCalendarEvents('access-token', {
-      timeMin: new Date('2026-08-11T00:00:00.000Z'),
-      timeMax: new Date('2026-08-12T00:00:00.000Z'),
-    });
-
-    expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({
-      id: 'timed-1',
-      calendarId: 'primary',
-      title: 'Clase',
-      allDay: false,
-      source: 'google',
-      timeZone: 'America/Managua',
-    });
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+  it('persiste sólo eventos normalizados entregados por backend', async () => {
+    await saveGoogleEventsCache([googleEvent], 123);
+    expect(mockedStorage.setItem).toHaveBeenCalledWith(
+      '@sui/google-events-v2',
+      JSON.stringify({ events: [googleEvent], lastSyncedAt: 123 }),
+    );
   });
 
   it('mezcla y ordena por timestamp, no por texto AM/PM', () => {
