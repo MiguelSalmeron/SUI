@@ -1,6 +1,6 @@
 # Chatbot de acompañamiento
 
-SUI ofrece acompañamiento conversacional preventivo. No sustituye atención médica, psicológica ni servicios de emergencia.
+Sui ofrece acompañamiento conversacional preventivo. No sustituye atención médica, psicológica ni servicios de emergencia.
 
 ## Objetivos
 
@@ -51,12 +51,9 @@ El módulo vive bajo `src/features/chat`:
 
 ## Contexto
 
-El prompt combina:
-
-- Perfil mínimo del onboarding.
-- Objetivos de bienestar seleccionados.
-- Instrucciones de personalidad.
-- Historial conversacional reciente.
+El prompt combina instrucciones de seguridad/voz, idioma activo, contexto
+voluntario disponible y ventana conversacional reciente. Bienvenida no recopila
+perfil psicológico, cronotipo, carrera ni objetivos obligatorios.
 
 El backend limita cantidad y longitud de mensajes nuevamente. La validación del servidor no confía en los límites del cliente.
 
@@ -64,7 +61,8 @@ El backend limita cantidad y longitud de mensajes nuevamente. La validación del
 
 Antes de abrir la conexión al proxy, el cliente compara el texto con una configuración de crisis.
 
-- Fuente remota: documento Firestore `app_config/crisis`.
+- Fuente regional: `app_config/crisis/regions/{COUNTRY}-{locale}`.
+- Fallback remoto: documento Firestore `app_config/crisis`.
 - Fallback: `DEFAULT_CRISIS_CONFIG` incluido en la aplicación.
 - Resultado positivo: se interrumpe el envío y se muestra `EmergencyOverlay`.
 
@@ -84,7 +82,8 @@ Límites actuales:
 | Timeout upstream | 90 segundos |
 | Requests por UID | 30 por 60 minutos |
 
-El rate limit es fail-open ante fallos transitorios de Firestore para evitar una caída global. Esta decisión debe reevaluarse antes de exposición masiva.
+Rate limit es fail-open ante fallos transitorios de Firestore. Antes de escala
+masiva requiere monitorización de abuso y evaluación de fail-closed selectivo.
 
 ## Proveedor
 

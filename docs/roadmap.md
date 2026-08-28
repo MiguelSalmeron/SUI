@@ -1,4 +1,6 @@
-# Roadmap operativo
+# Roadmap operativo de Sui
+
+Alcance: [PRD](product/PRD.md). UX/UI: [sistema de diseño](product/DESIGN_SYSTEM.md).
 
 ## Completado en código
 

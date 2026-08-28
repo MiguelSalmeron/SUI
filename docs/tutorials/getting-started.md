@@ -1,6 +1,6 @@
 # Primeros pasos
 
-Este tutorial deja SUI ejecutándose localmente y explica dónde comenzar a modificar código.
+Este tutorial deja Sui ejecutándose localmente y explica dónde modificar código.
 
 ## 1. Instalar dependencias
 
@@ -23,7 +23,8 @@ No añadas claves privadas de Azure, cuentas de servicio ni client secrets al `.
 
 ## 3. Configurar Firebase
 
-Habilita Anonymous Authentication y configura Firestore. Sigue la [guía de Firebase](../how-to/firebase-config.md).
+Habilita Anonymous, Email/Password y proveedores necesarios. Configura
+Firestore/App Check según [configuración cloud](../how-to/complete-cloud-configuration.md).
 
 ## 4. Validar instalación
 
@@ -36,6 +37,7 @@ Debes obtener:
 - TypeScript móvil sin errores.
 - Tests unitarios aprobados.
 - Cloud Functions compiladas.
+- Reglas Firestore aprobadas en Emulator Suite.
 
 ## 5. Iniciar aplicación
 
@@ -55,12 +57,12 @@ Expo Go no reproduce todas las capacidades nativas. Para notificaciones, splash 
 
 ## 6. Recorrer flujo principal
 
-1. Completa onboarding.
-2. Confirma entrada al dashboard.
-3. Crea una meta y un hábito.
-4. Marca ambos como completados.
+1. Confirma 16+ en Bienvenida.
+2. Entra con cuenta o continúa local.
+3. Comprueba Inicio vacío, sin datos de ejemplo.
+4. Crea una meta y un hábito desde CTA independientes.
 5. Abre Agenda y revisa el calendario unificado.
-6. Abre el chat y confirma streaming si el proxy está configurado.
+6. Abre Chat y confirma streaming si proxy está configurado.
 
 ## 7. Localizar código
 
@@ -74,7 +76,7 @@ docs                    documentación
 
 Ejemplos:
 
-- Cambio de onboarding: `src/features/onboarding`.
+- Entrada/bienvenida: `src/features/onboarding`.
 - Cambio de chat: `src/features/chat`.
 - Regla de XP o persistencia: `src/shared/domain/productivity`.
 - Componente reutilizable: `src/shared/ui`.
@@ -89,3 +91,4 @@ Ejemplos:
 5. Actualiza documentación si cambian contratos, configuración o arquitectura.
 
 Continúa con la [guía del desarrollador](../reference/developer-guide.md).
+Producto: [PRD](../product/PRD.md). UI: [sistema de diseño](../product/DESIGN_SYSTEM.md).

@@ -65,7 +65,7 @@ Reinicia Expo CLI después del cambio.
 
 ## 7. Verificar
 
-1. Completa el onboarding para obtener una sesión Firebase.
+1. Entra desde Bienvenida con cuenta o modo local para crear/restaurar sesión Firebase.
 2. Abre el chat.
 3. Envía un mensaje no sensible.
 4. Confirma respuesta progresiva por SSE.

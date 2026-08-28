@@ -1,6 +1,6 @@
-# Arquitectura de SUI
+# Arquitectura de Sui
 
-SUI combina una aplicación Expo/React Native y un backend Firebase Functions. La arquitectura prioriza funcionamiento offline, privacidad conversacional, límites claros entre funcionalidades y evolución incremental.
+Sui combina cliente Expo/React Native y backend Firebase Functions. Arquitectura prioriza funcionamiento offline, privacidad conversacional, límites claros y evolución incremental.
 
 ## Vista general
 
@@ -56,7 +56,7 @@ src/
 5. Dependencias entre funcionalidades deben ser explícitas y pequeñas.
 6. No se usan barrels globales; los imports apuntan al módulo concreto.
 
-SUI conserva React Navigation con Native Stack y Bottom Tabs. Se evita `src/app` porque Expo la reserva para rutas de Expo Router.
+Sui conserva React Navigation con Native Stack y Bottom Tabs. Se evita `src/app` porque Expo la reserva para Expo Router.
 
 ## Dominio de productividad
 
@@ -94,7 +94,7 @@ La UI nunca espera nube. Repositorio v7 conserva metadata, tombstones y cola per
 ## Navegación
 
 - `AppNavigator`: controla bienvenida, auth, fusión, home, chat, progreso, conexiones y ajustes.
-- `TabNavigator`: compone las cuatro rutas operativas: overview, metas, hábitos y agenda. La acción central SUI abre Chat sin formar parte del estado de tabs.
+- `TabNavigator`: compone overview, metas, hábitos y agenda. Acción central Sui abre Chat sin formar parte del estado de tabs.
 - Gate inicial depende sólo de rehidratar `IntroState`; Firebase no bloquea UI local.
 - Splash permanece visible hasta cargar fuentes y estado de entrada.
 
@@ -123,6 +123,8 @@ functions/src/
 La clave de Azure nunca se incluye en el bundle móvil. El historial permanece en el dispositivo y se elimina después de 48 horas.
 
 ## Decisiones relacionadas
+
+Producto y UI: [PRD](../product/PRD.md) y [sistema de diseño](../product/DESIGN_SYSTEM.md).
 
 - [Arquitectura orientada por funcionalidad](../decisions/0001-feature-oriented-architecture.md)
 - [Conservar React Navigation](../decisions/0002-keep-react-navigation.md)
