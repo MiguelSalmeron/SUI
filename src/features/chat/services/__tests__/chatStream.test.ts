@@ -56,6 +56,7 @@ jest.mock('@/shared/infrastructure/firebase/firebase', () => ({
   __esModule: true,
   auth: { currentUser: null as null | { getIdToken: () => Promise<string> } },
   db: {},
+  getAppCheckToken: jest.fn(async () => ''),
 }));
 
 // La fuente importa `../config/firebase`; el mock lo resuelve para el módulo

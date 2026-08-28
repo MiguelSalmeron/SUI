@@ -4,12 +4,12 @@ import {
   buildSystemPrompt,
 } from '../chatPrompt';
 import type { ChatMessage } from '../../types/chat';
-import type { OnboardingProfile } from '@/features/onboarding/types/onboarding';
+import { buildReportPayload } from '../reportPrompt';
 
-const profile: OnboardingProfile = {
+const profile = {
   name: 'Ana',
-  career: 'Ingeniería',
-  birthYear: 2004,
+  goals: ['Dormir mejor', 'Estudiar con enfoque'],
+  locale: 'es' as const,
 };
 
 describe('chatPrompt', () => {
@@ -21,17 +21,17 @@ describe('chatPrompt', () => {
     jest.useRealTimers();
   });
 
-  it('construye perfil emocional desde onboarding y objetivos válidos', () => {
-    expect(buildEmotionalProfile(profile, ['sleep', 'focus', 'unknown'])).toEqual({
+  it('construye perfil emocional desde datos voluntarios', () => {
+    expect(buildEmotionalProfile(profile)).toEqual({
       name: 'Ana',
-      career: 'Ingeniería',
-      age: 22,
       goals: ['Dormir mejor', 'Estudiar con enfoque'],
+      locale: 'es',
+      botPersonality: 'calm',
     });
   });
 
   it('incluye guardrails clínicos en el system prompt', () => {
-    const system = buildSystemPrompt(buildEmotionalProfile(profile, ['stress']));
+    const system = buildSystemPrompt(buildEmotionalProfile(profile));
     expect(system).toContain('No eres un terapeuta');
     expect(system).toContain('diagnósticos clínicos');
     expect(system).toContain('Nombre: Ana');
@@ -46,7 +46,7 @@ describe('chatPrompt', () => {
       { id: '5', role: 'assistant', content: 'typing', createdAt: 5, streaming: true },
     ];
 
-    expect(buildPayload(buildEmotionalProfile(profile, []), history)).toEqual([
+    expect(buildPayload(buildEmotionalProfile(profile), history)).toEqual([
       expect.objectContaining({ role: 'system' }),
       { role: 'user', content: 'Hola' },
       { role: 'assistant', content: 'Estoy aquí' },
@@ -61,9 +61,19 @@ describe('chatPrompt', () => {
       createdAt: index,
     }));
 
-    const payload = buildPayload(buildEmotionalProfile(profile, []), history);
+    const payload = buildPayload(buildEmotionalProfile(profile), history);
     expect(payload).toHaveLength(11);
     expect(payload[1]).toEqual({ role: 'user', content: 'mensaje-2' });
     expect(payload[10]).toEqual({ role: 'assistant', content: 'mensaje-11' });
+  });
+
+  it('genera cierre nocturno en idioma del perfil', () => {
+    const payload = buildReportPayload(
+      buildEmotionalProfile({ ...profile, locale: 'en' }),
+      { completed: ['Walk'], pending: ['Read'], streak: 2 },
+    );
+    expect(payload[0].content).toContain('in English');
+    expect(payload[1].content).toContain('Write a brief nightly summary in English');
+    expect(payload[1].content).not.toContain('Escribe un resumen');
   });
 });
