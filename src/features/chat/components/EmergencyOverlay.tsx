@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { CrisisConfig } from '../services/crisisConfig';
+import { useI18n } from '@/shared/i18n/i18n';
 
 interface EmergencyOverlayProps {
   visible: boolean;
@@ -29,6 +30,7 @@ export const EmergencyOverlay = ({
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t } = useI18n();
 
   const call = async (phone: string) => {
     const url = `tel:${phone.replace(/\s+/g, '')}`;
@@ -37,10 +39,10 @@ export const EmergencyOverlay = ({
       if (supported) {
         await Linking.openURL(url);
       } else {
-        Alert.alert('Llamada no disponible', `Marca manualmente: ${phone}`);
+        Alert.alert(t('crisis.callUnavailable'), t('crisis.dialManually', { phone }));
       }
     } catch {
-      Alert.alert('Llamada no disponible', `Marca manualmente: ${phone}`);
+      Alert.alert(t('crisis.callUnavailable'), t('crisis.dialManually', { phone }));
     }
   };
 
@@ -63,11 +65,10 @@ export const EmergencyOverlay = ({
                 onPress={() => call(c.phone)}
                 activeOpacity={0.85}
                 accessibilityRole="button"
-                accessibilityLabel={`Llamar a ${c.label}`}
-                accessibilityHint={`Abre el marcador con el número ${c.phone}`}
+                accessibilityLabel={`${t('crisis.call', { phone: c.phone })} · ${c.label}`}
               >
                 <Text style={styles.contactLabel}>{c.label}</Text>
-                <Text style={styles.contactPhone}>Llamar {c.phone}</Text>
+                <Text style={styles.contactPhone}>{t('crisis.call', { phone: c.phone })}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -76,9 +77,9 @@ export const EmergencyOverlay = ({
             style={styles.closeBtn}
             onPress={onClose}
             accessibilityRole="button"
-            accessibilityLabel="Seguir conversando"
+            accessibilityLabel={t('crisis.continue')}
           >
-            <Text style={styles.closeText}>Seguir conversando</Text>
+            <Text style={styles.closeText}>{t('crisis.continue')}</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,6 @@ import { ChatMessage } from '../components/ChatMessage';
 import { ChatInput } from '../components/ChatInput';
 import { EmergencyOverlay } from '../components/EmergencyOverlay';
 import { useChatStore } from '../store/useChatStore';
-import { useOnboardingStore } from '@/features/onboarding/store/useOnboardingStore';
 import { buildEmotionalProfile, buildPayload } from '../services/chatPrompt';
 import {
   CrisisConfig,
@@ -25,6 +24,10 @@ import {
 import { detectCrisis } from '../services/crisisDetection';
 import { streamChat, StreamController } from '../services/chatStream';
 import type { ChatMessage as ChatMessageType } from '../types/chat';
+import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
+import { useI18n } from '@/shared/i18n/i18n';
+import { AuthContext } from '@/features/auth/context/AuthContext';
+import { PRODUCT_CONFIG } from '@/shared/config/product';
 
 interface Props {
   navigation: {
@@ -47,8 +50,9 @@ export const ChatScreen = ({ navigation }: Props) => {
   const pruneExpired = useChatStore((s) => s.pruneExpired);
   const clear = useChatStore((s) => s.clear);
 
-  const profile = useOnboardingStore((s) => s.profile);
-  const selectedGoals = useOnboardingStore((s) => s.selectedGoals);
+  const goals = useHomeStore((state) => state.goals);
+  const { locale, t } = useI18n();
+  const { user } = useContext(AuthContext);
 
   const [crisisConfig, setCrisisConfig] = useState<CrisisConfig>(DEFAULT_CRISIS_CONFIG);
   const [overlayVisible, setOverlayVisible] = useState(false);
@@ -59,11 +63,11 @@ export const ChatScreen = ({ navigation }: Props) => {
   const busy = streamingId !== null;
 
   const confirmClear = useCallback(() => {
-    Alert.alert('Borrar conversación', '¿Seguro que quieres limpiar el chat?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Borrar', style: 'destructive', onPress: () => clear() },
+    Alert.alert(t('chat.clearTitle'), t('chat.clearBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('chat.delete'), style: 'destructive', onPress: () => clear() },
     ]);
-  }, [clear]);
+  }, [clear, t]);
 
   // Header nativo: el botón de retorno lo provee el Stack (flecha nativa).
   // Solo inyectamos la acción "Limpiar" a la derecha del header.
@@ -75,26 +79,26 @@ export const ChatScreen = ({ navigation }: Props) => {
           style={styles.headerBtn}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Limpiar conversación"
+          accessibilityLabel={t('chat.clearTitle')}
         >
-          <Text style={styles.headerBtnText}>Limpiar</Text>
+          <Text style={styles.headerBtnText}>{t('chat.clear')}</Text>
         </TouchableOpacity>
       ),
     });
-  }, [navigation, confirmClear, styles]);
+  }, [navigation, confirmClear, styles, t]);
 
   // Carga del diccionario de crisis + limpieza de historial caducado.
   useEffect(() => {
     pruneExpired();
     let active = true;
-    fetchCrisisConfig().then((cfg) => {
+    fetchCrisisConfig(locale, PRODUCT_CONFIG.countryCode).then((cfg) => {
       if (active) setCrisisConfig(cfg);
     });
     return () => {
       active = false;
       controllerRef.current?.cancel();
     };
-  }, [pruneExpired]);
+  }, [locale, pruneExpired]);
 
   const scrollToEnd = useCallback(() => {
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
@@ -114,7 +118,11 @@ export const ChatScreen = ({ navigation }: Props) => {
 
       // El payload se arma con el historial fresco (incluye el mensaje recién
       // agregado) tomado del estado actual del store.
-      const profileCard = buildEmotionalProfile(profile, selectedGoals);
+      const profileCard = buildEmotionalProfile({
+        name: user?.displayName ?? '',
+        goals: goals.filter((goal) => !goal.completed).slice(0, 3).map((goal) => goal.title),
+        locale,
+      });
       const payload = buildPayload(profileCard, useChatStore.getState().messages);
 
       const assistantId = startAssistantMessage();
@@ -135,8 +143,9 @@ export const ChatScreen = ({ navigation }: Props) => {
       busy,
       crisisConfig,
       addUserMessage,
-      profile,
-      selectedGoals,
+      goals,
+      locale,
+      user?.displayName,
       startAssistantMessage,
       appendChunk,
       finalizeAssistant,
@@ -154,14 +163,9 @@ export const ChatScreen = ({ navigation }: Props) => {
       >
         {messages.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>Hola</Text>
-            <Text style={styles.emptyText}>
-              Estoy aquí para escucharte. Cuéntame cómo te sientes hoy.
-            </Text>
-            <Text style={styles.emptyNote}>
-              Tu conversación se guarda solo en este dispositivo y se borra
-              automáticamente a las 48 horas.
-            </Text>
+            <Text style={styles.emptyTitle}>{t('chat.hello')}</Text>
+            <Text style={styles.emptyText}>{t('chat.empty')}</Text>
+            <Text style={styles.emptyNote}>{t('chat.localTtl')}</Text>
           </View>
         ) : (
           <FlatList

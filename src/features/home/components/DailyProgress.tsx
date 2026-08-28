@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { useI18n } from '@/shared/i18n/i18n';
 
 type Props = {
   /** Número de items completados hoy (metas + hábitos). */
@@ -19,6 +20,7 @@ export const DailyProgress = ({ completed, total, label }: Props) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t } = useI18n();
   const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
   const anim = useRef(new Animated.Value(0)).current;
 
@@ -37,15 +39,15 @@ export const DailyProgress = ({ completed, total, label }: Props) => {
 
   const message =
     total === 0
-      ? 'Agrega metas o hábitos para empezar a medir tu día.'
+      ? t('daily.empty')
       : percent === 100
-      ? '¡Día completo! Excelente trabajo'
-      : `${completed} de ${total} ${label ?? 'completados'} hoy`;
+      ? t('daily.complete')
+      : t('daily.progress', { done: completed, total, label: label ?? t('daily.completed') });
 
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Progreso de hoy</Text>
+        <Text style={styles.title}>{t('home.dailyProgress')}</Text>
         <Text style={styles.percent}>{percent}%</Text>
       </View>
 

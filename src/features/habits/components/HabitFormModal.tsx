@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SPACING, useAppTheme } from '@/shared/theme/theme';
 import type { DayOfWeek, Goal } from '@/shared/types/models';
+import { useI18n } from '@/shared/i18n/i18n';
 
 type HabitDraft = {
   title: string;
@@ -33,6 +34,7 @@ export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) =>
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t } = useI18n();
   const [title, setTitle] = useState('');
   const [frequency, setFrequency] = useState<'daily' | 'weekdays'>('daily');
   const [linkedGoalId, setLinkedGoalId] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) =>
   const submit = () => {
     const value = title.trim();
     if (!value) {
-      setError('Escribe una acción pequeña y repetible.');
+      setError(t('habitForm.required'));
       return;
     }
     onSubmit({
@@ -76,21 +78,21 @@ export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) =>
           <View style={styles.handle} />
           <View style={styles.header}>
             <View style={styles.headerCopy}>
-              <Text style={styles.title}>Nuevo hábito</Text>
-              <Text style={styles.subtitle}>Una acción breve que quieres repetir.</Text>
+              <Text style={styles.title}>{t('habitForm.title')}</Text>
+              <Text style={styles.subtitle}>{t('habitForm.subtitle')}</Text>
             </View>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={onCancel}
               accessibilityRole="button"
-              accessibilityLabel="Cerrar"
+              accessibilityLabel={t('common.close')}
             >
               <Ionicons name="close" size={22} color={colors.onSurfaceVariant} />
             </TouchableOpacity>
           </View>
 
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Text style={styles.fieldLabel}>¿Qué acción repetirás?</Text>
+            <Text style={styles.fieldLabel}>{t('habitForm.question')}</Text>
             <TextInput
               style={[styles.input, error && styles.inputError]}
               value={title}
@@ -98,16 +100,16 @@ export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) =>
                 setTitle(value);
                 setError(null);
               }}
-              placeholder="Ej. Repasar apuntes durante 20 minutos"
+              placeholder={t('habitForm.placeholder')}
               placeholderTextColor={colors.onSurfaceVariant}
               autoFocus
               returnKeyType="done"
               onSubmitEditing={submit}
-              accessibilityLabel="Nombre del hábito"
+              accessibilityLabel={t('habitForm.nameLabel')}
             />
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <Text style={styles.fieldLabel}>Frecuencia</Text>
+            <Text style={styles.fieldLabel}>{t('habitForm.frequency')}</Text>
             <View style={styles.frequencyRow}>
               <TouchableOpacity
                 style={[styles.frequencyOption, frequency === 'daily' && styles.optionSelected]}
@@ -116,7 +118,7 @@ export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) =>
                 accessibilityState={{ selected: frequency === 'daily' }}
               >
                 <Ionicons name="sunny-outline" size={18} color={frequency === 'daily' ? colors.primary : colors.onSurfaceVariant} />
-                <Text style={[styles.optionText, frequency === 'daily' && styles.optionTextSelected]}>Todos los días</Text>
+                <Text style={[styles.optionText, frequency === 'daily' && styles.optionTextSelected]}>{t('habits.everyDay')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.frequencyOption, frequency === 'weekdays' && styles.optionSelected]}
@@ -125,15 +127,15 @@ export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) =>
                 accessibilityState={{ selected: frequency === 'weekdays' }}
               >
                 <Ionicons name="briefcase-outline" size={18} color={frequency === 'weekdays' ? colors.primary : colors.onSurfaceVariant} />
-                <Text style={[styles.optionText, frequency === 'weekdays' && styles.optionTextSelected]}>Lunes a viernes</Text>
+                <Text style={[styles.optionText, frequency === 'weekdays' && styles.optionTextSelected]}>{t('habitForm.weekdays')}</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.linkHeading}>
-              <Text style={styles.fieldLabel}>Vincular con una meta</Text>
-              <Text style={styles.optional}>Opcional</Text>
+              <Text style={styles.fieldLabel}>{t('habitForm.linkGoal')}</Text>
+              <Text style={styles.optional}>{t('habitForm.optional')}</Text>
             </View>
-            <Text style={styles.linkHint}>Al completar el hábito, esa meta avanzará un poco.</Text>
+            <Text style={styles.linkHint}>{t('habitForm.linkHint')}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -147,7 +149,7 @@ export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) =>
                 accessibilityState={{ selected: linkedGoalId === null }}
               >
                 <Ionicons name="remove-circle-outline" size={17} color={linkedGoalId === null ? colors.primary : colors.onSurfaceVariant} />
-                <Text style={[styles.goalOptionText, linkedGoalId === null && styles.optionTextSelected]}>Sin vincular</Text>
+                <Text style={[styles.goalOptionText, linkedGoalId === null && styles.optionTextSelected]}>{t('habitForm.unlinked')}</Text>
               </TouchableOpacity>
               {goals.filter((goal) => !goal.completed).map((goal) => {
                 const selected = linkedGoalId === goal.id;
@@ -177,9 +179,9 @@ export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) =>
             onPress={submit}
             activeOpacity={0.82}
             accessibilityRole="button"
-            accessibilityLabel="Crear hábito"
+            accessibilityLabel={t('habitForm.submit')}
           >
-            <Text style={styles.submitText}>Crear hábito</Text>
+            <Text style={styles.submitText}>{t('habitForm.submit')}</Text>
             <Ionicons name="arrow-forward" size={18} color={colors.onPrimary} />
           </TouchableOpacity>
         </View>

@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SPACING, useAppTheme } from '@/shared/theme/theme';
 import { localDateKey } from '@/shared/domain/productivity/homeStorage';
 import type { GoalGravity } from '@/shared/types/models';
+import { useI18n } from '@/shared/i18n/i18n';
 
 type GoalDraft = {
   title: string;
@@ -37,6 +38,7 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, formatDate } = useI18n();
   const [title, setTitle] = useState('');
   const [deadlineDays, setDeadlineDays] = useState(7);
   const [gravity, setGravity] = useState<GoalGravity>('low');
@@ -54,7 +56,7 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
   const submit = () => {
     const value = title.trim();
     if (!value) {
-      setError('Escribe el resultado que quieres alcanzar.');
+      setError(t('goalForm.required'));
       return;
     }
     onSubmit({ title: value, deadline: deadlineFromToday(deadlineDays), gravity });
@@ -76,21 +78,21 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
           <View style={styles.handle} />
           <View style={styles.header}>
             <View style={styles.headerCopy}>
-              <Text style={styles.title}>Nueva meta</Text>
-              <Text style={styles.subtitle}>Un resultado concreto que puedas terminar.</Text>
+              <Text style={styles.title}>{t('goalForm.title')}</Text>
+              <Text style={styles.subtitle}>{t('goalForm.subtitle')}</Text>
             </View>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={onCancel}
               accessibilityRole="button"
-              accessibilityLabel="Cerrar"
+              accessibilityLabel={t('common.close')}
             >
               <Ionicons name="close" size={22} color={colors.onSurfaceVariant} />
             </TouchableOpacity>
           </View>
 
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Text style={styles.fieldLabel}>¿Qué quieres lograr?</Text>
+            <Text style={styles.fieldLabel}>{t('goalForm.question')}</Text>
             <TextInput
               style={[styles.input, error && styles.inputError]}
               value={title}
@@ -98,16 +100,16 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
                 setTitle(value);
                 setError(null);
               }}
-              placeholder="Ej. Entregar el proyecto de programación"
+              placeholder={t('goalForm.placeholder')}
               placeholderTextColor={colors.onSurfaceVariant}
               autoFocus
               returnKeyType="done"
               onSubmitEditing={submit}
-              accessibilityLabel="Nombre de la meta"
+              accessibilityLabel={t('goalForm.nameLabel')}
             />
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <Text style={styles.fieldLabel}>Fecha objetivo</Text>
+            <Text style={styles.fieldLabel}>{t('goalForm.deadline')}</Text>
             <View style={styles.optionsRow}>
               {[7, 14, 30].map((days) => {
                 const selected = deadlineDays === days;
@@ -120,20 +122,20 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
                     accessibilityState={{ selected }}
                   >
                     <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
-                      {days === 7 ? '1 semana' : days === 14 ? '2 semanas' : '1 mes'}
+                      {days === 7 ? t('goalForm.oneWeek') : days === 14 ? t('goalForm.twoWeeks') : t('goalForm.oneMonth')}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
             <Text style={styles.selectionHint}>
-              Vence el {new Date(`${deadlineFromToday(deadlineDays)}T00:00:00`).toLocaleDateString('es-ES', {
+              {t('goalForm.due', { date: formatDate(new Date(`${deadlineFromToday(deadlineDays)}T00:00:00`), {
                 day: 'numeric',
                 month: 'long',
-              })}
+              }) })}
             </Text>
 
-            <Text style={styles.fieldLabel}>Importancia</Text>
+            <Text style={styles.fieldLabel}>{t('goalForm.priority')}</Text>
             <View style={styles.priorityRow}>
               <TouchableOpacity
                 style={[styles.priorityOption, gravity === 'low' && styles.optionSelected]}
@@ -143,8 +145,8 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
               >
                 <Ionicons name="leaf-outline" size={18} color={gravity === 'low' ? colors.primary : colors.onSurfaceVariant} />
                 <View style={styles.priorityCopy}>
-                  <Text style={[styles.priorityTitle, gravity === 'low' && styles.optionTextSelected]}>Normal</Text>
-                  <Text style={styles.priorityDescription}>Puede avanzar con flexibilidad.</Text>
+                  <Text style={[styles.priorityTitle, gravity === 'low' && styles.optionTextSelected]}>{t('goals.normal')}</Text>
+                  <Text style={styles.priorityDescription}>{t('goalForm.normalBody')}</Text>
                 </View>
               </TouchableOpacity>
               <TouchableOpacity
@@ -155,8 +157,8 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
               >
                 <Ionicons name="flash-outline" size={18} color={gravity === 'high' ? colors.flame : colors.onSurfaceVariant} />
                 <View style={styles.priorityCopy}>
-                  <Text style={[styles.priorityTitle, gravity === 'high' && styles.importantText]}>Importante</Text>
-                  <Text style={styles.priorityDescription}>Necesita atención prioritaria.</Text>
+                  <Text style={[styles.priorityTitle, gravity === 'high' && styles.importantText]}>{t('goals.important')}</Text>
+                  <Text style={styles.priorityDescription}>{t('goalForm.importantBody')}</Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -167,9 +169,9 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
             onPress={submit}
             activeOpacity={0.82}
             accessibilityRole="button"
-            accessibilityLabel="Crear meta"
+            accessibilityLabel={t('goalForm.submit')}
           >
-            <Text style={styles.submitText}>Crear meta</Text>
+            <Text style={styles.submitText}>{t('goalForm.submit')}</Text>
             <Ionicons name="arrow-forward" size={18} color={colors.onPrimary} />
           </TouchableOpacity>
         </View>

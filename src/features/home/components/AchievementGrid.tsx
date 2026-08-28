@@ -3,6 +3,8 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import type { Achievement } from '@/shared/domain/productivity/gamification';
+import { useI18n } from '@/shared/i18n/i18n';
+import type { TranslationKey } from '@/shared/i18n/translations';
 
 type Props = {
   achievements: Achievement[];
@@ -13,6 +15,9 @@ export const AchievementGrid = ({ achievements, compact = false }: Props) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme, compact), [theme, compact]);
+  const { t } = useI18n();
+  const achievementTitle = (id: Achievement['id']) => t(`achievement.${id}.title` as TranslationKey);
+  const achievementBody = (id: Achievement['id']) => t(`achievement.${id}.body` as TranslationKey);
   const unlocked = achievements.filter((a) => a.unlocked);
   const locked = achievements.filter((a) => !a.unlocked);
   const display = compact ? unlocked.slice(0, 4) : achievements;
@@ -34,11 +39,11 @@ export const AchievementGrid = ({ achievements, compact = false }: Props) => {
             />
           </View>
           <Text style={[styles.badgeTitle, !a.unlocked && styles.badgeTitleLocked]} numberOfLines={1}>
-            {a.title}
+            {achievementTitle(a.id)}
           </Text>
           {!compact && (
             <Text style={styles.badgeDesc} numberOfLines={2}>
-              {a.description}
+              {achievementBody(a.id)}
             </Text>
           )}
         </View>
@@ -49,14 +54,14 @@ export const AchievementGrid = ({ achievements, compact = false }: Props) => {
   if (compact) {
     return (
       <View style={styles.compactSection}>
-        <Text style={styles.sectionTitle}>Logros desbloqueados ({unlocked.length}/{achievements.length})</Text>
+        <Text style={styles.sectionTitle}>{t('progress.achievementsUnlocked', { done: unlocked.length, total: achievements.length })}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontal}>
           {unlocked.map((a) => (
             <View key={a.id} style={styles.compactBadge}>
               <View style={styles.compactIcon}>
                 <Ionicons name={a.icon as keyof typeof Ionicons.glyphMap} size={20} color={colors.onPrimary} />
               </View>
-              <Text style={styles.compactTitle}>{a.title}</Text>
+              <Text style={styles.compactTitle}>{achievementTitle(a.id)}</Text>
             </View>
           ))}
         </ScrollView>
@@ -67,12 +72,12 @@ export const AchievementGrid = ({ achievements, compact = false }: Props) => {
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>
-        Logros · {unlocked.length} de {achievements.length}
+        {t('progress.achievements', { done: unlocked.length, total: achievements.length })}
       </Text>
       {content}
       {locked.length > 0 && (
         <Text style={styles.hint}>
-          {locked.length} logro{locked.length > 1 ? 's' : ''} por desbloquear
+          {locked.length === 1 ? t('progress.lockedOne') : t('progress.lockedMany', { count: locked.length })}
         </Text>
       )}
     </View>

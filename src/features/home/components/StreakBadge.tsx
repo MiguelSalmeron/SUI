@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppTheme, MD3_RADIUS, SPACING, useAppTheme } from '@/shared/theme/theme';
+import { useI18n } from '@/shared/i18n/i18n';
 
 type Props = {
   /** Días consecutivos cumpliendo. 0 = sin racha activa. */
@@ -18,6 +19,7 @@ export const StreakBadge = ({ streak }: Props) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t } = useI18n();
   const scale = useRef(new Animated.Value(1)).current;
   const active = streak > 0;
 
@@ -25,8 +27,8 @@ export const StreakBadge = ({ streak }: Props) => {
   useEffect(() => {
     if (!active) return;
     Animated.sequence([
-      Animated.spring(scale, { toValue: 1.25, useNativeDriver: true, speed: 20 }),
-      Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 12 }),
+      Animated.spring(scale, { toValue: 1.25, useNativeDriver: Platform.OS !== 'web', speed: 20 }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: Platform.OS !== 'web', speed: 12 }),
     ]).start();
   }, [streak, active, scale]);
 
@@ -49,14 +51,14 @@ export const StreakBadge = ({ streak }: Props) => {
         {active ? (
           <>
             <Text style={styles.count}>
-              {streak} {streak === 1 ? 'día' : 'días'}
+              {streak === 1 ? t('streak.oneDay') : t('streak.days', { count: streak })}
             </Text>
-            <Text style={styles.label}>de racha · vas construyendo constancia</Text>
+            <Text style={styles.label}>{t('streak.activeBody')}</Text>
           </>
         ) : (
           <>
-            <Text style={styles.countIdle}>Empieza tu racha</Text>
-            <Text style={styles.label}>cumple una meta hoy</Text>
+            <Text style={styles.countIdle}>{t('streak.emptyTitle')}</Text>
+            <Text style={styles.label}>{t('streak.emptyBody')}</Text>
           </>
         )}
       </View>

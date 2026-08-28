@@ -7,7 +7,9 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, type CompositeNavigationProp } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import {
   SCREEN_CONTENT_BOTTOM_PADDING,
@@ -23,22 +25,30 @@ import type { GoogleEvent, TimelineItem } from '@/shared/types/models';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
 import { localDateKey } from '@/shared/domain/productivity/homeStorage';
-import type { RootStackNavigationProp } from '@/application/navigation/types';
+import type { MainTabParamList, RootStackParamList } from '@/application/navigation/types';
 import { SuiDoodle } from '@/shared/ui/SuiDoodle';
+import { useI18n } from '@/shared/i18n/i18n';
+import type { TranslationKey } from '@/shared/i18n/translations';
+
+type OverviewNavigation = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, 'Overview'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 const originPresentation = (
   item: TimelineItem,
-): { label: string; icon: keyof typeof Ionicons.glyphMap } => {
-  if (item.origin === 'habit') return { label: 'Hábito', icon: 'repeat' };
-  if (item.origin === 'goal') return { label: 'Meta', icon: 'flag-outline' };
-  return { label: 'Calendario', icon: 'calendar-outline' };
+): { labelKey: TranslationKey; icon: keyof typeof Ionicons.glyphMap } => {
+  if (item.origin === 'habit') return { labelKey: 'home.habit', icon: 'repeat' };
+  if (item.origin === 'goal') return { labelKey: 'home.goal', icon: 'flag-outline' };
+  return { labelKey: 'home.calendar', icon: 'calendar-outline' };
 };
 
 export const OverviewScreen = () => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const navigation = useNavigation<RootStackNavigationProp>();
+  const navigation = useNavigation<OverviewNavigation>();
+  const { t, formatDate } = useI18n();
   const celebrate = useCelebrationStore((s) => s.trigger);
 
   const stateLoaded = useHomeStore((s) => s.stateLoaded);
@@ -89,12 +99,12 @@ export const OverviewScreen = () => {
     if (item.origin === 'habit') {
       toggleHabit(item.originalId);
       if (!item.completed) {
-        celebrate({ kind: 'habit', subtitle: `+5 XP · ${item.title}` });
+        celebrate({ kind: 'habit', subtitle: t('celebration.habitXp', { title: item.title }) });
       }
     } else if (item.origin === 'goal') {
       toggleGoal(item.originalId);
       if (!item.completed) {
-        celebrate({ kind: 'goal', subtitle: '+10 XP · Meta completada' });
+        celebrate({ kind: 'goal', subtitle: t('home.goalCompleted') });
       }
     }
   };
@@ -114,10 +124,9 @@ export const OverviewScreen = () => {
     );
   }
 
-  const formattedToday = new Date(`${todayKey}T00:00:00`).toLocaleDateString(
-    'es-ES',
-    { weekday: 'long', day: 'numeric', month: 'long' },
-  );
+  const formattedToday = formatDate(new Date(`${todayKey}T00:00:00`), {
+    weekday: 'long', day: 'numeric', month: 'long',
+  });
 
   return (
     <ScrollView
@@ -126,10 +135,28 @@ export const OverviewScreen = () => {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.intro}>
-        <Text style={styles.eyebrow}>HOY</Text>
+        <Text style={styles.eyebrow}>{t('home.today')}</Text>
         <Text style={styles.title}>{formattedToday}</Text>
-        <Text style={styles.subtitle}>Avanza a tu ritmo, sin perder el rumbo.</Text>
+        <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
       </View>
+
+      {goals.length === 0 && habits.length === 0 ? (
+        <View style={styles.firstRunCard}>
+          <SuiDoodle variant="sprout" size={72} color={colors.primary} />
+          <Text style={styles.firstRunTitle}>{t('home.emptyTitle')}</Text>
+          <Text style={styles.firstRunBody}>{t('home.emptyBody')}</Text>
+          <View style={styles.firstRunActions}>
+            <TouchableOpacity style={styles.firstRunPrimary} onPress={() => navigation.navigate('Goals', { create: true })}>
+              <Ionicons name="flag-outline" size={18} color={colors.onPrimary} />
+              <Text style={styles.firstRunPrimaryText}>{t('home.firstGoal')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.firstRunSecondary} onPress={() => navigation.navigate('Habits', { create: true })}>
+              <Ionicons name="repeat" size={18} color={colors.secondary} />
+              <Text style={styles.firstRunSecondaryText}>{t('home.firstHabit')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.focusCard}>
         {nextItem ? (
@@ -137,12 +164,12 @@ export const OverviewScreen = () => {
             <View style={styles.focusTopRow}>
               <View style={styles.focusLabel}>
                 <View style={styles.pulseDot} />
-                <Text style={styles.focusEyebrow}>SIGUIENTE</Text>
+                <Text style={styles.focusEyebrow}>{t('home.next')}</Text>
               </View>
-              <Text style={styles.focusTime}>{nextItem.time ?? 'Todo el día'}</Text>
+              <Text style={styles.focusTime}>{nextItem.time ?? t('home.allDay')}</Text>
             </View>
             <Text style={styles.focusTitle} numberOfLines={2}>
-              {nextItem.title.replace(/^ENTREGA:\s*/, '')}
+              {nextItem.title || t('calendar.untitledEvent')}
             </Text>
             <View style={styles.focusFooter}>
               <View style={styles.originRow}>
@@ -151,7 +178,7 @@ export const OverviewScreen = () => {
                   size={15}
                   color={colors.onPrimaryContainer}
                 />
-                <Text style={styles.focusOrigin}>{originPresentation(nextItem).label}</Text>
+                <Text style={styles.focusOrigin}>{t(originPresentation(nextItem).labelKey)}</Text>
               </View>
               {nextItem.origin !== 'google_calendar' ? (
                 <TouchableOpacity
@@ -159,10 +186,10 @@ export const OverviewScreen = () => {
                   onPress={() => handleToggleItem(nextItem)}
                   activeOpacity={0.8}
                   accessibilityRole="button"
-                  accessibilityLabel={`Marcar ${nextItem.title} como completado`}
+                  accessibilityLabel={t('home.markDone', { title: nextItem.title || t('calendar.untitledEvent') })}
                 >
                   <Ionicons name="checkmark" size={17} color={colors.onFlame} />
-                  <Text style={styles.focusActionText}>Listo</Text>
+                  <Text style={styles.focusActionText}>{t('home.done')}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -173,8 +200,8 @@ export const OverviewScreen = () => {
               <Ionicons name="checkmark" size={24} color={colors.onSecondaryContainer} />
             </View>
             <View style={styles.clearCopy}>
-              <Text style={styles.clearTitle}>Tu día está despejado</Text>
-              <Text style={styles.clearText}>Puedes descansar o preparar algo con calma.</Text>
+              <Text style={styles.clearTitle}>{t('home.clearTitle')}</Text>
+              <Text style={styles.clearText}>{t('home.clearBody')}</Text>
             </View>
           </View>
         )}
@@ -185,16 +212,16 @@ export const OverviewScreen = () => {
         onPress={() => navigation.navigate('Progress')}
         activeOpacity={0.82}
         accessibilityRole="button"
-        accessibilityLabel={`Ver progreso completo, ${progress}% hoy`}
-        accessibilityHint="Abre las estadísticas, nivel y logros"
+        accessibilityLabel={t('home.progressAccessibility', { progress })}
+        accessibilityHint={t('home.progressHint')}
       >
         <View style={styles.progressHeader}>
           <View>
-            <Text style={styles.progressLabel}>Progreso del día</Text>
+            <Text style={styles.progressLabel}>{t('home.dailyProgress')}</Text>
             <Text style={styles.progressCount}>
               {actionableItems.length
-                ? `${completedCount} de ${actionableItems.length} completadas`
-                : 'Sin pendientes para hoy'}
+                ? t('home.completedCount', { done: completedCount, total: actionableItems.length })
+                : t('home.noPending')}
             </Text>
           </View>
           <Text style={styles.progressPercent}>{progress}%</Text>
@@ -206,25 +233,25 @@ export const OverviewScreen = () => {
           <View style={styles.statItem}>
             <Ionicons name="flame" size={16} color={colors.flame} />
             <Text style={styles.statValue}>{streak}</Text>
-            <Text style={styles.statLabel}>días de racha</Text>
+            <Text style={styles.statLabel}>{t('home.streakDays')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Ionicons name="sparkles" size={15} color={colors.primary} />
             <Text style={styles.statValue}>{totalXp}</Text>
-            <Text style={styles.statLabel}>XP acumulados</Text>
+            <Text style={styles.statLabel}>{t('home.totalXp')}</Text>
           </View>
         </View>
         <View style={styles.progressLink}>
-          <Text style={styles.progressLinkText}>Ver progreso</Text>
+          <Text style={styles.progressLinkText}>{t('home.viewProgress')}</Text>
           <Ionicons name="chevron-forward" size={17} color={colors.primary} />
         </View>
       </TouchableOpacity>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Tu agenda</Text>
+        <Text style={styles.sectionTitle}>{t('home.agenda')}</Text>
         <Text style={styles.sectionMeta}>
-          {timelineItems.length} {timelineItems.length === 1 ? 'actividad' : 'actividades'}
+          {timelineItems.length} {timelineItems.length === 1 ? t('calendar.activity') : t('calendar.activities')}
         </Text>
       </View>
 
@@ -232,7 +259,7 @@ export const OverviewScreen = () => {
         {timelineItems.length === 0 ? (
           <View style={styles.emptyDayBox}>
             <SuiDoodle variant="sprout" size={62} color={colors.secondary} />
-            <Text style={styles.emptyDayText}>No tienes actividades programadas para hoy.</Text>
+            <Text style={styles.emptyDayText}>{t('home.emptyAgenda')}</Text>
           </View>
         ) : (
           timelineItems.map((item) => {
@@ -257,18 +284,18 @@ export const OverviewScreen = () => {
                 </View>
                 <View style={styles.itemCopy}>
                   <View style={styles.itemMetaRow}>
-                    <Text style={styles.itemTime}>{item.time ?? 'Todo el día'}</Text>
-                    <Text style={styles.itemOrigin}>{presentation.label}</Text>
+                    <Text style={styles.itemTime}>{item.time ?? t('home.allDay')}</Text>
+                    <Text style={styles.itemOrigin}>{t(presentation.labelKey)}</Text>
                   </View>
                   <Text
                     style={[styles.itemTitle, item.completed && !isGoogle && styles.itemDone]}
                     numberOfLines={2}
                   >
-                    {item.title.replace(/^ENTREGA:\s*/, '')}
+                    {item.title || t('calendar.untitledEvent')}
                   </Text>
                   {item.linkedGoalTitle ? (
                     <Text style={styles.itemLink} numberOfLines={1}>
-                      Vinculado a {item.linkedGoalTitle}
+                      {t('home.linkedGoal', { title: item.linkedGoalTitle })}
                     </Text>
                   ) : null}
                 </View>
@@ -279,7 +306,7 @@ export const OverviewScreen = () => {
                     activeOpacity={0.75}
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: item.completed }}
-                    accessibilityLabel={item.title}
+                    accessibilityLabel={item.title || t('calendar.untitledEvent')}
                   >
                     {item.completed ? (
                       <Ionicons name="checkmark" size={16} color={colors.onSuccess} />
@@ -312,6 +339,22 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       marginTop: 2,
     },
     subtitle: { ...type.bodyMd, color: colors.onSurfaceVariant, marginTop: 2 },
+    firstRunCard: {
+      backgroundColor: colors.surfaceContainer,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: radius.xl,
+      padding: SPACING.lg,
+      alignItems: 'center',
+      marginBottom: SPACING.md,
+    },
+    firstRunTitle: { ...type.titleLg, color: colors.onSurface, textAlign: 'center', marginTop: SPACING.sm },
+    firstRunBody: { ...type.bodyMd, color: colors.onSurfaceVariant, textAlign: 'center', marginTop: SPACING.xs },
+    firstRunActions: { width: '100%', gap: SPACING.sm, marginTop: SPACING.lg },
+    firstRunPrimary: { minHeight: 48, borderRadius: radius.full, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm },
+    firstRunPrimaryText: { ...type.labelLg, color: colors.onPrimary },
+    firstRunSecondary: { minHeight: 48, borderRadius: radius.full, backgroundColor: colors.secondaryContainer, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm },
+    firstRunSecondaryText: { ...type.labelLg, color: colors.onSecondaryContainer },
     focusCard: {
       minHeight: 158,
       backgroundColor: colors.primaryContainer,

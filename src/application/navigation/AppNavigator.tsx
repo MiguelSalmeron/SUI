@@ -1,28 +1,30 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
-
-import { OnboardingScreen } from '@/features/onboarding/screens/OnboardingScreen';
+import { WelcomeScreen } from '@/features/onboarding/screens/WelcomeScreen';
+import { LoginScreen } from '@/features/auth/screens/LoginScreen';
+import { RegisterScreen } from '@/features/auth/screens/RegisterScreen';
+import { ForgotPasswordScreen } from '@/features/auth/screens/ForgotPasswordScreen';
+import { MergeDataScreen } from '@/features/auth/screens/MergeDataScreen';
 import { ChatScreen } from '@/features/chat/screens/ChatScreen';
 import { SettingsScreen } from '@/features/settings/screens/SettingsScreen';
+import { ConnectionsScreen } from '@/features/settings/screens/ConnectionsScreen';
 import { SummaryScreen } from '@/features/home/screens/SummaryScreen';
-import { TabNavigator } from './TabNavigator';
-import { AuthContext } from '@/features/auth/context/AuthContext';
-import { useOnboardingStore } from '@/features/onboarding/store/useOnboardingStore';
+import { useIntroStore } from '@/features/onboarding/store/useIntroStore';
 import { useAppTheme } from '@/shared/theme/theme';
+import { TabNavigator } from './TabNavigator';
 import type { RootStackParamList } from './types';
+import { useI18n } from '@/shared/i18n/i18n';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const AUTH_READY_TIMEOUT_MS = 8000;
 
 export const AppNavigator = () => {
-  const { loading } = useContext(AuthContext);
-  const hydrated = useOnboardingStore((state) => state.hydrated);
-  const setHydrated = useOnboardingStore((state) => state.setHydrated);
-  const onboardingComplete = useOnboardingStore((state) => state.onboardingComplete);
+  const hydrated = useIntroStore((state) => state.hydrated);
+  const setHydrated = useIntroStore((state) => state.setHydrated);
+  const introComplete = useIntroStore((state) => state.introComplete);
   const theme = useAppTheme();
-  const [authTimedOut, setAuthTimedOut] = useState(false);
+  const { t } = useI18n();
 
   const navTheme = useMemo(
     () => ({
@@ -42,32 +44,29 @@ export const AppNavigator = () => {
   );
 
   useEffect(() => {
-    const timer = setTimeout(() => setAuthTimedOut(true), AUTH_READY_TIMEOUT_MS);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Evita quedarse en splash si la rehidratación de Zustand no responde.
-  useEffect(() => {
     if (hydrated) return;
     const timer = setTimeout(() => setHydrated(true), 4000);
     return () => clearTimeout(timer);
   }, [hydrated, setHydrated]);
 
-  const ready = hydrated && (!loading || authTimedOut);
-
   useEffect(() => {
-    if (ready) {
-      SplashScreen.hideAsync().catch(() => undefined);
-    }
-  }, [ready]);
+    if (hydrated) SplashScreen.hideAsync().catch(() => undefined);
+  }, [hydrated]);
 
-  if (!ready) {
-    return null;
-  }
+  if (!hydrated) return null;
+
+  const standardHeader = {
+    headerShown: true,
+    headerTintColor: theme.colors.primary,
+    headerStyle: { backgroundColor: theme.colors.surfaceContainer },
+    headerTitleStyle: { ...theme.type.titleMd, color: theme.colors.onSurface },
+    headerShadowVisible: true,
+  } as const;
 
   return (
     <NavigationContainer theme={navTheme}>
       <Stack.Navigator
+        initialRouteName={introComplete ? 'Home' : 'Welcome'}
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
@@ -75,61 +74,16 @@ export const AppNavigator = () => {
           contentStyle: { backgroundColor: theme.colors.background },
         }}
       >
-        {!onboardingComplete ? (
-          <Stack.Screen
-            name="Onboarding"
-            component={OnboardingScreen}
-            options={{ gestureEnabled: false, animation: 'fade' }}
-          />
-        ) : (
-          <>
-            <Stack.Screen name="Home" component={TabNavigator} />
-            <Stack.Screen
-              name="Chat"
-              component={ChatScreen}
-              options={{
-                headerShown: true,
-                title: 'Sui',
-                headerBackTitle: 'Inicio',
-                headerTintColor: theme.colors.primary,
-                headerStyle: { backgroundColor: theme.colors.surfaceContainer },
-                headerTitleStyle: {
-                  ...theme.type.titleMd,
-                  color: theme.colors.onSurface,
-                },
-                headerShadowVisible: true,
-              }}
-            />
-            <Stack.Screen
-              name="Progress"
-              component={SummaryScreen}
-              options={{
-                headerShown: true,
-                title: '',
-                headerBackTitle: 'Inicio',
-                headerTintColor: theme.colors.primary,
-                headerStyle: { backgroundColor: theme.colors.background },
-                headerShadowVisible: false,
-              }}
-            />
-            <Stack.Screen
-              name="Settings"
-              component={SettingsScreen}
-              options={{
-                headerShown: true,
-                title: 'Ajustes',
-                headerBackTitle: 'Inicio',
-                headerTintColor: theme.colors.primary,
-                headerStyle: { backgroundColor: theme.colors.surfaceContainer },
-                headerTitleStyle: {
-                  ...theme.type.titleMd,
-                  color: theme.colors.onSurface,
-                },
-                headerShadowVisible: true,
-              }}
-            />
-          </>
-        )}
+        <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ gestureEnabled: false, animation: 'fade' }} />
+        <Stack.Screen name="Home" component={TabNavigator} options={{ gestureEnabled: false }} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        <Stack.Screen name="MergeData" component={MergeDataScreen} options={{ gestureEnabled: false }} />
+        <Stack.Screen name="Chat" component={ChatScreen} options={{ ...standardHeader, title: 'Sui', headerBackTitle: t('nav.backHome') }} />
+        <Stack.Screen name="Progress" component={SummaryScreen} options={{ ...standardHeader, title: '', headerBackTitle: t('nav.backHome'), headerStyle: { backgroundColor: theme.colors.background }, headerShadowVisible: false }} />
+        <Stack.Screen name="Settings" component={SettingsScreen} options={{ ...standardHeader, title: t('nav.settings'), headerBackTitle: t('nav.backHome') }} />
+        <Stack.Screen name="Connections" component={ConnectionsScreen} options={{ ...standardHeader, title: t('settings.connections'), headerBackTitle: t('nav.backSettings') }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

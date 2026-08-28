@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -20,15 +20,12 @@ import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
 import type { Goal } from '@/shared/types/models';
 import { GoalFormModal } from '../components/GoalFormModal';
+import { useI18n } from '@/shared/i18n/i18n';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { MainTabParamList } from '@/application/navigation/types';
 
 type Filter = 'active' | 'completed';
-
-const formatDeadline = (dateKey: string) =>
-  new Date(`${dateKey}T00:00:00`).toLocaleDateString('es-ES', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
 
 const daysUntil = (dateKey: string) => {
   const today = new Date();
@@ -42,6 +39,9 @@ export const GoalsScreen = () => {
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const celebrate = useCelebrationStore((s) => s.trigger);
+  const { t, formatDate } = useI18n();
+  const route = useRoute<RouteProp<MainTabParamList, 'Goals'>>();
+  const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList, 'Goals'>>();
 
   const goals = useHomeStore((s) => s.goals);
   const addGoal = useHomeStore((s) => s.addGoal);
@@ -55,6 +55,12 @@ export const GoalsScreen = () => {
   const [milestoneGoalId, setMilestoneGoalId] = useState<string | null>(null);
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!route.params?.create) return;
+    setFormVisible(true);
+    navigation.setParams({ create: undefined });
+  }, [navigation, route.params?.create]);
+
   const activeGoals = useMemo(
     () => goals.filter((goal) => !goal.completed).sort((a, b) => a.deadline.localeCompare(b.deadline)),
     [goals],
@@ -65,23 +71,23 @@ export const GoalsScreen = () => {
 
   const confirmRemove = (goal: Goal) => {
     Alert.alert(
-      'Eliminar meta',
-      `¿Quieres eliminar “${goal.title}”? Sus hitos también se eliminarán.`,
+      t('goals.delete'),
+      t('goals.deleteBody', { title: goal.title }),
       [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: () => removeGoal(goal.id) },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('goals.remove'), style: 'destructive', onPress: () => removeGoal(goal.id) },
       ],
     );
   };
 
   const openActions = (goal: Goal) => {
-    Alert.alert(goal.title, 'Elige una acción', [
+    Alert.alert(goal.title, t('goals.chooseAction'), [
       {
-        text: goal.completed ? 'Reabrir meta' : 'Marcar como completada',
+        text: goal.completed ? t('goals.reopen') : t('goals.markComplete'),
         onPress: () => toggleGoal(goal.id),
       },
-      { text: 'Eliminar', style: 'destructive', onPress: () => confirmRemove(goal) },
-      { text: 'Cancelar', style: 'cancel' },
+      { text: t('goals.remove'), style: 'destructive', onPress: () => confirmRemove(goal) },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
@@ -92,26 +98,26 @@ export const GoalsScreen = () => {
       showsVerticalScrollIndicator={false}
     >
       <ScreenIntro
-        title="Metas"
-        subtitle="Resultados concretos con fecha e hitos."
-        actionLabel="Crear una meta"
+        title={t('goals.title')}
+        subtitle={t('goals.subtitle')}
+        actionLabel={t('goals.create')}
         onAction={() => setFormVisible(true)}
       />
 
       <View style={styles.summaryCard}>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryValue}>{activeGoals.length}</Text>
-          <Text style={styles.summaryLabel}>activas</Text>
+          <Text style={styles.summaryLabel}>{t('goals.activeLower')}</Text>
         </View>
         <View style={styles.summaryDivider} />
         <View style={styles.summaryItem}>
           <Text style={[styles.summaryValue, importantCount > 0 && { color: colors.flame }]}>{importantCount}</Text>
-          <Text style={styles.summaryLabel}>importantes</Text>
+          <Text style={styles.summaryLabel}>{t('goals.importantLower')}</Text>
         </View>
         <View style={styles.summaryDivider} />
         <View style={styles.summaryItem}>
           <Text style={styles.summaryValue}>{completedGoals.length}</Text>
-          <Text style={styles.summaryLabel}>completadas</Text>
+          <Text style={styles.summaryLabel}>{t('goals.completedLower')}</Text>
         </View>
       </View>
 
@@ -122,7 +128,7 @@ export const GoalsScreen = () => {
           accessibilityRole="tab"
           accessibilityState={{ selected: filter === 'active' }}
         >
-          <Text style={[styles.filterText, filter === 'active' && styles.filterTextActive]}>Activas</Text>
+          <Text style={[styles.filterText, filter === 'active' && styles.filterTextActive]}>{t('goals.active')}</Text>
           <View style={[styles.countBadge, filter === 'active' && styles.countBadgeActive]}>
             <Text style={[styles.countText, filter === 'active' && styles.countTextActive]}>{activeGoals.length}</Text>
           </View>
@@ -133,7 +139,7 @@ export const GoalsScreen = () => {
           accessibilityRole="tab"
           accessibilityState={{ selected: filter === 'completed' }}
         >
-          <Text style={[styles.filterText, filter === 'completed' && styles.filterTextActive]}>Completadas</Text>
+          <Text style={[styles.filterText, filter === 'completed' && styles.filterTextActive]}>{t('goals.completed')}</Text>
           <View style={[styles.countBadge, filter === 'completed' && styles.countBadgeActive]}>
             <Text style={[styles.countText, filter === 'completed' && styles.countTextActive]}>{completedGoals.length}</Text>
           </View>
@@ -144,16 +150,16 @@ export const GoalsScreen = () => {
         <View style={styles.emptyCard}>
           <SuiDoodle variant="path" size={76} />
           <Text style={styles.emptyTitle}>
-            {filter === 'active' ? 'Aún no tienes metas activas' : 'Todavía no hay metas completadas'}
+            {filter === 'active' ? t('goals.emptyActive') : t('goals.emptyCompleted')}
           </Text>
           <Text style={styles.emptyText}>
             {filter === 'active'
-              ? 'Empieza con un resultado pequeño y alcanzable.'
-              : 'Las metas que termines aparecerán aquí.'}
+              ? t('goals.emptyActiveBody')
+              : t('goals.emptyCompletedBody')}
           </Text>
           {filter === 'active' ? (
             <TouchableOpacity style={styles.emptyAction} onPress={() => setFormVisible(true)}>
-              <Text style={styles.emptyActionText}>Crear primera meta</Text>
+              <Text style={styles.emptyActionText}>{t('goals.first')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -185,14 +191,14 @@ export const GoalsScreen = () => {
                         goal.gravity === 'high' && { color: colors.onFlameContainer },
                       ]}
                     >
-                      {goal.gravity === 'high' ? 'Importante' : 'Normal'}
+                      {goal.gravity === 'high' ? t('goals.important') : t('goals.normal')}
                     </Text>
                   </View>
                   <TouchableOpacity
                     style={styles.menuButton}
                     onPress={() => openActions(goal)}
                     accessibilityRole="button"
-                    accessibilityLabel={`Acciones para ${goal.title}`}
+                    accessibilityLabel={t('goals.actionsLabel', { title: goal.title })}
                   >
                     <Ionicons name="ellipsis-horizontal" size={20} color={colors.onSurfaceVariant} />
                   </TouchableOpacity>
@@ -201,16 +207,16 @@ export const GoalsScreen = () => {
                 <Text style={[styles.goalTitle, goal.completed && styles.goalTitleDone]}>{goal.title}</Text>
                 <View style={styles.deadlineRow}>
                   <Ionicons name="calendar-outline" size={14} color={colors.onSurfaceVariant} />
-                  <Text style={styles.deadlineText}>{formatDeadline(goal.deadline)}</Text>
+                  <Text style={styles.deadlineText}>{formatDate(new Date(`${goal.deadline}T00:00:00`), { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
                   {!goal.completed && remaining <= 7 ? (
                     <Text style={[styles.remainingText, remaining < 0 && { color: colors.error }]}>
-                      {remaining < 0 ? 'Vencida' : remaining === 0 ? 'Hoy' : `${remaining} días`}
+                      {remaining < 0 ? t('goals.overdue') : remaining === 0 ? t('goals.today') : t('goals.days', { count: remaining })}
                     </Text>
                   ) : null}
                 </View>
 
                 <View style={styles.progressHeader}>
-                  <Text style={styles.progressLabel}>Avance</Text>
+                  <Text style={styles.progressLabel}>{t('goals.progress')}</Text>
                   <Text style={styles.progressValue}>{goal.progress}%</Text>
                 </View>
                 <View style={styles.progressTrack}>
@@ -235,8 +241,8 @@ export const GoalsScreen = () => {
                     <Ionicons name="list-outline" size={17} color={colors.primary} />
                     <Text style={styles.milestoneSummaryText}>
                       {goal.milestones.length
-                        ? `${milestonesDone} de ${goal.milestones.length} hitos`
-                        : 'Añade hitos para medir el avance'}
+                        ? t('goals.milestones', { done: milestonesDone, total: goal.milestones.length })
+                        : t('goals.addMilestones')}
                     </Text>
                   </View>
                   <Ionicons
@@ -255,7 +261,7 @@ export const GoalsScreen = () => {
                         onPress={() => {
                           toggleMilestone(goal.id, milestone.id);
                           if (!milestone.completed) {
-                            celebrate({ kind: 'goal', subtitle: `Hito cumplido · ${milestone.title}` });
+                            celebrate({ kind: 'goal', subtitle: t('goals.milestoneDone', { title: milestone.title }) });
                           }
                         }}
                         accessibilityRole="checkbox"
@@ -276,7 +282,7 @@ export const GoalsScreen = () => {
                       onPress={() => setMilestoneGoalId(goal.id)}
                     >
                       <Ionicons name="add" size={17} color={colors.primary} />
-                      <Text style={styles.addMilestoneText}>Añadir hito</Text>
+                      <Text style={styles.addMilestoneText}>{t('goals.addMilestone')}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : null}
@@ -298,10 +304,10 @@ export const GoalsScreen = () => {
 
       <PromptModal
         visible={milestoneGoalId !== null}
-        title="Nuevo hito"
-        hint="Una parte concreta que acerque esta meta a completarse."
-        placeholder="Ej. Terminar el primer borrador"
-        validate={(value) => (value ? null : 'Escribe un hito')}
+        title={t('goalForm.milestoneTitle')}
+        hint={t('goalForm.milestoneHint')}
+        placeholder={t('goalForm.milestonePlaceholder')}
+        validate={(value) => (value ? null : t('goalForm.milestoneRequired'))}
         onSubmit={(title) => {
           if (milestoneGoalId) addMilestone(milestoneGoalId, title);
           setMilestoneGoalId(null);

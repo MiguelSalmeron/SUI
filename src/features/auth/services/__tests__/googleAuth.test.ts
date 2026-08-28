@@ -115,12 +115,12 @@ describe('googleAuth · linkOrSignInWithGoogleIdToken', () => {
     expect(mockedLink).not.toHaveBeenCalled();
   });
 
-  it('mapea credential-already-in-use', async () => {
+  it('entra a cuenta existente cuando vínculo anónimo colisiona', async () => {
     setAnonUser('anon-1');
     mockedLink.mockRejectedValueOnce({ code: 'auth/credential-already-in-use' } as never);
+    mockedSignIn.mockResolvedValueOnce({ user: { uid: 'existing-1' } } as never);
     const res = await linkOrSignInWithGoogleIdToken('tok');
-    expect(res.ok).toBe(false);
-    expect(res.error).toContain('Continuar con Google');
+    expect(res).toMatchObject({ ok: true, uid: 'existing-1', linked: false });
   });
 
   it('mapea operation-not-allowed', async () => {

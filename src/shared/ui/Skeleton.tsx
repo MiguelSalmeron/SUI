@@ -7,7 +7,7 @@
  */
 
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, DimensionValue, StyleSheet, View, ViewStyle } from 'react-native';
+import { Animated, DimensionValue, Platform, StyleSheet, View, ViewStyle } from 'react-native';
 import { MD3_RADIUS, useAppTheme } from '@/shared/theme/theme';
 
 export type SkeletonProps = {
@@ -32,12 +32,12 @@ export const Skeleton: React.FC<SkeletonProps> = ({
         Animated.timing(opacity, {
           toValue: 1,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(opacity, {
           toValue: 0.55,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
       ]),
     );

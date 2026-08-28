@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { MAX_INPUT_CHARS } from '../types/chat';
+import { useI18n } from '@/shared/i18n/i18n';
 
 interface Props {
   /** true mientras el asistente responde: bloquea el envío. */
@@ -19,6 +20,7 @@ export const ChatInput = ({ busy, onSend }: Props) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t } = useI18n();
   const [text, setText] = useState('');
 
   const submit = () => {
@@ -34,7 +36,7 @@ export const ChatInput = ({ busy, onSend }: Props) => {
     <View style={styles.wrapper}>
       <TextInput
         style={styles.input}
-        placeholder="Escribe lo que sientes…"
+        placeholder={t('chat.inputPlaceholder')}
         placeholderTextColor={colors.onSurfaceVariant}
         value={text}
         onChangeText={setText}
@@ -51,7 +53,7 @@ export const ChatInput = ({ busy, onSend }: Props) => {
         disabled={disabled}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel="Enviar mensaje"
+        accessibilityLabel={t('chat.send')}
         accessibilityState={{ disabled }}
       >
         <Ionicons

@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import type { CelebrationKind } from './celebration';
 import {
-  getCelebrationTitle,
   getCelebrationXp,
   playCelebrationHaptic,
 } from './celebration';
@@ -13,7 +12,7 @@ type CelebrationPayload = {
 
 type CelebrationState = {
   visible: boolean;
-  title: string;
+  kind: CelebrationKind | null;
   subtitle: string;
   xp: number;
   trigger: (payload: CelebrationPayload) => void;
@@ -24,21 +23,20 @@ let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
 export const useCelebrationStore = create<CelebrationState>((set) => ({
   visible: false,
-  title: '',
+  kind: null,
   subtitle: '',
   xp: 0,
 
   trigger: ({ kind, subtitle }) => {
     if (hideTimer) clearTimeout(hideTimer);
 
-    const title = getCelebrationTitle(kind);
     const xp = getCelebrationXp(kind);
     void playCelebrationHaptic(kind);
 
     set({
       visible: true,
-      title,
-      subtitle: subtitle ?? (xp > 0 ? `+${xp} XP` : 'Excelente constancia'),
+      kind,
+      subtitle: subtitle ?? (xp > 0 ? `+${xp} XP` : ''),
       xp,
     });
 

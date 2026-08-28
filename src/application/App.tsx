@@ -5,11 +5,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from '@/features/auth/context/AuthContext';
-import { useOnboardingStore } from '@/features/onboarding/store/useOnboardingStore';
+import { useIntroStore } from '@/features/onboarding/store/useIntroStore';
 import { signInAnon } from '@/features/auth/services/onboardingAuth';
 import { configureNotificationHandler } from '@/features/settings/services/notifications';
 import { ThemeProvider, useAppTheme } from '@/shared/theme/theme';
 import { AppNavigator } from './navigation/AppNavigator';
+import { recordTelemetry, wrapApplication } from '@/shared/observability/telemetry';
 
 /**
  * PWA: html/body/#root default white → raya blanca bajo UI dark.
@@ -71,24 +72,27 @@ configureNotificationHandler();
  * que el Guardián de Estado terminó de rehidratar.
  */
 const useRetryPendingAuth = () => {
-  const hydrated = useOnboardingStore((state) => state.hydrated);
-  const syncPending = useOnboardingStore((state) => state.syncPending);
+  const hydrated = useIntroStore((state) => state.hydrated);
+  const introComplete = useIntroStore((state) => state.introComplete);
+  const accountMode = useIntroStore((state) => state.accountMode);
+  const syncPending = useIntroStore((state) => state.technicalAuthPending);
+  const setTechnicalAuthPending = useIntroStore((state) => state.setTechnicalAuthPending);
 
   useEffect(() => {
-    if (!hydrated || !syncPending) return;
+    if (!hydrated || !introComplete || accountMode !== 'local') return;
     let active = true;
     (async () => {
       const result = await signInAnon();
-      if (!active || result.syncPending) return;
-      useOnboardingStore.setState({ anonUid: result.uid, syncPending: false });
+      if (!active) return;
+      setTechnicalAuthPending(result.syncPending);
     })();
     return () => {
       active = false;
     };
-  }, [hydrated, syncPending]);
+  }, [accountMode, hydrated, introComplete, syncPending, setTechnicalAuthPending]);
 };
 
-export default function App() {
+function App() {
   useRetryPendingAuth();
 
   // Preload desde assets/ (no node_modules). En PWA, Firebase ignoraba
@@ -103,7 +107,13 @@ export default function App() {
     'FredokaOne-Regular': require('../../assets/fonts/FredokaOne-Regular.ttf'),
   });
 
-  if (!fontsLoaded && !fontError) {
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      recordTelemetry('app.start', { fonts: fontError ? 'error' : 'loaded' });
+    }
+  }, [fontError, fontsLoaded]);
+
+  if (!fontsLoaded) {
     return null;
   }
 
@@ -117,6 +127,8 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+export default wrapApplication(App);
 
 const AppShell = () => {
   const theme = useAppTheme();

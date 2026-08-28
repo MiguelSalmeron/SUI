@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
+import { useI18n } from '@/shared/i18n/i18n';
 
 export const CelebrationToast = () => {
   const theme = useAppTheme();
@@ -11,8 +12,15 @@ export const CelebrationToast = () => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
   const visible = useCelebrationStore((s) => s.visible);
-  const title = useCelebrationStore((s) => s.title);
+  const kind = useCelebrationStore((s) => s.kind);
   const subtitle = useCelebrationStore((s) => s.subtitle);
+  const { t } = useI18n();
+  const title = kind === 'goal'
+    ? t('celebration.goal')
+    : kind === 'habit'
+      ? t('celebration.habit')
+      : t('celebration.perfectDay');
+  const visibleSubtitle = subtitle || t('celebration.consistency');
   const translateY = useRef(new Animated.Value(-120)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -25,14 +33,14 @@ export const CelebrationToast = () => {
     Animated.parallel([
       Animated.spring(translateY, {
         toValue: 0,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
         speed: 18,
         bounciness: 8,
       }),
       Animated.timing(opacity, {
         toValue: 1,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
     ]).start();
   }, [visible, title, translateY, opacity]);
@@ -57,7 +65,7 @@ export const CelebrationToast = () => {
         </View>
         <View style={styles.textCol}>
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
+          <Text style={styles.subtitle}>{visibleSubtitle}</Text>
         </View>
       </View>
     </Animated.View>

@@ -18,12 +18,14 @@ import {
   getAchievements,
   getWeeklyInsight,
 } from '@/shared/domain/productivity/gamification';
+import { useI18n } from '@/shared/i18n/i18n';
 
 export const SummaryScreen = () => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const statBoxStyles = useMemo(() => createStatStyles(theme), [theme]);
+  const { t } = useI18n();
 
   const goals = useHomeStore((s) => s.goals);
   const habits = useHomeStore((s) => s.habits);
@@ -64,7 +66,14 @@ export const SummaryScreen = () => {
     [completedGoals, goals.length, completedHabits, habits.length, streak, weeklyHistory],
   );
 
-  const insight = useMemo(() => getWeeklyInsight(week, streak), [week, streak]);
+  const insightData = useMemo(() => getWeeklyInsight(week, streak), [week, streak]);
+  const insight = insightData.kind === 'empty'
+    ? t('progress.insightEmpty')
+    : insightData.kind === 'excellent'
+      ? t('progress.insightExcellent', { rate: insightData.rate, streak: insightData.streak })
+      : insightData.kind === 'active'
+        ? t('progress.insightActive', { days: insightData.days })
+        : t('progress.insightAverage', { rate: insightData.rate });
 
   return (
     <ScrollView
@@ -73,8 +82,8 @@ export const SummaryScreen = () => {
       showsVerticalScrollIndicator={false}
     >
       <ScreenIntro
-        title="Progreso"
-        subtitle="Una mirada clara a lo que has construido."
+        title={t('progress.title')}
+        subtitle={t('progress.subtitle')}
       />
 
       <LevelCard totalXp={totalXp} />
@@ -91,28 +100,28 @@ export const SummaryScreen = () => {
       <View style={styles.statsGrid}>
         <StatBox
           icon="flag"
-          label="Metas"
+          label={t('progress.goals')}
           value={String(weekTotals.goalsDone)}
           colors={colors}
           styles={statBoxStyles}
         />
         <StatBox
           icon="repeat"
-          label="Hábitos"
+          label={t('progress.habits')}
           value={String(weekTotals.habitsDone)}
           colors={colors}
           styles={statBoxStyles}
         />
         <StatBox
           icon="flame"
-          label="Racha"
-          value={`${streak} días`}
+          label={t('progress.streak')}
+          value={t('progress.days', { count: streak })}
           colors={colors}
           styles={statBoxStyles}
         />
         <StatBox
           icon="calendar"
-          label="Días activos"
+          label={t('progress.activeDays')}
           value={`${weekTotals.activeDays}/7`}
           colors={colors}
           styles={statBoxStyles}
@@ -120,10 +129,10 @@ export const SummaryScreen = () => {
       </View>
 
       <View style={styles.todayCard}>
-        <Text style={styles.todayTitle}>HOY</Text>
+        <Text style={styles.todayTitle}>{t('progress.today')}</Text>
         <View style={styles.todayRow}>
           <Text style={styles.todayStat}>
-            {completedGoals}/{goals.length} metas · {completedHabits}/{habits.length} hábitos
+            {t('progress.todaySummary', { goalsDone: completedGoals, goalsTotal: goals.length, habitsDone: completedHabits, habitsTotal: habits.length })}
           </Text>
           <Text style={styles.todayRate}>{todayRate}%</Text>
         </View>

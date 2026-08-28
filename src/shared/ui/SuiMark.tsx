@@ -46,7 +46,7 @@ export const SuiMark = ({
       resizeMode="contain"
       tintColor={tintColor}
       style={[{ width: size * ASPECT_RATIOS[variant], height: size }, style]}
-      accessible={accessible}
+      accessible={accessible || undefined}
       accessibilityRole={accessible ? 'image' : undefined}
       accessibilityLabel={accessible ? accessibilityLabel : undefined}
     />

@@ -38,6 +38,32 @@ export const buildReportPayload = (
 ): PromptMessage[] => {
   const { total, done, percent } = summarizeStats(stats);
 
+  if (profile.locale === 'en') {
+    const completedLine = stats.completed.length
+      ? `Completed: ${stats.completed.join(', ')}.`
+      : 'No goals or habits were completed today.';
+    const pendingLine = stats.pending.length
+      ? `Pending: ${stats.pending.join(', ')}.`
+      : 'Nothing was left pending.';
+    const streakLine = stats.streak && stats.streak > 1
+      ? ` They have a ${stats.streak}-day streak; acknowledge it naturally.`
+      : stats.streak === 1
+        ? ' They restarted their streak today; support a calm return tomorrow.'
+        : '';
+    return [
+      { role: 'system', content: buildSystemPrompt(profile) },
+      {
+        role: 'user',
+        content:
+          `This is the end-of-day review. Completion: ${done} of ${total} (${percent}%). ` +
+          `${completedLine} ${pendingLine}${streakLine}\n\n` +
+          'Write a brief nightly summary in English: at most two short paragraphs, warm and grounded. ' +
+          'Acknowledge effort without judging unfinished work. End with one simple intention for tomorrow. ' +
+          'Use second person. No lists, headings, forced optimism, diagnoses, or clinical advice.',
+      },
+    ];
+  }
+
   const completedLine = stats.completed.length
     ? `Completó: ${stats.completed.join(', ')}.`
     : 'No completó ninguna meta o hábito hoy.';
