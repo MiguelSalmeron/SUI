@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { DailySnapshot } from './gamification';
 import type { Goal, Habit, DayOfWeek } from '@/shared/types/models';
 
@@ -127,43 +126,4 @@ export const applyDailyReset = (
     todayKey,
     didReset: true,
   };
-};
-
-const makeGoal = (title: string, index: number): Goal => {
-  const d = new Date();
-  d.setDate(d.getDate() + 7);
-  return {
-    id: `onboarding-goal-${index}-${Date.now()}`,
-    title,
-    deadline: localDateKey(d),
-    progress: 0,
-    milestones: [],
-    impactDays: [localDateKey(d)],
-    completed: false,
-    gravity: index % 2 === 0 ? 'high' : 'low',
-    createdAt: localDateKey(),
-  };
-};
-
-/**
- * Siembra las metas elegidas en el onboarding dentro del estado local del tablero.
- */
-export const seedOnboardingGoals = async (goalLabels: string[]): Promise<void> => {
-  try {
-    const raw = await AsyncStorage.getItem(HOME_STATE_KEY);
-    const existing: Partial<HomeState> = raw ? JSON.parse(raw) : {};
-
-    if (existing.goals && existing.goals.length > 0) {
-      return;
-    }
-
-    const merged: HomeState = {
-      goals: goalLabels.map(makeGoal),
-      habits: existing.habits ?? [],
-    };
-
-    await AsyncStorage.setItem(HOME_STATE_KEY, JSON.stringify(merged));
-  } catch (error) {
-    console.warn('No se pudieron sembrar las metas del onboarding:', error);
-  }
 };
