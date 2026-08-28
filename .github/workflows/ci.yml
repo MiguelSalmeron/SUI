@@ -20,20 +20,20 @@ jobs:
           node-version: '20'
           cache: npm
 
+      - name: Setup Java for Firebase Emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - name: Install dependencies
         run: npm ci
 
       - name: Install Functions dependencies
         run: npm ci --prefix functions
 
-      - name: Check architecture boundaries
-        run: npm run architecture
+      - name: Run full checks
+        run: npm run check
 
-      - name: Typecheck app
-        run: npm run typecheck
-
-      - name: Run unit tests
-        run: npm test
-
-      - name: Test functions
-        run: npm run functions:test
+      - name: Export web bundle
+        run: npm run export:web

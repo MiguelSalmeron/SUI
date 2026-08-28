@@ -1,49 +1,35 @@
 {
   "cli": {
-    "version": ">= 5.9.0",
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote",
     "promptToConfigurePushNotifications": false
   },
   "build": {
     "development": {
+      "environment": "development",
       "developmentClient": true,
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_FIREBASE_API_KEY": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_APP_ID": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_CHAT_PROXY_URL": "REPLACE_VIA_EAS_VARIABLE"
+        "EXPO_PUBLIC_APP_ENV": "development"
       }
     },
-    "preview": {
+    "staging": {
+      "environment": "preview",
       "distribution": "internal",
+      "channel": "staging",
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_FIREBASE_API_KEY": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_APP_ID": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_CHAT_PROXY_URL": "REPLACE_VIA_EAS_VARIABLE"
+        "EXPO_PUBLIC_APP_ENV": "staging"
       }
     },
     "production": {
+      "environment": "production",
+      "channel": "production",
+      "autoIncrement": true,
       "android": { "buildType": "app-bundle" },
       "env": {
-        "EXPO_PUBLIC_FIREBASE_API_KEY": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_APP_ID": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "REPLACE_VIA_EAS_VARIABLE",
-        "EXPO_PUBLIC_CHAT_PROXY_URL": "REPLACE_VIA_EAS_VARIABLE"
+        "EXPO_PUBLIC_APP_ENV": "production"
       }
     }
   },

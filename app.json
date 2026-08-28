@@ -8,10 +8,14 @@
     "userInterfaceStyle": "automatic",
     "scheme": "sui",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sui.app",
+      "buildNumber": "1",
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.sui.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0B132B",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -41,7 +45,12 @@
           "resizeMode": "contain"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-apple-authentication",
+      "expo-localization",
+      "expo-secure-store",
+      "@sentry/react-native",
+      "expo-status-bar"
     ]
   }
 }

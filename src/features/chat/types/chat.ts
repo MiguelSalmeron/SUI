@@ -34,14 +34,9 @@ export const MAX_INPUT_CHARS = 1000;
  */
 export interface EmotionalProfile {
   name: string;
-  career: string;
   botPersonality?: 'calm' | 'direct' | 'coach' | null;
-  chronotype?: 'morning' | 'afternoon' | 'night' | null;
-  studyYear?: number | null;
-  /** Edad aproximada calculada desde el año de nacimiento. */
-  age: number | null;
-  /** Etiquetas de objetivos de bienestar elegidas en el onboarding. */
   goals: string[];
+  locale: 'es' | 'en';
 }
 
 /** Mensaje (payload) listo para enviar al proxy: solo role + content. */

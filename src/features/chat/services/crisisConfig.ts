@@ -13,6 +13,7 @@
 
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/shared/infrastructure/firebase/firebase';
+import type { Locale } from '@/shared/i18n/translations';
 
 export interface EmergencyContact {
   label: string;
@@ -59,45 +60,74 @@ export const DEFAULT_CRISIS_CONFIG: CrisisConfig = {
     'puede aliviar el peso. Por favor contacta a una línea de apoyo o a una ' +
     'persona de confianza de inmediato.',
   contacts: [
-    { label: 'Emergencias', phone: '911' },
-    { label: 'Cruz Roja — Emergencias médicas', phone: '128' },
-    { label: 'Policía Nacional', phone: '118' },
-    { label: 'Bomberos', phone: '115' },
-    { label: 'Bomberos (alterno)', phone: '120' },
-    { label: 'Línea turística 24h', phone: '101' },
-    { label: 'Apoyo psicológico (Min. Familia)', phone: '133' },
+    { label: 'Centro de Emergencias', phone: '118' },
+    { label: 'Bomberos Unidos', phone: '115' },
   ],
 };
 
-const CONFIG_DOC_PATH = ['app_config', 'crisis'] as const;
+const DEFAULT_CRISIS_CONFIG_EN: CrisisConfig = {
+  ...DEFAULT_CRISIS_CONFIG,
+  keywords: [
+    'suicide',
+    'kill myself',
+    'want to die',
+    'end my life',
+    'do not want to live',
+    "don't want to live",
+    'hurt myself',
+    'self harm',
+  ],
+  title: 'You are not alone',
+  message:
+    'What you feel matters and you deserve immediate support. Contact emergency services or a trusted person now.',
+  contacts: [
+    { label: 'Emergency center', phone: '118' },
+    { label: 'Fire services', phone: '115' },
+  ],
+};
+
+const fallbackFor = (locale: Locale): CrisisConfig =>
+  locale === 'en' ? DEFAULT_CRISIS_CONFIG_EN : DEFAULT_CRISIS_CONFIG;
 
 /**
  * Descarga el diccionario de crisis al iniciar la app. Si falla (sin red,
  * doc inexistente), devuelve el respaldo empaquetado: NUNCA deja al usuario
  * sin protocolo de emergencia.
  */
-export const fetchCrisisConfig = async (): Promise<CrisisConfig> => {
+export const fetchCrisisConfig = async (
+  locale: Locale = 'es',
+  countryCode = 'NI',
+): Promise<CrisisConfig> => {
+  const fallback = fallbackFor(locale);
   try {
-    const ref = doc(db, CONFIG_DOC_PATH[0], CONFIG_DOC_PATH[1]);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return DEFAULT_CRISIS_CONFIG;
+    const regionalRef = doc(
+      db,
+      'app_config',
+      'crisis',
+      'regions',
+      `${countryCode.toUpperCase()}-${locale}`,
+    );
+    const baseRef = doc(db, 'app_config', 'crisis');
+    const regional = await getDoc(regionalRef);
+    const snap = regional.exists() ? regional : await getDoc(baseRef);
+    if (!snap.exists()) return fallback;
 
     const data = snap.data() as Partial<CrisisConfig>;
     return {
-      version: data.version ?? DEFAULT_CRISIS_CONFIG.version,
+      version: data.version ?? fallback.version,
       keywords:
         Array.isArray(data.keywords) && data.keywords.length
           ? data.keywords
-          : DEFAULT_CRISIS_CONFIG.keywords,
-      title: data.title ?? DEFAULT_CRISIS_CONFIG.title,
-      message: data.message ?? DEFAULT_CRISIS_CONFIG.message,
+          : fallback.keywords,
+      title: data.title ?? fallback.title,
+      message: data.message ?? fallback.message,
       contacts:
         Array.isArray(data.contacts) && data.contacts.length
           ? data.contacts
-          : DEFAULT_CRISIS_CONFIG.contacts,
+          : fallback.contacts,
     };
   } catch (err) {
     console.warn('No se pudo cargar crisis config, usando respaldo:', err);
-    return DEFAULT_CRISIS_CONFIG;
+    return fallback;
   }
 };

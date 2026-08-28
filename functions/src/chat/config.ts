@@ -3,6 +3,10 @@ import { defineInt, defineSecret, defineString } from "firebase-functions/params
 export const AZURE_OPENAI_API_KEY = defineSecret("AZURE_OPENAI_API_KEY");
 export const AZURE_MODEL = defineString("AZURE_MODEL", { default: "gpt-5-mini" });
 export const MIN_INSTANCES = defineInt("CHAT_MIN_INSTANCES", { default: 0 });
+export const APP_CHECK_MODE = defineString("APP_CHECK_MODE", { default: "monitor" });
+export const ALLOWED_ORIGINS = defineString("ALLOWED_ORIGINS", {
+  default: "http://localhost:8081,https://xsui.web.app,https://xsui.firebaseapp.com",
+});
 
 export const AZURE_URL = "https://raiz.services.ai.azure.com/openai/v1/chat/completions";
 export const MAX_MESSAGES = 12;

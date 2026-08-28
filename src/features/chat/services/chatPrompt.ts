@@ -10,33 +10,16 @@ import {
   EmotionalProfile,
   PromptMessage,
 } from '../types/chat';
-import { getGoalById } from '@/features/onboarding/types/onboarding';
-import { OnboardingProfile } from '@/features/onboarding/types/onboarding';
-
-/** Deriva la Ficha Emocional desde el perfil de onboarding + objetivos. */
-export const buildEmotionalProfile = (
-  profile: OnboardingProfile,
-  selectedGoals: string[]
-): EmotionalProfile => {
-  const currentYear = new Date().getFullYear();
-  const age =
-    profile.birthYear && profile.birthYear > 1900
-      ? currentYear - profile.birthYear
-      : null;
-
-  const goals = selectedGoals
-    .map((id) => getGoalById(id)?.label)
-    .filter((label): label is string => Boolean(label));
-
-  return {
-    name: profile.name,
-    career: profile.career,
-    botPersonality: profile.botPersonality,
-    chronotype: profile.chronotype,
-    age,
-    goals,
-  };
-};
+export const buildEmotionalProfile = ({
+  name = '',
+  goals = [],
+  locale = 'es',
+}: Partial<EmotionalProfile> = {}): EmotionalProfile => ({
+  name,
+  goals,
+  locale,
+  botPersonality: 'calm',
+});
 
 /**
  * Genera el system prompt empático. Mantiene tono cálido, breve y preventivo.
@@ -46,9 +29,7 @@ export const buildEmotionalProfile = (
 export const buildSystemPrompt = (p: EmotionalProfile): string => {
   const facts: string[] = [];
   if (p.name) facts.push(`Nombre: ${p.name}`);
-  if (p.career) facts.push(`Carrera: ${p.career}`);
-  if (p.age) facts.push(`Edad aproximada: ${p.age} años`);
-  if (p.goals.length) facts.push(`Objetivos de bienestar: ${p.goals.join(', ')}`);
+  if (p.goals.length) facts.push(`Metas actuales: ${p.goals.join(', ')}`);
 
   let styleInstruction = 'Tu estilo es empático, suave, cálido y enfocado en la reducción del estrés.';
   if (p.botPersonality === 'direct') {
@@ -58,11 +39,19 @@ export const buildSystemPrompt = (p: EmotionalProfile): string => {
   }
 
   const ficha = facts.length
-    ? `\n\nFicha del estudiante:\n- ${facts.join('\n- ')}`
+    ? `\n\nContexto voluntario:\n- ${facts.join('\n- ')}`
     : '';
 
+  if (p.locale === 'en') {
+    return (
+      'You are Sui, a calm and focused wellbeing companion. Use short, human sentences in English. ' +
+      'You are not a therapist and never provide diagnoses or medication advice. If there are signs of immediate danger, ' +
+      'prioritize safety and encourage professional or emergency support. Avoid forced optimism and long lists.'
+    );
+  }
+
   return (
-    'Eres SUI, un compañero preventivo de bienestar para estudiantes. ' +
+    'Eres Sui, un compañero preventivo de bienestar. ' +
     `${styleInstruction} ` +
     'Hablas en español, en segunda persona, con frases cortas y humanas. ' +
     'No eres un terapeuta ni das diagnósticos clínicos ni medicación. Si detectas señales de crisis grave ' +

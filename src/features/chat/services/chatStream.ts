@@ -10,7 +10,7 @@
  */
 
 import EventSource from 'react-native-sse';
-import { auth } from '@/shared/infrastructure/firebase/firebase';
+import { auth, getAppCheckToken } from '@/shared/infrastructure/firebase/firebase';
 import { PromptMessage } from '../types/chat';
 
 const PROXY_URL = process.env.EXPO_PUBLIC_CHAT_PROXY_URL;
@@ -42,10 +42,12 @@ export const streamChat = async (
 
   // Token de Firebase Auth: el proxy lo verifica antes de gastar tokens.
   let idToken: string;
+  let appCheckToken = '';
   try {
     const user = auth.currentUser;
     if (!user) throw new Error('no-auth');
     idToken = await user.getIdToken();
+    appCheckToken = await getAppCheckToken();
   } catch {
     handlers.onError('Sesión no válida. Reinicia la app e inténtalo de nuevo.');
     return { cancel: () => undefined };
@@ -56,6 +58,7 @@ export const streamChat = async (
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${idToken}`,
+      ...(appCheckToken ? { 'X-Firebase-AppCheck': appCheckToken } : {}),
     },
     body: JSON.stringify({ messages: payload }),
     // Una sola conexión: sin reconexión automática.
