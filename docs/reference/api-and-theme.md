@@ -1,255 +1,73 @@
-# Especificaciones de Datos & Sistema de Diseño 📐🎨
+# Referencia de configuración, datos y tema
 
-Este documento detalla variables de entorno, claves de almacenamiento, documentos de base de datos y tokens visuales de **SUI**.
+## Variables cliente
 
----
+Plantilla canónica: `.env.example`.
 
-## 🔑 Variables de Entorno (.env)
+| Grupo | Variables |
+|---|---|
+| Firebase | `EXPO_PUBLIC_FIREBASE_*`, `EXPO_PUBLIC_FIREBASE_APP_CHECK_SITE_KEY` |
+| APIs | `EXPO_PUBLIC_CHAT_PROXY_URL`, `EXPO_PUBLIC_CONNECTIONS_API_URL` |
+| OAuth | `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` |
+| Producto | `EXPO_PUBLIC_APP_ENV`, `EXPO_PUBLIC_POLICY_VERSION`, URLs legales, país y mercados |
+| Observabilidad | `EXPO_PUBLIC_SENTRY_DSN` |
 
-La aplicación utiliza variables prefijadas con `EXPO_PUBLIC_` para que Metro las inyecte de manera segura en el bundle de desarrollo del cliente:
+Variables `EXPO_PUBLIC_*` forman parte del bundle: nunca contienen secretos. Azure key y Google web secret viven en Secret Manager.
 
-| Variable | Tipo | Propósito | Ejemplo / Formato |
-| :--- | :--- | :--- | :--- |
-| `EXPO_PUBLIC_FIREBASE_API_KEY` | String | Llave pública de Firebase Web Client | `AIzaSyA1...` |
-| `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN` | String | Servidor de Auth de tu consola | `sui-app.firebaseapp.com` |
-| `EXPO_PUBLIC_FIREBASE_PROJECT_ID` | String | Identificador único de GCP | `sui-app` |
-| `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`| String | Depósito de archivos de Firebase | `sui-app.firebasestorage.app` |
-| `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`| String | Remitente de mensajes cloud | `837482937402` |
-| `EXPO_PUBLIC_FIREBASE_APP_ID` | String | Id única de la Web App registrada | `1:8374:web:abcd...` |
-| `EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID` | String | ID de analíticas (opcional) | `G-XXXXXXXX` |
-| `EXPO_PUBLIC_CHAT_PROXY_URL` | URI | Endpoint seguro del streaming SSE | `https://chatproxy-gcp.run.app`|
+## Persistencia local
 
----
+| Clave | Contenido |
+|---|---|
+| `sui-onboarding-v3` | entrada completada, modo de cuenta, consentimiento/versiones |
+| `sui-productivity-v7` | datos productivos, metadata, outbox, `deviceId` |
+| `sui-home-state-v6` | origen legado leído durante migración |
+| `sui-chat-v1` | conversación local con TTL 48 h |
+| `@sui/settings-v1` | tema, tamaño de texto, idioma y preferencias |
 
-## 💾 Persistencia Local (AsyncStorage)
+## Firestore
 
-SUI guarda estructuras clave en el dispositivo para garantizar funcionamiento sin conexión:
-
-### 1. Estado del Onboarding (`sui-onboarding-v1`)
-Controlado por `useOnboardingStore`. Determina el gate visual.
-```json
-{
-  "state": {
-    "step": "done",
-    "profile": {
-      "name": "Sofía",
-      "career": "Ingeniería Civil",
-      "studyYear": 3,
-      "birthYear": 2004
-    },
-    "selectedGoals": ["sleep", "stress", "focus"],
-    "syncPending": false,
-    "anonUid": "Axb389ZlkPd... (Firebase UID)",
-    "onboardingComplete": true
-  },
-  "version": 0
-}
+```text
+users/{uid}
+├── goals/{goalId}
+├── habits/{habitId}
+├── snapshots/{date}
+└── connections/{provider}  # backend solamente
 ```
 
-### 2. Historial de Chat (`sui-chat-v1`)
-Controlado por `useChatStore`. Excluye estados efímeros de streaming y aplica un TTL estricto de 48 horas.
-```json
-{
-  "state": {
-    "messages": [
-      {
-        "id": "17185012-abcde",
-        "role": "user",
-        "content": "Me siento un poco estresada por los exámenes.",
-        "createdAt": 1718501222405
-      },
-      {
-        "id": "17185012-efghi",
-        "role": "assistant",
-        "content": "Es normal sentirse así, Sofía...",
-        "createdAt": 1718501224800
-      }
-    ]
-  },
-  "version": 0
-}
-```
-
-### 3. Estado del Tablero de Productividad (`sui-home-state-v6`)
-Representa el tablero diario de metas y hábitos.
-```json
-{
-  "goals": [
-    { "id": "goal-1", "title": "Tomar 2L de agua", "completed": true }
-  ],
-  "habits": [
-    { "id": "habit-1", "title": "Revisar apuntes", "completed": false }
-  ],
-  "lastResetDate": "2026-06-18",
-  "streakCount": 4,
-  "lastCompletedDate": "2026-06-17"
-}
-```
-
----
-
-## ☁️ Esquemas de Base de Datos (Cloud Firestore)
-
-### Colección: `/users/{uid}`
-Representa el respaldo de sincronización del tablero de cada estudiante.
+Documento raíz guarda perfil, preferencias, consentimiento, versión y resumen productivo. Entidades usan sobre:
 
 ```typescript
-interface FirestoreUserDocument {
-  /** Metas puntuales (To-Do) */
-  goals: Array<{
-    id: string;
-    title: string;
-    completed: boolean;
-  }>;
-  /** Hábitos recurrentes */
-  habits: Array<{
-    id: string;
-    title: string;
-    completed: boolean;
-  }>;
-  /** Fecha local (YYYY-MM-DD) del último reseteo de checklist */
-  lastResetDate?: string;
-  /** Número de racha de días consecutivos cumpliendo metas/habits */
-  streakCount?: number;
-  /** Última fecha (YYYY-MM-DD) en la que el usuario incrementó la racha */
-  lastCompletedDate?: string;
-}
+type SyncedEntity<T> = {
+  data: T | null;
+  meta: {
+    schemaVersion: 1;
+    updatedAt: string;
+    serverUpdatedAt?: string;
+    revision: number;
+    deviceId: string;
+    deletedAt?: string;
+    fingerprint: string;
+    lastMutationId: string;
+  };
+};
 ```
 
-### Documento: `/app_config/crisis`
-Controla los parámetros globales de la detección de crisis en el chat. Su estructura base es:
+Usuarios anónimos no pueden leer/escribir productividad. Config crisis pública vive en `app_config/crisis/regions/{COUNTRY}-{locale}` con fallback `app_config/crisis`.
 
-```json
-{
-  "version": 1,
-  "title": "No estás solo/a",
-  "message": "Lo que sientes importa y mereces ayuda ahora mismo...",
-  "keywords": [
-    "suicidio", "suicidarme", "quiero morir", "matarme", "autolesion"
-  ],
-  "contacts": [
-    { "label": "Emergencias", "phone": "911" },
-    { "label": "Cruz Roja", "phone": "128" }
-  ]
-}
-```
+## Tema
 
----
+Marca: `#218ECE`; marino: `#0B132B`; acción accesible: `#1677A6`; salvia: `#55796F`; naranja: `#E87536`. `theme.ts` expone escalas claras/oscuras, spacing, radios y elevación.
 
-## 🎨 Sistema de Diseño (Material Design v3)
+Tipografía vive en `src/shared/theme/typography.ts`. Poppins 400/500/600/700 compone interfaz. Fredoka sólo bienvenida, niveles, logros y celebraciones. `theme.type.*` es único acceso desde componentes; literales tipográficos fallan `npm run architecture`.
 
-SUI adopta los esquemas semánticos y de accesibilidad de **Material Design v3**. Los tokens se definen en `src/shared/theme/theme.ts`:
+Escala base:
 
-### 1. Colores MD3 (Light Scheme)
+- Display: `52/60`, `40/48`, `32/40`.
+- Headline: `30/38`, `26/34`, `22/30`.
+- Title: `20/28`, `16/24`, `14/20`.
+- Body: `16/24`, `14/20`, `12/16`.
+- Label: `14/20`, `12/16`, `11/16`, `10/14`.
 
-| Token | Valor Hex | Uso Semántico |
-| :--- | :--- | :--- |
-| `primary` | `#355F78` | Azul pizarra para navegación y acciones principales |
-| `onPrimary` | `#FFFFFF` | Contenido sobre fondo primary |
-| `primaryContainer` | `#DCEAF1` | Contenedores destacados y foco principal sereno |
-| `onPrimaryContainer` | `#132F3E` | Contenido sobre primaryContainer |
-| `secondary` | `#55796F` | Verde salvia para constancia y acompañamiento |
-| `onSecondary` | `#FFFFFF` | Contenido sobre fondo secondary |
-| `secondaryContainer` | `#DCEBE5` | Contenedores de hábitos y progreso sostenido |
-| `onSecondaryContainer` | `#17352E` | Contenido sobre secondaryContainer |
-| `tertiary` | `#746B83` | Acentuaciones terciarias discretas |
-| `onTertiary` | `#FFFFFF` | Contenido sobre fondo tertiary |
-| `tertiaryContainer` | `#ECE5F1` | Contenedores terciarios suaves |
-| `onTertiaryContainer` | `#332B3D` | Contenido sobre tertiaryContainer |
-| `background` | `#F5F7F5` | Fondo general neutro con matiz natural |
-| `onBackground` | `#202522` | Texto sobre background |
-| `surface` | `#FDFEFC` | Tarjetas, paneles flotantes y hojas de fondo |
-| `onSurface` | `#202522` | Texto principal sobre superficies |
-| `surfaceVariant` | `#E1E7E3` | Variaciones de superficie |
-| `onSurfaceVariant` | `#59635E` | Texto secundario y descriptivo |
-| `surfaceContainer` | `#EEF2EF` | Contenedores de contenido intermedio |
-| `surfaceContainerHigh`| `#E7ECE8` | Contenedores elevados |
-| `outline` | `#76817B` | Bordes activos y divisores visibles |
-| `outlineVariant` | `#D3DBD6` | Bordes sutiles o separadores de bajo contraste |
-| `error` | `#B3261E` | Indicaciones de error o advertencia crítica |
-| `onError` | `#FFFFFF` | Contenido sobre error |
-| `errorContainer` | `#F9DEDC` | Contenedores de alertas de error |
-| `onErrorContainer` | `#410E0B` | Contenido sobre errorContainer |
-| `success` | `#1E8E3E` | Estados de éxito o actividades completadas |
-| `onSuccess` | `#FFFFFF` | Contenido sobre success |
-| `scrim` | `rgba(0,0,0,0.32)`| Capa de sombreado (backdrop) de modales y diálogos |
+Tamaños Pequeño/Mediano/Grande aplican factores `0.88`, `1`, `1.15` sin desactivar escalado nativo.
 
----
-
-### 2. Niveles de Elevación (Sombras por Capas)
-
-Las sombras se computan matemáticamente para simular profundidad nativa sobre el lienzo móvil siguiendo la física de capas de MD3:
-
-*   **`level0`:** `elevation: 0`, `shadowOpacity: 0` (Totalmente plano, ej. fondo general o elementos inactivos).
-*   **`level1`:** `elevation: 1`, `shadowRadius: 3` (Sombra sutil, ej. tarjetas e inputs normales).
-*   **`level2`:** `elevation: 3`, `shadowRadius: 6` (Profundidad media, ej. tarjetas de hábitos, barra de racha activa).
-*   **`level3`:** `elevation: 6`, `shadowRadius: 10` (Ej. barra de navegación flotante activa).
-*   **`level4`:** `elevation: 8`, `shadowRadius: 14` (Ej. hojas deslizantes bottom-sheets y modales).
-*   **`level5`:** `elevation: 12`, `shadowRadius: 18` (Profundidad máxima, ej. menús flotantes superpuestos).
-
----
-
-### 3. Radios de Esquina (Shapes)
-
-*   **`xs`:** `4px` (Ej. indicadores compactos).
-*   **`sm`:** `8px` (Ej. botones compactos, chips de objetivos).
-*   **`md`:** `12px` (Ej. inputs de texto, checklist del dashboard).
-*   **`lg`:** `16px` (Ej. tarjetas de Calendar/Radar, paneles flotantes de metas).
-*   **`xl`:** `28px` (Ej. modales, bottom-sheets y bordes superiores de hojas deslizantes).
-*   **`full`:** `9999px` (Círculo perfecto, ej. avatares, píldora de racha y botones flotantes).
-
----
-
-### 4. Escala Tipográfica (Typography Scale)
-
-Se define una escala proporcional y armonizada de tamaños de fuente, espaciado de letras y alturas de línea:
-
-| Token | Tamaño (fontSize) | Altura (lineHeight) | Peso (fontWeight) | Propósito / Ejemplo |
-| :--- | :--- | :--- | :--- | :--- |
-| `displayLg` | `52px` | `60px` | `900` | Métricas principales y destacados |
-| `displayMd` | `40px` | `48px` | `900` | Métricas secundarias o indicadores destacados |
-| `headlineMd`| `28px` | `36px` | `800` | Títulos principales de pantallas |
-| `headlineSm`| `24px` | `32px` | `800` | Títulos de secciones o modales |
-| `titleLg` | `22px` | `28px` | `700` | Títulos destacados en tarjetas |
-| `titleMd` | `16px` | `24px` | `700` | Títulos estándar de ítems en listas |
-| `titleSm` | `14px` | `20px` | `700` | Títulos pequeños de widgets |
-| `bodyLg` | `16px` | `24px` | `400` | Texto corrido de lectura larga |
-| `bodyMd` | `14px` | `20px` | `400` | Texto secundario o descripciones base |
-| `bodySm` | `12px` | `16px` | `400` | Notas de pie de página y metadatos |
-| `labelLg` | `14px` | `20px` | `700` | Botones principales y acciones destacadas |
-| `labelMd` | `12px` | `16px` | `700` | Texto en Navbar, chips o badges de racha |
-| `labelSm` | `11px` | `16px` | `700` | Micro-indicadores o estados muy compactos |
-
----
-
-### 5. Rejilla de Espaciado (Spacing)
-
-SUI utiliza una rejilla de espaciado basada en incrementos de 4dp/8dp:
-
-*   **`xs`:** `4px` (Espaciados ultra compactos, ej. gap entre íconos y textos).
-*   **`sm`:** `8px` (Márgenes internos pequeños o gaps de listas).
-*   **`md`:** `16px` (Relleno base de tarjetas e inputs, espaciado estándar).
-*   **`lg`:** `24px` (Relleno de pantallas y secciones mayores).
-*   **`xl`:** `32px` (Márgenes amplios de cabeceras y cierres de pantalla).
-
----
-
-### 6. Garantía de Accesibilidad (Touch Targets de 48dp)
-
-Siguiendo las pautas de accesibilidad para móviles de Apple e iOS/Android:
-*   Botones y áreas interactivas deben garantizar una **altura o ancho mínimo interactivo de `48dp`** (`minHeight: 48` con `justifyContent: 'center'`).
-*   Esto elimina la fatiga de pulsación errónea y asegura un uso óptimo para usuarios con problemas motores o en entornos con vibración.
-
----
-
-### 7. Navegación e Insets Seguros
-
-La barra personalizada de `TabNavigator` usa `NAV_BAR_HEIGHT = 72` y expone
-cuatro rutas reales: `Overview`, `Goals`, `Habits` y `Calendar`. La acción SUI
-se inserta visualmente entre Metas y Hábitos, pero navega a `Chat` en el stack
-raíz para conservar seleccionada la pestaña anterior.
-
-*   **`useSafeAreaInsets()`:** añade padding inferior en dispositivos con home indicator sin alterar Android.
-*   **`SCREEN_CONTENT_BOTTOM_PADDING`:** reserva de espacio compartida por las pantallas con scroll para impedir que la barra cubra el final de una lista.
-*   **`Progress`:** ruta secundaria del stack raíz, abierta desde la tarjeta de progreso de Inicio.
-*   **Accesibilidad:** los cuatro destinos usan rol `tab`, estado `selected` y etiquetas visibles; SUI y el avatar usan rol `button`.
+Navegación inferior expone cuatro rutas reales y una acción central Sui. `SCREEN_CONTENT_BOTTOM_PADDING` protege listas de barra y safe area.

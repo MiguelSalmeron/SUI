@@ -2,7 +2,7 @@
 
 ## Requisitos
 
-- Node.js compatible con Expo SDK 56.
+- Node.js compatible con Expo SDK 57.
 - npm.
 - Android Studio o un dispositivo con Expo Go para desarrollo móvil.
 - Firebase CLI para emuladores y despliegues.
@@ -17,10 +17,13 @@
 | `npm run ios` | Ejecutar build iOS local |
 | `npm run web` | Ejecutar versión web |
 | `npm run export:web` | Exportar web a `dist` |
+| `npm run architecture` | Validar límites e impedir literales tipográficos |
+| `npm run check:production` | Validar variables obligatorias de release |
 | `npm run typecheck` | Validar TypeScript móvil |
 | `npm test` | Ejecutar tests unitarios |
 | `npm run functions:build` | Compilar Cloud Functions |
 | `npm run functions:test` | Compilar y probar Cloud Functions |
+| `npm run test:rules` | Probar reglas con Firestore Emulator |
 | `npm run check` | Ejecutar todas las verificaciones |
 
 ## Convenciones de código
@@ -70,16 +73,16 @@ Después de modificar aliases, reinicia Expo CLI.
 
 ## Persistencia
 
-- Onboarding: Zustand persistido en AsyncStorage.
+- Entrada/cuenta: Zustand persistido en AsyncStorage, sin perfil obligatorio.
 - Chat: AsyncStorage con TTL de 48 horas; no se sincroniza a Firestore.
-- Productividad: AsyncStorage para carga inmediata y Firestore para respaldo.
-- Google Calendar: token en memoria y eventos en caché local.
+- Productividad: repositorio v7, outbox local y documentos Firestore por entidad.
+- Google Calendar: eventos normalizados en caché local; tokens sólo en backend.
 
 Consulta [API, persistencia y tema](api-and-theme.md) para claves y estructuras.
 
 ## Cloud Functions
 
-`functions/src/index.ts` registra `chatProxy`. La lógica interna está separada bajo `functions/src/chat`.
+`functions/src/index.ts` registra Chat, conexiones Calendar y eliminación de cuenta. App Check inicia en monitor; producción migra a enforcement tras verificar clientes.
 
 Antes de desplegar:
 
@@ -95,7 +98,7 @@ La clave `AZURE_OPENAI_API_KEY` debe existir en Secret Manager. Consulta [despli
 ### EAS
 
 ```bash
-eas build --platform android --profile preview
+eas build --platform android --profile staging
 ```
 
 ### Gradle local

@@ -33,7 +33,7 @@ Antes de despachar cualquier entrada de texto libre hacia el proxy de Azure Open
 *   ** Regex de Frontera de Palabra:** Se compila dinámicamente un RegExp utilizando límites de palabra (`\b` o exclusión de letras unicode `[^\p{L}]`). Esto evita falsos positivos parciales (ej. evitar que la palabra `"matarme"` se active erróneamente con `"matarmela"` en otros contextos o modismos).
 
 ### 2. Diccionario Dinámico de Emergencia
-*   **Sincronización:** Al abrir la pantalla de chat, `ChatScreen` descarga asíncronamente el diccionario de palabras críticas y contactos telefónicos desde el documento `app_config/crisis` en Firestore.
+*   **Sincronización:** Al abrir Chat, cliente carga `app_config/crisis/regions/{COUNTRY}-{locale}`. Si falta, prueba `app_config/crisis`.
 *   **Resiliencia Offline:** Si el usuario no cuenta con cobertura de red o la base de datos Firestore está inactiva, la función captura el error de forma segura y carga el `DEFAULT_CRISIS_CONFIG` (diccionario local de respaldo). **El protocolo de emergencia nunca puede fallar por falta de red**.
 
 ```mermaid
@@ -52,14 +52,16 @@ graph TD;
 El componente `EmergencyOverlay.tsx` se superpone por completo a la conversación de chat e interrumpe cualquier petición asíncrona en curso. Sus especificaciones de diseño son:
 
 1.  **Copia Empática:** Presenta un mensaje claro, cercano, diseñado por psicólogos para calmar la ansiedad inmediata del estudiante.
-2.  **Enlace Telefónico Directo (Linking API):** Expone botones interactivos para llamar de forma inmediata a los números de ayuda locales (ej. emergencias 911, Cruz Roja). Utiliza el esquema nativo de llamadas móviles:
+2.  **Enlace Telefónico Directo (Linking API):** Expone botones con contactos verificados del mercado aprobado. Respaldo Nicaragua usa Policía `118` y Bomberos `115`, según fuentes oficiales.
     ```typescript
     import { Linking } from 'react-native';
     
     const handleCall = (phone: string) => {
       Linking.openURL(`tel:${phone}`).catch(() => {
-        Alert.alert('Error', 'No se puede iniciar la llamada en este dispositivo.');
+        Alert.alert(t('crisis.callUnavailable'), t('crisis.dialManually', { phone }));
       });
     };
     ```
-3.  **Botón de Descarte:** Permite cerrar el modal solo si el usuario confirma que se encuentra en un espacio seguro, retornándolo a la pantalla inicial del Dashboard para evitar que continúe ingresando mensajes de ideación de forma repetida al proxy de IA.
+3.  **Continuidad:** Permite cerrar overlay y seguir conversando. Chat no reemplaza servicios de emergencia.
+
+Fuentes Nicaragua: [Policía Nacional, 118](https://www.policia.gob.ni/?p=145448) y [Policía Nacional, 118/115](https://www.policia.gob.ni/?p=114378). Cada país nuevo requiere verificación y revisión legal antes de habilitarse.
