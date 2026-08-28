@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "keywords": [
     "suicidio",
     "suicidarme",
@@ -21,7 +21,7 @@
   "title": "No estás solo/a",
   "message": "Lo que sientes importa y mereces ayuda ahora mismo. Hablar con alguien puede aliviar el peso. Por favor contacta a una línea de apoyo o a una persona de confianza de inmediato.",
   "contacts": [
-    { "label": "Emergencias", "phone": "911" },
-    { "label": "Cruz Roja", "phone": "128" }
+    { "label": "Centro de Emergencias", "phone": "118" },
+    { "label": "Bomberos Unidos", "phone": "115" }
   ]
 }

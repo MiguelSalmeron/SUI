@@ -1,5 +1,7 @@
 # Documentación de Sui
 
+Auditada contra código y configuración: 28 de agosto de 2026.
+
 ## Fuentes canónicas
 
 - [PRD](product/PRD.md): visión, alcance, requisitos y criterios de release.
@@ -27,7 +29,7 @@ define interfaz; ADR más reciente define decisión técnica.
 
 - [Chat](explanation/chatbot.md)
 - [Privacidad y crisis](explanation/privacy-and-crisis.md)
-- [Ejemplo crisis config](reference/examples/crisis-config.json)
+- [Ejemplo crisis config NI-ES](reference/examples/crisis-config.json)
 
 ## Decisiones
 

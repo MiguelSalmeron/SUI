@@ -5,7 +5,7 @@
 
 ## Contexto
 
-El repositorio contiene una aplicación móvil y Cloud Functions, pero todavía comparte un ciclo de entrega pequeño. Mover ambos proyectos bajo `apps` ahora incrementaría el riesgo sobre Expo, EAS, Firebase, variables de entorno y `patch-package` sin aportar aislamiento inmediato suficiente.
+El repositorio contiene aplicación móvil y Cloud Functions, pero todavía comparte un ciclo de entrega pequeño. Mover ambos proyectos bajo `apps` ahora incrementaría riesgo sobre Expo, EAS, Firebase, variables de entorno y configuración nativa sin aportar aislamiento suficiente.
 
 ## Decisión
 

@@ -22,4 +22,4 @@ Los tests unitarios permanecen junto al módulo probado. Se prefieren imports di
 - Mejor descubrimiento y propiedad del código.
 - Menor impacto al modificar una funcionalidad.
 - Necesidad de vigilar dependencias entre funcionalidades.
-- El dominio de productividad compartido permanece en `shared/domain/productivity` mientras metas, hábitos, calendario y dashboard utilicen el mismo estado.
+- El dominio de productividad permanece en `shared/domain/productivity` mientras Inicio, Metas, Hábitos, Agenda y Progreso compartan estado.

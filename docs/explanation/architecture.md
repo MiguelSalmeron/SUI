@@ -60,7 +60,8 @@ Sui conserva React Navigation con Native Stack y Bottom Tabs. Se evita `src/app`
 
 ## Dominio de productividad
 
-Metas, hábitos, rachas, XP e historial semanal comparten una única unidad de estado. Por ello viven en `shared/domain/productivity` en lugar de pertenecer al dashboard.
+Metas, hábitos, rachas, XP e historial semanal comparten una unidad de estado.
+Por ello viven en `shared/domain/productivity` en lugar de pertenecer a Inicio.
 
 Este dominio contiene:
 

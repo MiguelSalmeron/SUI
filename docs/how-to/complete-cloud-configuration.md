@@ -2,6 +2,13 @@
 
 Código soporta development, staging y production. Consolas y credenciales siguen siendo trabajo externo.
 
+Autentica CLI y vincula proyecto EAS antes de crear ambientes:
+
+```bash
+eas login
+eas init
+```
+
 ## Firebase por ambiente
 
 1. Crear proyecto independiente.
@@ -10,6 +17,9 @@ Código soporta development, staging y production. Consolas y credenciales sigue
 4. Crear Firestore.
 5. Copiar variables públicas de `.env.example` al ambiente EAS correspondiente.
 6. Publicar plantillas de verificación y recuperación ES/EN.
+
+Perfil EAS `staging` consume ambiente EAS `preview`; `EXPO_PUBLIC_APP_ENV`
+continúa usando valor `staging` dentro de aplicación.
 
 Anonymous permite Chat técnico; `firestore.rules` niega productividad anónima.
 
@@ -54,6 +64,15 @@ Probar conexión, cancelación, refresh, revocación, caché offline y desconexi
 ## App Check
 
 Configurar reCAPTCHA Enterprise, Play Integrity y App Attest/DeviceCheck. Mantener `APP_CHECK_MODE=monitor` hasta observar staging estable; luego habilitar enforcement y cambiar a `enforce`.
+
+Cliente actual inicializa App Check web. Proveedores nativos deben integrarse y
+validarse antes de enforcement Android/iOS.
+
+## Observabilidad
+
+- Configurar `EXPO_PUBLIC_SENTRY_DSN` por ambiente.
+- Configurar organización, proyecto y token de source maps en EAS, nunca Git.
+- Verificar que eventos no incluyan usuario, request, contenido Chat o tokens.
 
 ## Crisis y legal
 
