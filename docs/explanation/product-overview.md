@@ -1,42 +1,42 @@
-# Resumen del Proyecto - SUI 📊
+# Visión del producto Sui
 
-## 🎯 ¿Qué es y cuál es el propósito?
-**SUI** es una aplicación orientada al bienestar personal y la productividad diaria de estudiantes universitarios. Ayuda al usuario a estructurar su día mediante cuatro áreas operativas, organizadas como pestañas inferiores:
-1. **Inicio (Overview):** próxima actividad, progreso diario y agenda de hoy.
-2. **Metas:** resultados finitos con fecha límite, progreso e hitos.
-3. **Hábitos:** acciones recurrentes con frecuencia, racha y vínculo opcional a una meta.
-4. **Agenda (Calendar):** calendario mensual unificado con eventos de Google Calendar, metas y hábitos.
+Sui organiza bienestar y productividad móvil con cuatro áreas operativas:
 
-Complementa el flujo con **Progreso**, accesible desde Inicio; una acción central **SUI** que abre el chatbot sin cambiar de pestaña; un **resumen nocturno con IA** y un sistema de **gamificación** (XP, niveles, logros, celebraciones).
+1. **Inicio:** siguiente acción, progreso diario y agenda.
+2. **Metas:** resultados finitos con fecha e hitos.
+3. **Hábitos:** acciones recurrentes, frecuencia y constancia.
+4. **Agenda:** fechas de metas, hábitos y eventos externos opcionales.
 
-## 🛠 Justificación del Stack Tecnológico
+Metas y Hábitos son dominios distintos. Una meta termina al alcanzar un resultado; un hábito repite una acción. Pueden vincularse, nunca fusionarse.
 
-* **React Native + Expo SDK 56:**
-  * *¿Por qué?* Iteración rápida, desarrollo multiplataforma simultáneo (Android e iOS con el mismo código base) y sin código nativo complejo. Ideal para un MVP de productividad donde el diseño de UI es crucial.
-* **Firebase (Authentication + Firestore):**
-  * *¿Por qué?* Gestión de identidades robusta "out of the box" (Anonymous Auth silenciosa en el onboarding) y sincronización en la nube transparente. Cada documento `users/{uid}` respalda metas, hábitos, racha, historial semanal y XP; Google Calendar se mantiene como caché local de solo lectura.
-* **AsyncStorage (Persistencia Local):**
-  * *¿Por qué?* Garantiza funcionamiento inmediato (zero-latency) y modo offline total. La app lee el disco local primero y reconcilia con Firestore en segundo plano.
-* **Zustand (Gestión de Estado):**
-  * *¿Por qué?* Stores pequeños por dominio sin el boilerplate de Redux. Mantiene el tablero, onboarding, chat y ajustes aislados; Google Calendar se coordina mediante un hook y caché local.
-* **Azure Foundry (gpt-5-mini):**
-  * *¿Por qué?* Permite mantener la clave fuera del cliente y controlar el deployment del modelo. Detalle en [chatbot](chatbot.md).
+Progreso es pantalla secundaria desde Inicio. Acción central Sui abre Chat sin cambiar tab. Chat acompaña con respuestas breves; no sustituye atención clínica.
 
-## 📈 Estado Actual
+## Entrada
 
-La aplicación ha superado la fase de MVP y entrega un producto funcional con sincronización en la nube activa:
-1. **Sincronización Firestore:** ✅ Implementada. Metas, hábitos, racha, historial semanal y XP se respaldan en `users/{uid}` con reconciliación local-gana-nube (o nube-gana-local según timestamps).
-2. **Gamificación:** ✅ Implementada. XP por meta (10) y hábito (5); 7 niveles (Novato → Leyenda); logros desbloqueables; `CelebrationToast` + haptics en cada acción.
-3. **Dark Mode:** ✅ Implementado. Tres modos (Claro / Oscuro / Sistema) en `SettingsScreen` con persistencia y tokens Material Design 3.
-4. **Navegación por tabs:** ✅ Implementada. Bottom Tabs con 4 rutas operativas; Native Stack para Chat, Progreso y Ajustes.
-5. **Resumen nocturno con IA:** ✅ Implementado. Notificación programada que abre `NightlyReportModal` con resumen empático del día.
-6. **Agenda conectada:** 🟡 En evolución. La interfaz combina agenda local con una caché normalizada de Google Calendar; la conexión real de solo lectura se está implementando.
-7. **Asistencia Emocional (Chatbot IA):** ✅ Operativo con Azure Foundry `gpt-5-mini`, streaming SSE, historial local 48h con TTL auto-limpieza, y protocolo de crisis con `EmergencyOverlay`.
+Flujo para usuario nuevo:
 
-## 🗺️ Roadmap Sugerido (Próximos Pasos)
+```text
+Bienvenida visual → cuenta opcional → Inicio vacío guiado
+```
 
-1. **Consolidación de cuenta:** promover la sesión anónima a login email/Google para recuperación跨-dispositivo verificable.
-2. **Notificaciones inteligentes:** pasar los stubs de `useSettingsStore` (notificaciones, tamaño de fuente, idioma) a lógica real; el escalado de fuente global y la internacionalización (i18n) son los siguientes pasos.
-3. **Calendario conectado:** completar OAuth de solo lectura, sincronización incremental y renovación segura del acceso a Google Calendar.
-4. **Expansión de logros:** más logros y "misiones diarias" nuevas para sostener el engagement a 30+ días.
-5. **Métricas de bienestar:** integrar preguntas simples de estado de ánimo en el resumen nocturno para correlacionar productividad y bienestar.
+Bienvenida usa isologo, `Cultiva tu vida`, consentimiento 16+ y enlaces legales. No solicita carrera, personalidad, cronotipo, fecha de nacimiento ni Calendar. Tampoco crea ejemplos, XP o metas sin confirmación.
+
+Inicio vacío explica diferencia entre Meta y Hábito y ofrece dos acciones independientes. Sui detecta idioma del sistema entre ES/EN; Ajustes permite cambiarlo.
+
+## Cuenta y datos
+
+Sui funciona sin cuenta. Invitado guarda productividad local y advierte riesgo al desinstalar. Cuenta por correo, Google o Apple activa respaldo cloud. Correo debe verificarse antes de sincronizar.
+
+Acceder a cuenta existente con datos locales exige decisión explícita: combinar, usar datos de cuenta o cancelar. Ninguna fuente se elimina antes de completar operación.
+
+Productividad lee/escribe local primero. Outbox persistente sincroniza documentos por entidad cuando existe cuenta verificada. Chat permanece local 48 horas y no entra en Firestore.
+
+## Conexiones
+
+Google Calendar es permiso separado de Google Sign-In. Se solicita desde Ajustes o CTA contextual de Agenda. Integración v1 es sólo lectura; OAuth usa Authorization Code + PKCE y refresh token exclusivo del backend.
+
+## Lanzamiento
+
+Primera entrega: público 16+, ES/EN y países aprobados por configuración. Cada mercado requiere Términos, Privacidad y recursos de crisis verificados. Ambientes Firebase/EAS: development, staging y production.
+
+Detalles: [arquitectura](architecture.md), [privacidad y crisis](privacy-and-crisis.md), [rollout productivo](../how-to/production-rollout.md).

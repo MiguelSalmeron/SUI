@@ -10,11 +10,12 @@ Cliente Expo
 ├── features: funcionalidades de producto
 └── shared: UI, infraestructura y dominio compartido
         │
-        ├── Firebase Auth y Firestore
+        ├── Firebase Auth y Firestore por entidad
         ├── AsyncStorage
-        ├── Google Calendar
-        └── Firebase Function chatProxy
-                └── Azure OpenAI Foundry
+        └── Firebase Functions
+                ├── chatProxy → Azure OpenAI Foundry
+                ├── OAuth Google Calendar
+                └── eliminación de cuenta
 ```
 
 ## Organización del cliente
@@ -36,6 +37,10 @@ src/
 └── shared/
     ├── domain/productivity/
     ├── infrastructure/firebase/
+    ├── account/
+    ├── config/
+    ├── i18n/
+    ├── observability/
     ├── preferences/
     ├── theme/
     ├── types/
@@ -67,30 +72,31 @@ Este dominio contiene:
 
 Las pantallas de metas, hábitos, calendario y resumen consumen este dominio sin depender entre sí.
 
-## Flujo offline-first
+## Flujo local-first
 
 ```mermaid
 graph TD
     A[Abrir aplicación] --> B[Leer AsyncStorage]
     B --> C[Renderizar estado local]
     C --> D{Sesión y red disponibles}
-    D -- Sí --> E[Leer Firestore]
-    E --> F[Reconciliar estado]
+    D -- Sí --> E[Leer entidades Firestore]
+    E --> F[Reconciliar metadata y outbox]
     D -- No --> G[Continuar offline]
     H[Mutación del usuario] --> I[Actualizar Zustand]
     I --> J[Persistir AsyncStorage]
-    J --> K{Sesión disponible}
-    K -- Sí --> L[Guardar Firestore]
+    J --> K[Encolar mutationId]
+    K --> L{Cuenta verificada y red}
+    L -- Sí --> M[Commit transaccional idempotente]
 ```
 
-La UI no espera indefinidamente a la nube. La carga remota tiene timeout y los fallos de sincronización no bloquean el uso local.
+La UI nunca espera nube. Repositorio v7 conserva metadata, tombstones y cola persistente. Usuarios anónimos no escriben productividad en Firestore.
 
 ## Navegación
 
-- `AppNavigator`: controla onboarding, home, chat, progreso y ajustes.
+- `AppNavigator`: controla bienvenida, auth, fusión, home, chat, progreso, conexiones y ajustes.
 - `TabNavigator`: compone las cuatro rutas operativas: overview, metas, hábitos y agenda. La acción central SUI abre Chat sin formar parte del estado de tabs.
-- El gate inicial depende de la rehidratación del onboarding y del estado de Firebase Auth.
-- El splash permanece visible hasta que ambos estados estén listos o alcancen su timeout de seguridad.
+- Gate inicial depende sólo de rehidratar `IntroState`; Firebase no bloquea UI local.
+- Splash permanece visible hasta cargar fuentes y estado de entrada.
 
 ## Chatbot
 
@@ -101,6 +107,9 @@ El backend separa:
 ```text
 functions/src/
 ├── index.ts               # Wiring HTTP
+├── account/               # Eliminación recursiva y Auth
+├── connections/           # OAuth PKCE y Calendar
+├── http/                  # CORS y App Check
 └── chat/
     ├── auth.ts            # Verificación de bearer token
     ├── azure.ts           # Cliente upstream
@@ -118,3 +127,6 @@ La clave de Azure nunca se incluye en el bundle móvil. El historial permanece e
 - [Arquitectura orientada por funcionalidad](../decisions/0001-feature-oriented-architecture.md)
 - [Conservar React Navigation](../decisions/0002-keep-react-navigation.md)
 - [Umbral para adoptar monorepo](../decisions/0003-monorepo-threshold.md)
+- [Cuenta local y auth opcional](../decisions/0004-local-account-and-auth.md)
+- [Sync local-first versionado](../decisions/0005-versioned-local-first-sync.md)
+- [Conexiones externas aisladas](../decisions/0006-external-connections.md)
