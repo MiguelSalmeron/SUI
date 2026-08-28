@@ -2,7 +2,7 @@
 
 ## Requisitos
 
-- Node.js compatible con Expo SDK 57.
+- Node.js `>=20 <25`, compatible con Expo SDK 57.
 - npm.
 - Android Studio o un dispositivo con Expo Go para desarrollo móvil.
 - Firebase CLI para emuladores y despliegues.
@@ -108,8 +108,6 @@ npx expo prebuild --platform android
 cd android && ./gradlew assembleRelease
 ```
 
-`patch-package` conserva el ajuste del plugin Gradle durante `npm install`.
-
 ## Criterios para pull requests
 
 - Sin secretos ni artefactos generados.
@@ -127,3 +125,6 @@ Actualiza el tipo correcto:
 - Reference: datos exactos y contratos.
 - Explanation: decisiones y conceptos.
 - ADR: decisión arquitectónica con consecuencias.
+
+Producto y UI se actualizan sólo en [PRD](../product/PRD.md) y
+[sistema de diseño](../product/DESIGN_SYSTEM.md); evita crear planes paralelos.

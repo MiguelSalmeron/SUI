@@ -9,7 +9,7 @@ Plantilla canónica: `.env.example`.
 | Firebase | `EXPO_PUBLIC_FIREBASE_*`, `EXPO_PUBLIC_FIREBASE_APP_CHECK_SITE_KEY` |
 | APIs | `EXPO_PUBLIC_CHAT_PROXY_URL`, `EXPO_PUBLIC_CONNECTIONS_API_URL` |
 | OAuth | `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` |
-| Producto | `EXPO_PUBLIC_APP_ENV`, `EXPO_PUBLIC_POLICY_VERSION`, URLs legales, país y mercados |
+| Producto | `EXPO_PUBLIC_APP_ENV`, `EXPO_PUBLIC_POLICY_VERSION`, `EXPO_PUBLIC_TERMS_URL`, `EXPO_PUBLIC_PRIVACY_URL`, `EXPO_PUBLIC_COUNTRY_CODE`, `EXPO_PUBLIC_APPROVED_MARKETS` |
 | Observabilidad | `EXPO_PUBLIC_SENTRY_DSN` |
 
 Variables `EXPO_PUBLIC_*` forman parte del bundle: nunca contienen secretos. Azure key y Google web secret viven en Secret Manager.
@@ -18,7 +18,7 @@ Variables `EXPO_PUBLIC_*` forman parte del bundle: nunca contienen secretos. Azu
 
 | Clave | Contenido |
 |---|---|
-| `sui-onboarding-v3` | entrada completada, modo de cuenta, consentimiento/versiones |
+| `sui-onboarding-v3` | clave histórica vigente; `IntroState` v4, cuenta y consentimiento |
 | `sui-productivity-v7` | datos productivos, metadata, outbox, `deviceId` |
 | `sui-home-state-v6` | origen legado leído durante migración |
 | `sui-chat-v1` | conversación local con TTL 48 h |
@@ -34,7 +34,9 @@ users/{uid}
 └── connections/{provider}  # backend solamente
 ```
 
-Documento raíz guarda perfil, preferencias, consentimiento, versión y resumen productivo. Entidades usan sobre:
+Documento raíz guarda actualmente versión y resumen productivo. Reglas reservan
+perfil, preferencias y consentimiento para evolución compatible. Entidades usan
+siguiente sobre:
 
 ```typescript
 type SyncedEntity<T> = {

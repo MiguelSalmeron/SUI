@@ -18,6 +18,9 @@ eas env:create --environment preview
 eas env:create --environment production
 ```
 
+Perfil `staging` de `eas.json` usa ambiente EAS `preview`; aplicación recibe
+`EXPO_PUBLIC_APP_ENV=staging`.
+
 Copiar variables descritas en `.env.example`. Para producción, `npm run check:production` exige Firebase, OAuth, URL de conexiones, legales HTTPS, mercado y DSN Sentry.
 
 ## 2. Configurar identidad
@@ -52,7 +55,9 @@ Configurar reCAPTCHA Enterprise para web, Play Integrity para Android y App Atte
 4. Activar enforcement en Firestore, Functions y Chat.
 5. Cambiar `APP_CHECK_MODE=enforce`.
 
-No activar enforcement nativo hasta instalar proveedores nativos; el cliente actual inicializa proveedor web cuando existe `EXPO_PUBLIC_FIREBASE_APPCHECK_SITE_KEY`.
+No activar enforcement nativo hasta instalar proveedores nativos; cliente actual
+inicializa proveedor web cuando existe
+`EXPO_PUBLIC_FIREBASE_APP_CHECK_SITE_KEY`.
 
 ## 5. Privacidad y observabilidad
 
@@ -64,7 +69,9 @@ No activar enforcement nativo hasta instalar proveedores nativos; el cliente act
 
 ## 6. Habilitar países
 
-`EXPO_PUBLIC_MARKET` identifica mercado. Publicar sólo mercados con recursos de crisis y revisión legal aprobados. Config crisis vive por país/idioma en:
+`EXPO_PUBLIC_COUNTRY_CODE` identifica mercado activo y debe pertenecer a
+`EXPO_PUBLIC_APPROVED_MARKETS`. Publicar sólo mercados con recursos de crisis y
+revisión legal aprobados. Config crisis vive por país/idioma en:
 
 ```text
 app_config/crisis/regions/{COUNTRY}-{locale}

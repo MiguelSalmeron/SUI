@@ -48,10 +48,10 @@ export const useGoogleAuth = () => {
 
   const platformHint = useMemo(() => {
     if (Platform.OS === 'android' && configured && !androidClientId) {
-      return 'En Android conviene EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID + SHA-1 (todolist.md).';
+      return 'En Android configura EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID y SHA-1 de firma.';
     }
     if (Platform.OS === 'ios' && configured && !iosClientId) {
-      return 'En iOS conviene EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID (todolist.md).';
+      return 'En iOS configura EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID.';
     }
     return null;
   }, [configured]);
@@ -69,7 +69,7 @@ export const useGoogleAuth = () => {
         uid: '',
         linked: false,
         error:
-          'Google no configurado. Añade EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (ver todolist.md).',
+          'Google no configurado. Añade EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID.',
       };
       setError(result.error ?? null);
       return result;

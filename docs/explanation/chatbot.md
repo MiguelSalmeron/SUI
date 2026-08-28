@@ -51,9 +51,10 @@ El módulo vive bajo `src/features/chat`:
 
 ## Contexto
 
-El prompt combina instrucciones de seguridad/voz, idioma activo, contexto
-voluntario disponible y ventana conversacional reciente. Bienvenida no recopila
-perfil psicológico, cronotipo, carrera ni objetivos obligatorios.
+El prompt combina instrucciones de seguridad/voz, idioma activo, nombre de
+cuenta cuando existe, hasta tres metas activas y ventana conversacional reciente.
+Bienvenida no recopila perfil psicológico, cronotipo, carrera ni objetivos
+obligatorios.
 
 El backend limita cantidad y longitud de mensajes nuevamente. La validación del servidor no confía en los límites del cliente.
 
