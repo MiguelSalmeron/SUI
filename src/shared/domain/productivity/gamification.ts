@@ -196,10 +196,16 @@ export const getAchievements = (ctx: AchievementContext): Achievement[] => {
   ];
 };
 
+export type WeeklyInsight =
+  | { kind: 'empty' }
+  | { kind: 'excellent'; rate: number; streak: number }
+  | { kind: 'active'; days: number }
+  | { kind: 'average'; rate: number };
+
 export const getWeeklyInsight = (
   week: DailySnapshot[],
   streak: number,
-): string => {
+): WeeklyInsight => {
   const rates = week.map(getCompletionRate).filter((r) => r > 0);
   const avgRate = rates.length ? Math.round(rates.reduce((a, b) => a + b, 0) / rates.length) : 0;
   const activeDays = week.filter(
@@ -207,14 +213,14 @@ export const getWeeklyInsight = (
   ).length;
 
   if (activeDays === 0) {
-    return 'Esta semana está en blanco. Un pequeño paso hoy puede cambiar todo.';
+    return { kind: 'empty' };
   }
   if (avgRate >= 80 && streak >= 3) {
-    return `Semana excelente: ${avgRate}% de cumplimiento promedio y racha de ${streak} días. Sigue así.`;
+    return { kind: 'excellent', rate: avgRate, streak };
   }
 
   if (activeDays >= 5) {
-    return `${activeDays} días activos de 7. La constancia es tu superpoder.`;
+    return { kind: 'active', days: activeDays };
   }
-  return `${avgRate}% de cumplimiento promedio. Cada día cuenta — retoma el ritmo mañana.`;
+  return { kind: 'average', rate: avgRate };
 };

@@ -78,6 +78,20 @@ export const linkOrSignInWithGoogleIdToken = async (
       linked: false,
     };
   } catch (error) {
+    const code = (error as { code?: string })?.code;
+    if (user?.isAnonymous && code === 'auth/credential-already-in-use') {
+      try {
+        const result = await signInWithCredential(auth, credential);
+        return { ok: true, uid: result.user.uid, linked: false };
+      } catch (signInError) {
+        return {
+          ok: false,
+          uid: user.uid,
+          linked: false,
+          error: getGoogleErrorMessage(signInError),
+        };
+      }
+    }
     return {
       ok: false,
       uid: user?.uid ?? '',

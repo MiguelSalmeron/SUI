@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -20,6 +20,10 @@ import { useCelebrationStore } from '@/shared/domain/productivity/useCelebration
 import { isHabitDueToday, localDateKey } from '@/shared/domain/productivity/homeStorage';
 import type { Habit } from '@/shared/types/models';
 import { HabitFormModal } from '../components/HabitFormModal';
+import { useI18n } from '@/shared/i18n/i18n';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { MainTabParamList } from '@/application/navigation/types';
 
 type Filter = 'today' | 'all';
 
@@ -28,6 +32,9 @@ export const HabitsScreen = () => {
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const celebrate = useCelebrationStore((s) => s.trigger);
+  const { t } = useI18n();
+  const route = useRoute<RouteProp<MainTabParamList, 'Habits'>>();
+  const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList, 'Habits'>>();
 
   const habits = useHomeStore((s) => s.habits);
   const goals = useHomeStore((s) => s.goals);
@@ -39,6 +46,12 @@ export const HabitsScreen = () => {
   const [filter, setFilter] = useState<Filter>('today');
   const [formVisible, setFormVisible] = useState(false);
 
+  useEffect(() => {
+    if (!route.params?.create) return;
+    setFormVisible(true);
+    navigation.setParams({ create: undefined });
+  }, [navigation, route.params?.create]);
+
   const todayHabits = useMemo(() => habits.filter((habit) => isHabitDueToday(habit)), [habits]);
   const completedToday = todayHabits.filter((habit) => habit.completed).length;
   const progress = todayHabits.length
@@ -48,23 +61,23 @@ export const HabitsScreen = () => {
 
   const confirmRemove = (habit: Habit) => {
     Alert.alert(
-      'Eliminar hábito',
-      `¿Quieres eliminar “${habit.title}”? La racha guardada también se eliminará.`,
+      t('habits.delete'),
+      t('habits.deleteBody', { title: habit.title }),
       [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: () => removeHabit(habit.id) },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('goals.remove'), style: 'destructive', onPress: () => removeHabit(habit.id) },
       ],
     );
   };
 
   const openActions = (habit: Habit) => {
     const frozen = Boolean(habit.frozenUntil && habit.frozenUntil >= localDateKey());
-    Alert.alert(habit.title, 'Elige una acción', [
+    Alert.alert(habit.title, t('habits.chooseAction'), [
       ...(!frozen
-        ? [{ text: 'Proteger la racha por un día', onPress: () => freezeStreak(habit.id) }]
+        ? [{ text: t('habits.protectStreak'), onPress: () => freezeStreak(habit.id) }]
         : []),
-      { text: 'Eliminar', style: 'destructive' as const, onPress: () => confirmRemove(habit) },
-      { text: 'Cancelar', style: 'cancel' as const },
+      { text: t('goals.remove'), style: 'destructive' as const, onPress: () => confirmRemove(habit) },
+      { text: t('common.cancel'), style: 'cancel' as const },
     ]);
   };
 
@@ -75,8 +88,8 @@ export const HabitsScreen = () => {
       celebrate({
         kind: 'habit',
         subtitle: linkedGoal
-          ? `+5 XP · “${linkedGoal.title}” avanzó +2%`
-          : `+5 XP · ${habit.title}`,
+          ? t('celebration.habitGoalXp', { title: linkedGoal.title })
+          : t('celebration.habitXp', { title: habit.title }),
       });
     }
   };
@@ -88,20 +101,20 @@ export const HabitsScreen = () => {
       showsVerticalScrollIndicator={false}
     >
       <ScreenIntro
-        title="Hábitos"
-        subtitle="Acciones pequeñas que construyen constancia."
-        actionLabel="Crear un hábito"
+        title={t('habits.title')}
+        subtitle={t('habits.subtitle')}
+        actionLabel={t('habits.create')}
         onAction={() => setFormVisible(true)}
       />
 
       <View style={styles.todayCard}>
         <View style={styles.todayTopRow}>
           <View>
-            <Text style={styles.todayLabel}>Constancia de hoy</Text>
+            <Text style={styles.todayLabel}>{t('habits.todayConsistency')}</Text>
             <Text style={styles.todayCount}>
               {todayHabits.length
-                ? `${completedToday} de ${todayHabits.length} completados`
-                : 'Sin hábitos para hoy'}
+                ? t('habits.completedCount', { done: completedToday, total: todayHabits.length })
+                : t('habits.noneToday')}
             </Text>
           </View>
           <View style={styles.percentCircle}>
@@ -113,8 +126,8 @@ export const HabitsScreen = () => {
         </View>
         <Text style={styles.todayNote}>
           {progress === 100 && todayHabits.length > 0
-            ? 'Lo hiciste. La constancia también se construye así.'
-            : 'Una repetición a la vez es suficiente.'}
+            ? t('habits.completeNote')
+            : t('habits.progressNote')}
         </Text>
       </View>
 
@@ -125,7 +138,7 @@ export const HabitsScreen = () => {
           accessibilityRole="tab"
           accessibilityState={{ selected: filter === 'today' }}
         >
-          <Text style={[styles.filterText, filter === 'today' && styles.filterTextActive]}>Hoy</Text>
+          <Text style={[styles.filterText, filter === 'today' && styles.filterTextActive]}>{t('habits.today')}</Text>
           <View style={[styles.countBadge, filter === 'today' && styles.countBadgeActive]}>
             <Text style={[styles.countText, filter === 'today' && styles.countTextActive]}>{todayHabits.length}</Text>
           </View>
@@ -136,7 +149,7 @@ export const HabitsScreen = () => {
           accessibilityRole="tab"
           accessibilityState={{ selected: filter === 'all' }}
         >
-          <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>Mis hábitos</Text>
+          <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>{t('habits.mine')}</Text>
           <View style={[styles.countBadge, filter === 'all' && styles.countBadgeActive]}>
             <Text style={[styles.countText, filter === 'all' && styles.countTextActive]}>{habits.length}</Text>
           </View>
@@ -147,19 +160,19 @@ export const HabitsScreen = () => {
         <View style={styles.emptyCard}>
           <SuiDoodle variant="rhythm" size={76} color={colors.secondary} />
           <Text style={styles.emptyTitle}>
-            {filter === 'today' ? 'No hay hábitos para hoy' : 'Aún no tienes hábitos'}
+            {filter === 'today' ? t('habits.emptyToday') : t('habits.emptyAll')}
           </Text>
           <Text style={styles.emptyText}>
             {filter === 'today'
-              ? 'Puedes revisar todos tus hábitos o dejar el día libre.'
-              : 'Elige una acción tan pequeña que sea fácil volver a ella.'}
+              ? t('habits.emptyTodayBody')
+              : t('habits.emptyAllBody')}
           </Text>
           <TouchableOpacity
             style={styles.emptyAction}
             onPress={() => (filter === 'today' && habits.length ? setFilter('all') : setFormVisible(true))}
           >
             <Text style={styles.emptyActionText}>
-              {filter === 'today' && habits.length ? 'Ver mis hábitos' : 'Crear primer hábito'}
+              {filter === 'today' && habits.length ? t('habits.viewMine') : t('habits.first')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -170,8 +183,8 @@ export const HabitsScreen = () => {
             const frozen = Boolean(habit.frozenUntil && habit.frozenUntil >= localDateKey());
             const frequencyLabel =
               habit.frequency === 'daily'
-                ? 'Todos los días'
-                : `${habit.frequency.length} días por semana`;
+                ? t('habits.everyDay')
+                : t('habits.daysPerWeek', { count: habit.frequency.length });
 
             return (
               <View key={habit.id} style={styles.habitCard}>
@@ -200,7 +213,7 @@ export const HabitsScreen = () => {
                     <View style={styles.goalLink}>
                       <Ionicons name="flag-outline" size={13} color={colors.primary} />
                       <Text style={styles.goalLinkText} numberOfLines={1}>
-                        Impulsa {linkedGoal.title}
+                        {t('habits.drivesGoal', { title: linkedGoal.title })}
                       </Text>
                     </View>
                   ) : null}
@@ -219,7 +232,7 @@ export const HabitsScreen = () => {
                     style={styles.menuButton}
                     onPress={() => openActions(habit)}
                     accessibilityRole="button"
-                    accessibilityLabel={`Acciones para ${habit.title}`}
+                    accessibilityLabel={t('habits.actionsLabel', { title: habit.title })}
                   >
                     <Ionicons name="ellipsis-horizontal" size={20} color={colors.onSurfaceVariant} />
                   </TouchableOpacity>

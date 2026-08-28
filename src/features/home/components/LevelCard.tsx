@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { calculateLevel } from '@/shared/domain/productivity/gamification';
+import { useI18n } from '@/shared/i18n/i18n';
+import type { TranslationKey } from '@/shared/i18n/translations';
 
 type Props = {
   totalXp: number;
@@ -11,6 +13,7 @@ export const LevelCard = ({ totalXp }: Props) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t } = useI18n();
   const level = useMemo(() => calculateLevel(totalXp), [totalXp]);
   const anim = useRef(new Animated.Value(level.progress)).current;
 
@@ -34,9 +37,9 @@ export const LevelCard = ({ totalXp }: Props) => {
           <Text style={styles.levelNumber}>{level.level}</Text>
         </View>
         <View style={styles.textCol}>
-          <Text style={styles.title}>{level.title}</Text>
+          <Text style={styles.title}>{t(`progress.level${Math.min(level.level, 7)}` as TranslationKey)}</Text>
           <Text style={styles.subtitle}>
-            {level.currentXp} / {level.nextLevelXp} XP al siguiente nivel
+            {t('progress.levelNext', { current: level.currentXp, total: level.nextLevelXp })}
           </Text>
         </View>
         <Text style={styles.xpTotal}>{totalXp} XP</Text>

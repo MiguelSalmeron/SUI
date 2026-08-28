@@ -9,10 +9,12 @@ import {
   View,
 } from 'react-native';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
-import { useOnboardingStore } from '@/features/onboarding/store/useOnboardingStore';
 import { buildEmotionalProfile } from '@/features/chat/services/chatPrompt';
 import { buildReportPayload, DayStats, summarizeStats } from '@/features/chat/services/reportPrompt';
 import { streamChat, StreamController } from '@/features/chat/services/chatStream';
+import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
+import { useI18n } from '@/shared/i18n/i18n';
+import type { TranslationKey } from '@/shared/i18n/translations';
 
 type Status = 'loading' | 'streaming' | 'done' | 'error';
 
@@ -22,16 +24,15 @@ type Props = {
   onClose: () => void;
 };
 
+type Translate = (key: TranslationKey, values?: Record<string, string | number>) => string;
+
 /** Mensaje de respaldo cuando no hay internet / proxy (NUNCA spinner infinito). */
-const offlineMessage = (stats: DayStats): string => {
+const offlineMessage = (stats: DayStats, t: Translate): string => {
   const { done, total, percent } = summarizeStats(stats);
   if (total === 0) {
-    return 'Hoy no registraste metas, y está bien. Mañana es una nueva oportunidad para empezar con calma. Sui te espera.';
+    return t('nightly.offlineEmpty');
   }
-  return (
-    `Cerraste el día con ${done} de ${total} (${percent}%). ` +
-    'Cada paso cuenta, incluso los pequeños. Descansa, mañana seguimos juntos.'
-  );
+  return t('nightly.offlineSummary', { done, total, percent });
 };
 
 /**
@@ -43,8 +44,8 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const profile = useOnboardingStore((s) => s.profile);
-  const selectedGoals = useOnboardingStore((s) => s.selectedGoals);
+  const goals = useHomeStore((state) => state.goals);
+  const { locale, t } = useI18n();
 
   const [text, setText] = useState('');
   const [status, setStatus] = useState<Status>('loading');
@@ -57,7 +58,10 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
     setText('');
     setStatus('loading');
 
-    const emotional = buildEmotionalProfile(profile, selectedGoals);
+    const emotional = buildEmotionalProfile({
+      goals: goals.filter((goal) => !goal.completed).slice(0, 3).map((goal) => goal.title),
+      locale,
+    });
     const payload = buildReportPayload(emotional, stats);
 
     streamChat(payload, {
@@ -71,7 +75,7 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
       },
       onError: () => {
         if (!active) return;
-        setText(offlineMessage(stats));
+        setText(offlineMessage(stats, t));
         setStatus('error');
       },
     }).then((controller) => {
@@ -83,9 +87,9 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
       controllerRef.current?.cancel();
       controllerRef.current = null;
     };
-    // stats es estable durante la vida del modal abierto.
+    // stats y metas son estables durante la vida del modal abierto.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
+  }, [visible, locale]);
 
   const busy = status === 'loading';
 
@@ -94,14 +98,14 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
           <View style={styles.handle} />
-          <Text style={styles.title}>Tu cierre de hoy</Text>
-          <Text style={styles.subtitle}>Un resumen reflexivo de tu día</Text>
+          <Text style={styles.title}>{t('nightly.title')}</Text>
+          <Text style={styles.subtitle}>{t('nightly.subtitle')}</Text>
 
           <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
             {busy ? (
               <View style={styles.loadingRow}>
                 <ActivityIndicator color={colors.primary} />
-                <Text style={styles.loadingText}>Sui está preparando tu resumen…</Text>
+                <Text style={styles.loadingText}>{t('nightly.loading')}</Text>
               </View>
             ) : (
               <Text style={styles.reportText}>
@@ -111,8 +115,8 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
             )}
           </ScrollView>
 
-          <TouchableOpacity style={styles.closeButton} onPress={onClose} accessibilityRole="button" accessibilityLabel="Cerrar resumen nocturno">
-            <Text style={styles.closeButtonText}>Cerrar</Text>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose} accessibilityRole="button" accessibilityLabel={t('nightly.closeLabel')}>
+            <Text style={styles.closeButtonText}>{t('common.close')}</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -26,7 +26,6 @@ import {
   isHabitDueToday,
   localDateKey,
 } from '@/shared/domain/productivity/homeStorage';
-import { useOnboardingStore } from '@/features/onboarding/store/useOnboardingStore';
 import { Avatar } from '@/shared/ui/Avatar';
 import { SuiMark } from '@/shared/ui/SuiMark';
 import type {
@@ -47,6 +46,7 @@ import { CalendarScreen } from '@/features/calendar/screens/CalendarScreen';
 import { CelebrationToast } from '@/features/home/components/CelebrationToast';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
 import { requestNotificationPermission } from '@/features/settings/services/notifications';
+import { useI18n } from '@/shared/i18n/i18n';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -54,11 +54,13 @@ type TabHeaderProps = {
   colors: ColorScheme;
   topInset: number;
   profileName: string;
+  settingsLabel: string;
+  settingsHint: string;
   onSettings: () => void;
 };
 
 export const TabHeader = React.memo(
-  ({ colors, topInset, profileName, onSettings }: TabHeaderProps) => {
+  ({ colors, topInset, profileName, settingsLabel, settingsHint, onSettings }: TabHeaderProps) => {
     const styles = useMemo(() => headerStyles(colors), [colors]);
     return (
       <View style={[styles.headerShell, { paddingTop: topInset + SPACING.sm }]}>
@@ -69,8 +71,8 @@ export const TabHeader = React.memo(
             onPress={onSettings}
             activeOpacity={0.78}
             accessibilityRole="button"
-            accessibilityLabel={`Abrir ajustes de ${profileName}`}
-            accessibilityHint="Abre la configuración de la aplicación"
+            accessibilityLabel={settingsLabel}
+            accessibilityHint={settingsHint}
           >
             <Avatar name={profileName} size="sm" variant="primary" />
           </TouchableOpacity>
@@ -84,6 +86,9 @@ type MainTabBarProps = BottomTabBarProps & {
   colors: ColorScheme;
   type: TypographyScale;
   onAssistant: () => void;
+  labels: Record<keyof MainTabParamList, string>;
+  assistantAccessibilityLabel: string;
+  assistantAccessibilityHint: string;
 };
 
 export const MainTabBar = ({
@@ -93,6 +98,9 @@ export const MainTabBar = ({
   colors,
   type,
   onAssistant,
+  labels,
+  assistantAccessibilityLabel,
+  assistantAccessibilityHint,
 }: MainTabBarProps) => {
   const styles = useMemo(() => tabBarStyles(colors, type), [colors, type]);
 
@@ -103,8 +111,8 @@ export const MainTabBar = ({
       onPress={onAssistant}
       activeOpacity={0.82}
       accessibilityRole="button"
-      accessibilityLabel="Hablar con Sui"
-      accessibilityHint="Abre el chat de acompañamiento"
+      accessibilityLabel={assistantAccessibilityLabel}
+      accessibilityHint={assistantAccessibilityHint}
       testID="assistant-tab-button"
     >
       <View style={styles.assistantButton}>
@@ -156,7 +164,7 @@ export const MainTabBar = ({
                 activeOpacity={0.72}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: focused }}
-                accessibilityLabel={presentation.label}
+                accessibilityLabel={labels[routeName]}
                 testID={`tab-${routeName}`}
               >
                 <View style={[styles.iconShell, focused && styles.iconShellActive]}>
@@ -166,7 +174,7 @@ export const MainTabBar = ({
                     color={color}
                   />
                 </View>
-                <Text style={[styles.tabLabel, { color }]}>{presentation.label}</Text>
+                <Text style={[styles.tabLabel, { color }]}>{labels[routeName]}</Text>
               </TouchableOpacity>
             </React.Fragment>
           );
@@ -182,6 +190,13 @@ export const TabNavigator = () => {
   const { colors } = theme;
   const navigation = useNavigation<RootStackNavigationProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useI18n();
+  const tabLabels = useMemo(() => ({
+    Overview: t('nav.home'),
+    Goals: t('nav.goals'),
+    Habits: t('nav.habits'),
+    Calendar: t('nav.calendar'),
+  }), [t]);
 
   const stateLoaded = useHomeStore((state) => state.stateLoaded);
   const loadState = useHomeStore((state) => state.loadState);
@@ -196,9 +211,8 @@ export const TabNavigator = () => {
     requestNotificationPermission().catch(() => undefined);
   }, []);
 
-  const onboardingName = useOnboardingStore((state) => state.profile.name);
   const profileName =
-    onboardingName?.trim() || user?.email?.split('@')[0] || 'Usuario';
+    user?.displayName?.trim() || user?.email?.split('@')[0] || 'Sui';
 
   useEffect(() => {
     loadState();
@@ -252,7 +266,7 @@ export const TabNavigator = () => {
         !perfectDayShown.current
       ) {
         perfectDayShown.current = true;
-        celebrate({ kind: 'perfect_day', subtitle: 'Completaste todo hoy' });
+        celebrate({ kind: 'perfect_day', subtitle: t('celebration.perfectBody') });
       }
     }
     prevCompletedActions.current = totalCompletedActions;
@@ -263,6 +277,7 @@ export const TabNavigator = () => {
     stateLoaded,
     bumpStreak,
     celebrate,
+    t,
   ]);
 
   const openAssistant = useCallback(() => {
@@ -279,6 +294,9 @@ export const TabNavigator = () => {
             colors={colors}
             type={theme.type}
             onAssistant={openAssistant}
+            labels={tabLabels}
+            assistantAccessibilityLabel={t('nav.openChat')}
+            assistantAccessibilityHint={t('nav.openChatHint')}
           />
         )}
         screenOptions={{
@@ -288,6 +306,8 @@ export const TabNavigator = () => {
               colors={colors}
               topInset={insets.top}
               profileName={profileName}
+              settingsLabel={t('nav.openSettings', { name: profileName })}
+              settingsHint={t('nav.openSettingsHint')}
               onSettings={() => navigation.navigate('Settings')}
             />
           ),
@@ -299,22 +319,22 @@ export const TabNavigator = () => {
         <Tab.Screen
           name="Overview"
           component={OverviewScreen}
-          options={{ title: MAIN_TAB_ITEMS.Overview.label }}
+          options={{ title: tabLabels.Overview }}
         />
         <Tab.Screen
           name="Goals"
           component={GoalsScreen}
-          options={{ title: MAIN_TAB_ITEMS.Goals.label }}
+          options={{ title: tabLabels.Goals }}
         />
         <Tab.Screen
           name="Habits"
           component={HabitsScreen}
-          options={{ title: MAIN_TAB_ITEMS.Habits.label }}
+          options={{ title: tabLabels.Habits }}
         />
         <Tab.Screen
           name="Calendar"
           component={CalendarScreen}
-          options={{ title: MAIN_TAB_ITEMS.Calendar.label }}
+          options={{ title: tabLabels.Calendar }}
         />
       </Tab.Navigator>
     </View>

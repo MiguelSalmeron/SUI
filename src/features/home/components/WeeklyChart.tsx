@@ -3,28 +3,29 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import type { DailySnapshot } from '@/shared/domain/productivity/gamification';
 import { getCompletionRate } from '@/shared/domain/productivity/gamification';
+import { useI18n } from '@/shared/i18n/i18n';
 
 type Props = {
   data: DailySnapshot[];
 };
 
-const DAY_LABELS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
-
-const formatDayLabel = (dateKey: string): string => {
+const formatDayLabel = (dateKey: string, locale: 'es' | 'en'): string => {
+  const labels = locale === 'es' ? ['D', 'L', 'M', 'X', 'J', 'V', 'S'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const [y, m, d] = dateKey.split('-').map(Number);
   const date = new Date(y, m - 1, d);
-  return DAY_LABELS[date.getDay()];
+  return labels[date.getDay()];
 };
 
 export const WeeklyChart = ({ data }: Props) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { locale, t } = useI18n();
   const maxRate = 100;
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Últimos 7 días</Text>
+      <Text style={styles.title}>{t('progress.lastSevenDays')}</Text>
       <View style={styles.chart}>
         {data.map((day) => {
           const rate = getCompletionRate(day);
@@ -53,7 +54,7 @@ export const WeeklyChart = ({ data }: Props) => {
                 />
               </View>
               <Text style={[styles.dayLabel, isToday && styles.dayLabelToday]}>
-                {formatDayLabel(day.date)}
+                {formatDayLabel(day.date, locale)}
               </Text>
               {hasActivity && (
                 <Text style={styles.rateLabel}>{rate}%</Text>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 import { useAppTheme } from '@/shared/theme/theme';
 
@@ -26,7 +27,9 @@ export const SuiDoodle = ({ variant, size = 88, color }: Props) => {
       width={size}
       height={size * 0.72}
       viewBox="0 0 120 86"
-      accessible={false}
+      {...(Platform.OS === 'web'
+        ? { 'aria-hidden': true }
+        : { accessible: false, accessibilityElementsHidden: true })}
     >
       {variant === 'sprout' ? (
         <>

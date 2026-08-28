@@ -1,280 +1,117 @@
 import React, { useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
-} from 'react-native';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { auth } from '@/shared/infrastructure/firebase/firebase';
-import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
-import type { RootStackParamList } from '@/application/navigation/types';
+import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { SuiMark } from '@/shared/ui/SuiMark';
+import type { RootStackParamList } from '@/application/navigation/types';
+import { createOrLinkEmailAccount } from '../services/emailAuth';
+import { useGoogleAuth } from '../hooks/useGoogleAuth';
+import { useAppleAuth } from '../hooks/useAppleAuth';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
+import { AppleSignInButton } from '../components/AppleSignInButton';
+import { AuthScaffold } from '../components/AuthScaffold';
+import { SPACING, type AppTheme, useAppTheme } from '@/shared/theme/theme';
+import { useI18n } from '@/shared/i18n/i18n';
+import { useIntroStore } from '@/features/onboarding/store/useIntroStore';
+import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
+import { recordTelemetry } from '@/shared/observability/telemetry';
 
-// Validation Schema with Zod
-const registerSchema = z
-  .object({
-    email: z
-      .string()
-      .min(1, { message: 'Por favor ingresa tu email' })
-      .email({ message: 'Ingresa un email válido' }),
-    password: z
-      .string()
-      .min(6, { message: 'La contraseña debe tener al menos 6 caracteres' }),
-    confirmPassword: z
-      .string()
-      .min(1, { message: 'Por favor confirma tu contraseña' }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Las contraseñas no coinciden',
-    path: ['confirmPassword'],
-  });
+type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
-type RegisterFields = z.infer<typeof registerSchema>;
-
-const getRegisterErrorMessage = (error: unknown) => {
-  const err = error as { code?: string; message?: string };
-  switch (err.code) {
-    case 'auth/invalid-email':
-      return 'Ingresa un email válido';
-    case 'auth/email-already-in-use':
-      return 'Ese email ya está registrado';
-    case 'auth/weak-password':
-      return 'La contraseña debe tener al menos 6 caracteres';
-    case 'auth/operation-not-allowed':
-      return 'El registro con email y contraseña no está habilitado en Firebase';
-    default:
-      return err.message ?? 'No se pudo crear la cuenta';
-  }
-};
-
-export const RegisterScreen = ({ navigation }: NativeStackScreenProps<RootStackParamList, 'Register'>) => {
+export const RegisterScreen = ({ navigation }: Props) => {
   const theme = useAppTheme();
-  const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const [loading, setLoading] = useState(false);
+  const { t } = useI18n();
+  const registerAccount = useIntroStore((state) => state.registerAccount);
+  const setPendingCloudMerge = useIntroStore((state) => state.setPendingCloudMerge);
+  const { signInWithGoogle, busy: googleBusy } = useGoogleAuth();
+  const { available: appleAvailable, busy: appleBusy, signInWithApple } = useAppleAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<RegisterFields>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-      confirmPassword: '',
-    },
-  });
-
-  const handleRegister = async (data: RegisterFields) => {
-    setLoading(true);
-    try {
-      await createUserWithEmailAndPassword(auth, data.email.trim(), data.password);
-      Alert.alert('Éxito', 'Cuenta creada correctamente');
-    } catch (error: unknown) {
-      Alert.alert('Error', getRegisterErrorMessage(error));
-    } finally {
-      setLoading(false);
+  const finishSocial = (linked: boolean) => {
+    const localState = useHomeStore.getState();
+    const hasLocalData = localState.goals.length > 0 || localState.habits.length > 0;
+    if (hasLocalData && !linked) {
+      setPendingCloudMerge(false);
+      navigation.replace('MergeData');
+      return;
     }
+    registerAccount(true);
+    setPendingCloudMerge(false);
+    void useHomeStore.getState().syncNow();
+    navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+  };
+
+  const submitEmail = async () => {
+    setError('');
+    setNotice('');
+    if (!email.includes('@')) return setError(t('auth.invalidEmail'));
+    if (password.length < 8) return setError(t('auth.shortPassword'));
+    if (password !== confirmation) return setError(t('auth.passwordMismatch'));
+    setBusy(true);
+    const result = await createOrLinkEmailAccount(email, password);
+    setBusy(false);
+    recordTelemetry('auth.completed', { provider: 'password', flow: 'register', result: result.ok ? 'success' : 'error' });
+    if (!result.ok) {
+      return setError(result.error === 'auth/email-already-in-use' ? t('auth.emailInUse') : t('auth.genericError'));
+    }
+    setNotice(t('auth.verify'));
+    setPendingCloudMerge(false);
+    registerAccount(false);
+    navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+  };
+
+  const submitGoogle = async () => {
+    setError('');
+    const result = await signInWithGoogle();
+    recordTelemetry('auth.completed', { provider: 'google', flow: 'register', result: result.cancelled ? 'cancel' : result.ok ? 'success' : 'error' });
+    if (result.cancelled) return;
+    if (!result.ok) return setError(t('auth.genericError'));
+    finishSocial(result.linked);
+  };
+
+  const submitApple = async () => {
+    setError('');
+    const result = await signInWithApple();
+    recordTelemetry('auth.completed', { provider: 'apple', flow: 'register', result: result.cancelled ? 'cancel' : result.ok ? 'success' : 'error' });
+    if (result.cancelled) return;
+    if (!result.ok) return setError(t('auth.genericError'));
+    finishSocial(result.linked);
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <SuiMark variant="isologo" size={52} accessible />
-          <Text style={styles.title}>Crea tu cuenta</Text>
-          <Text style={styles.subtitle}>Un espacio claro para avanzar a tu ritmo.</Text>
-        </View>
-
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  style={[styles.input, errors.email && styles.inputError]}
-                  placeholder="tu@email.com"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              )}
-            />
-            {errors.email && (
-              <Text style={styles.errorText}>{errors.email.message}</Text>
-            )}
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Contraseña</Text>
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  style={[styles.input, errors.password && styles.inputError]}
-                  placeholder="••••••••"
-                  secureTextEntry
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                />
-              )}
-            />
-            {errors.password && (
-              <Text style={styles.errorText}>{errors.password.message}</Text>
-            )}
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Confirmar Contraseña</Text>
-            <Controller
-              control={control}
-              name="confirmPassword"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  style={[styles.input, errors.confirmPassword && styles.inputError]}
-                  placeholder="••••••••"
-                  secureTextEntry
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                />
-              )}
-            />
-            {errors.confirmPassword && (
-              <Text style={styles.errorText}>{errors.confirmPassword.message}</Text>
-            )}
-          </View>
-
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSubmit(handleRegister)}
-            disabled={loading}
-            accessibilityRole="button"
-            accessibilityLabel="Registrarse"
-            accessibilityState={{ disabled: loading }}
-          >
-            <Text style={styles.buttonText}>
-              {loading ? 'Cargando...' : 'Registrarse'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => navigation.navigate('Login')}
-            accessibilityRole="button"
-            accessibilityLabel="Ir a inicio de sesión"
-          >
-            <Text style={styles.linkText}>
-              ¿Ya tienes cuenta? <Text style={styles.linkTextBold}>Inicia sesión</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+    <AuthScaffold title={t('auth.createTitle')} subtitle={t('auth.createSubtitle')} onBack={navigation.goBack}>
+      <Text style={styles.label}>{t('auth.email')}</Text>
+      <TextInput style={styles.input} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" placeholder="name@example.com" placeholderTextColor={theme.colors.onSurfaceVariant} />
+      <Text style={styles.label}>{t('auth.password')}</Text>
+      <TextInput style={styles.input} value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" placeholder="••••••••" placeholderTextColor={theme.colors.onSurfaceVariant} />
+      <Text style={styles.label}>{t('auth.confirmPassword')}</Text>
+      <TextInput style={styles.input} value={confirmation} onChangeText={setConfirmation} secureTextEntry autoComplete="new-password" placeholder="••••••••" placeholderTextColor={theme.colors.onSurfaceVariant} />
+      {error ? <Text style={styles.error} accessibilityRole="alert">{error}</Text> : null}
+      {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+      <TouchableOpacity style={styles.primary} onPress={() => void submitEmail()} disabled={busy}>
+        {busy ? <ActivityIndicator color={theme.colors.onPrimary} /> : <Text style={styles.primaryText}>{t('auth.create')}</Text>}
+      </TouchableOpacity>
+      <View style={styles.divider} />
+      <GoogleSignInButton label={t('auth.google')} onPress={() => void submitGoogle()} busy={googleBusy} />
+      {appleAvailable ? <AppleSignInButton label={t('auth.apple')} onPress={() => void submitApple()} busy={appleBusy} /> : null}
+      <TouchableOpacity onPress={() => navigation.replace('Login')}>
+        <Text style={styles.link}>{t('auth.haveAccount')}</Text>
+      </TouchableOpacity>
+    </AuthScaffold>
   );
 };
 
-const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    padding: SPACING.lg,
-    justifyContent: 'center',
-  },
-  header: {
-    marginBottom: SPACING.xl,
-    alignItems: 'center',
-  },
-  title: {
-    ...type.brandDisplayMd,
-    color: colors.onSurface,
-    marginTop: SPACING.md,
-    marginBottom: SPACING.sm,
-  },
-  subtitle: {
-    ...type.bodyLg,
-    color: colors.onSurfaceVariant,
-    textAlign: 'center',
-  },
-  form: {
-    backgroundColor: colors.surfaceContainer,
-    padding: SPACING.lg,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-  },
-  inputContainer: {
-    marginBottom: SPACING.md,
-  },
-  label: {
-    ...type.labelLg,
-    color: colors.onSurface,
-    marginBottom: SPACING.xs,
-  },
-  input: {
-    ...type.bodyLg,
-    backgroundColor: colors.surfaceContainerLow,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    borderRadius: 12,
-    padding: SPACING.md,
-    color: colors.onSurface,
-  },
-  inputError: {
-    borderColor: colors.error,
-  },
-  errorText: {
-    ...type.bodySm,
-    color: colors.error,
-    marginTop: 4,
-  },
-  button: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    padding: SPACING.md,
-    alignItems: 'center',
-    marginTop: SPACING.md,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    ...type.titleMd,
-    color: colors.onPrimary,
-  },
-  linkButton: {
-    marginTop: SPACING.lg,
-    alignItems: 'center',
-  },
-  linkText: {
-    ...type.bodyMd,
-    color: colors.onSurfaceVariant,
-  },
-  linkTextBold: {
-    ...type.labelLg,
-    color: colors.primary,
-  },
+const createStyles = ({ colors, radius, type }: AppTheme) => StyleSheet.create({
+  label: { ...type.labelLg, color: colors.onSurface, marginBottom: -SPACING.sm },
+  input: { ...type.bodyLg, minHeight: 50, borderWidth: 1, borderColor: colors.outlineVariant, backgroundColor: colors.surfaceContainerLow, borderRadius: radius.md, paddingHorizontal: SPACING.md, color: colors.onSurface },
+  error: { ...type.bodySm, color: colors.error },
+  notice: { ...type.bodySm, color: colors.secondary },
+  primary: { minHeight: 52, borderRadius: radius.full, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  primaryText: { ...type.titleMd, color: colors.onPrimary },
+  link: { ...type.labelLg, color: colors.primary, textAlign: 'center', paddingVertical: SPACING.xs },
+  divider: { height: 1, backgroundColor: colors.outlineVariant, marginVertical: SPACING.xs },
 });
