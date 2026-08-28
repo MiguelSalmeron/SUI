@@ -2,30 +2,161 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Usuarios: solo el propio usuario puede leer/escribir su perfil.
-    match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
     }
 
-    // Configuración de crisis: lectura pública, escritura solo admin.
+    function isRegisteredOwner(uid) {
+      return isOwner(uid)
+        && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && (
+          request.auth.token.firebase.sign_in_provider != 'password'
+          || request.auth.token.email_verified == true
+        );
+    }
+
+    function validRootDocument() {
+      return request.resource.data.keys().hasOnly([
+        'schemaVersion', 'profile', 'preferences', 'consent', 'productivity',
+        'createdAt', 'updatedAt'
+      ])
+      && request.resource.data.schemaVersion is int
+      && request.resource.data.schemaVersion >= 1
+      && request.resource.data.schemaVersion <= 7;
+    }
+
+    function validMetadata() {
+      return request.resource.data.meta is map
+        && request.resource.data.meta.keys().hasAll([
+          'schemaVersion', 'updatedAt', 'revision', 'deviceId', 'fingerprint',
+          'lastMutationId'
+        ])
+        && request.resource.data.meta.keys().hasOnly([
+          'schemaVersion', 'updatedAt', 'serverUpdatedAt', 'revision',
+          'deviceId', 'deletedAt', 'fingerprint', 'lastMutationId'
+        ])
+        && request.resource.data.meta.schemaVersion == 1
+        && request.resource.data.meta.revision is int
+        && request.resource.data.meta.revision >= 1
+        && request.resource.data.meta.deviceId is string
+        && request.resource.data.meta.deviceId.size() <= 128
+        && request.resource.data.meta.updatedAt is string
+        && request.resource.data.meta.updatedAt.size() <= 64
+        && request.resource.data.meta.fingerprint is string
+        && request.resource.data.meta.fingerprint.size() <= 200000
+        && request.resource.data.meta.lastMutationId is string
+        && request.resource.data.meta.lastMutationId.size() <= 128;
+    }
+
+    function validEntityEnvelope() {
+      return request.resource.data.keys().hasOnly(['data', 'meta', 'serverUpdatedAt'])
+        && validMetadata()
+        && request.resource.data.serverUpdatedAt == request.time;
+    }
+
+    function validGoal(goalId) {
+      return request.resource.data.data == null
+        || (
+          request.resource.data.data is map
+          && request.resource.data.data.keys().hasAll([
+            'id', 'title', 'deadline', 'progress', 'milestones', 'completed',
+            'gravity', 'createdAt'
+          ])
+          && request.resource.data.data.keys().hasOnly([
+            'id', 'title', 'deadline', 'progress', 'milestones', 'impactDays',
+            'completed', 'gravity', 'createdAt'
+          ])
+          && request.resource.data.data.id == goalId
+          && request.resource.data.data.title is string
+          && request.resource.data.data.title.size() > 0
+          && request.resource.data.data.title.size() <= 240
+          && request.resource.data.data.progress is int
+          && request.resource.data.data.progress >= 0
+          && request.resource.data.data.progress <= 100
+        );
+    }
+
+    function validHabit(habitId) {
+      return request.resource.data.data == null
+        || (
+          request.resource.data.data is map
+          && request.resource.data.data.keys().hasAll([
+            'id', 'title', 'completed', 'frequency', 'streak', 'createdAt'
+          ])
+          && request.resource.data.data.keys().hasOnly([
+            'id', 'title', 'completed', 'frequency', 'streak', 'linkedGoalId',
+            'createdAt', 'lastCompletedDate', 'frozenUntil'
+          ])
+          && request.resource.data.data.id == habitId
+          && request.resource.data.data.title is string
+          && request.resource.data.data.title.size() > 0
+          && request.resource.data.data.title.size() <= 240
+          && request.resource.data.data.streak is int
+          && request.resource.data.data.streak >= 0
+        );
+    }
+
+    function validSnapshot(date) {
+      return request.resource.data.data == null
+        || (
+          request.resource.data.data is map
+          && request.resource.data.data.keys().hasOnly([
+            'date', 'goalsCompleted', 'goalsTotal', 'habitsCompleted', 'habitsTotal'
+          ])
+          && request.resource.data.data.date == date
+        );
+    }
+
+    match /users/{uid} {
+      allow read: if isRegisteredOwner(uid);
+      allow create, update: if isRegisteredOwner(uid) && validRootDocument();
+      allow delete: if isRegisteredOwner(uid);
+
+      match /goals/{goalId} {
+        allow read: if isRegisteredOwner(uid);
+        allow create, update: if isRegisteredOwner(uid)
+          && validEntityEnvelope() && validGoal(goalId);
+        allow delete: if isRegisteredOwner(uid);
+      }
+
+      match /habits/{habitId} {
+        allow read: if isRegisteredOwner(uid);
+        allow create, update: if isRegisteredOwner(uid)
+          && validEntityEnvelope() && validHabit(habitId);
+        allow delete: if isRegisteredOwner(uid);
+      }
+
+      match /snapshots/{date} {
+        allow read: if isRegisteredOwner(uid);
+        allow create, update: if isRegisteredOwner(uid)
+          && validEntityEnvelope() && validSnapshot(date);
+        allow delete: if isRegisteredOwner(uid);
+      }
+
+      match /connections/{connectionId} {
+        allow read, write: if false;
+      }
+    }
+
     match /app_config/crisis {
       allow read: if true;
       allow write: if false;
+
+      match /regions/{region} {
+        allow read: if true;
+        allow write: if false;
+      }
     }
 
-    // Configuración de prompts: lectura pública, escritura solo admin.
-    match /app_config/prompts/{doc} {
+    match /app_config/prompts/{document} {
       allow read: if true;
       allow write: if false;
     }
 
-    // Rate limiting: solo el propio usuario puede leer su contador.
     match /rate_limits/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if false;
     }
 
-    // Denegar todo lo demás.
     match /{document=**} {
       allow read, write: if false;
     }

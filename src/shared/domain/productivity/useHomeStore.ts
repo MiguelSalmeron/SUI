@@ -1,9 +1,6 @@
 import { create } from 'zustand';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
-import { saveUserData, loadUserData } from './userData';
 import {
-  HOME_STATE_KEY,
   applyDailyReset,
   localDateKey,
   advanceStreak,
@@ -17,14 +14,18 @@ import {
   upsertSnapshot,
 } from './gamification';
 import type { Goal, Habit, GoalGravity, DayOfWeek, Milestone } from '@/shared/types/models';
-
-const CLOUD_LOAD_TIMEOUT_MS = 5000;
-
-const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T | null> =>
-  Promise.race([
-    promise,
-    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
-  ]);
+import { useIntroStore } from '@/shared/account/useIntroStore';
+import {
+  clearLocalProductivity,
+  combineProductivity,
+  flushProductivityOutbox,
+  loadLocalProductivity,
+  persistLocalProductivity,
+  pullCloudProductivity,
+  replaceLocalProductivity,
+} from './productivityRepository';
+import type { ProductivityData, SyncStatus } from './syncTypes';
+import { recordTelemetry } from '@/shared/observability/telemetry';
 
 export type HomeState = {
   goals: Goal[];
@@ -35,6 +36,8 @@ export type HomeState = {
   weeklyHistory: DailySnapshot[];
   totalXp: number;
   stateLoaded: boolean;
+  syncStatus: SyncStatus;
+  lastSyncedAt: string | null;
 
   setGoals: (goals: Goal[]) => void;
   addGoal: (payload: { title: string; deadline: string; gravity?: GoalGravity; milestones?: string[] }) => boolean;
@@ -54,11 +57,62 @@ export type HomeState = {
   bumpStreak: () => void;
   addXp: (amount: number) => void;
   loadState: () => Promise<void>;
+  reloadState: () => Promise<void>;
   saveState: () => Promise<void>;
+  syncNow: () => Promise<void>;
+  resolveCloudMerge: (strategy: 'combine' | 'cloud') => Promise<void>;
+  clearState: () => Promise<void>;
 };
 
 let saveInFlight = false;
 let saveQueued = false;
+let syncInFlight = false;
+let syncQueued = false;
+
+const toProductivityData = (state: HomeState): ProductivityData => ({
+  goals: state.goals,
+  habits: state.habits,
+  lastResetDate: state.lastResetDate,
+  streakCount: state.streak,
+  lastCompletedDate: state.lastCompletedDate,
+  weeklyHistory: state.weeklyHistory,
+  totalXp: state.totalXp,
+});
+
+const normalizeLoadedData = (data: ProductivityData): ProductivityData => {
+  let weeklyHistory = [...data.weeklyHistory];
+  const todayKey = localDateKey();
+  if (data.lastResetDate && data.lastResetDate !== todayKey) {
+    weeklyHistory = upsertSnapshot(
+      weeklyHistory,
+      makeSnapshot(data.goals, data.habits, data.lastResetDate),
+    );
+  }
+  const reset = applyDailyReset(data.goals, data.habits, data.lastResetDate);
+  weeklyHistory = upsertSnapshot(weeklyHistory, makeSnapshot(reset.goals, reset.habits, todayKey));
+  return {
+    ...data,
+    goals: reset.goals,
+    habits: reset.habits,
+    lastResetDate: reset.todayKey,
+    streakCount: normalizeStreak({
+      streakCount: data.streakCount,
+      lastCompletedDate: data.lastCompletedDate,
+    }),
+    weeklyHistory,
+    totalXp: computeTotalXp(weeklyHistory),
+  };
+};
+
+const statePatch = (data: ProductivityData) => ({
+  goals: data.goals,
+  habits: data.habits,
+  streak: data.streakCount,
+  lastCompletedDate: data.lastCompletedDate,
+  lastResetDate: data.lastResetDate,
+  weeklyHistory: data.weeklyHistory,
+  totalXp: data.totalXp,
+});
 
 export const useHomeStore = create<HomeState>((set, get) => ({
   goals: [],
@@ -69,6 +123,8 @@ export const useHomeStore = create<HomeState>((set, get) => ({
   weeklyHistory: [],
   totalXp: 0,
   stateLoaded: false,
+  syncStatus: 'local',
+  lastSyncedAt: null,
 
   setGoals: (goals) => set({ goals }),
 
@@ -238,84 +294,24 @@ export const useHomeStore = create<HomeState>((set, get) => ({
 
   loadState: async () => {
     if (get().stateLoaded) return;
-
     try {
-      const user = auth.currentUser;
-      const saved = await AsyncStorage.getItem(HOME_STATE_KEY);
-      let localGoals: Goal[] = [];
-      let localHabits: Habit[] = [];
-      let lastReset: string | undefined;
-      let streakCount = 0;
-      let lastCompleted: string | undefined;
-      let weeklyHistory: DailySnapshot[] = [];
-
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        localGoals = parsed.goals ?? [];
-        localHabits = parsed.habits ?? [];
-        lastReset = parsed.lastResetDate;
-        streakCount = parsed.streakCount ?? 0;
-        lastCompleted = parsed.lastCompletedDate;
-        weeklyHistory = parsed.weeklyHistory ?? [];
-      }
-
-      if (user?.uid) {
-        const cloud = await withTimeout(loadUserData(user.uid), CLOUD_LOAD_TIMEOUT_MS);
-        if (cloud) {
-          localGoals = cloud.goals ?? localGoals;
-          localHabits = cloud.habits ?? localHabits;
-          lastReset = cloud.lastResetDate ?? lastReset;
-          streakCount = cloud.streakCount ?? streakCount;
-          lastCompleted = cloud.lastCompletedDate ?? lastCompleted;
-          weeklyHistory = cloud.weeklyHistory ?? weeklyHistory;
-        }
-      }
-
-      const todayKey = localDateKey();
-
-      if (lastReset && lastReset !== todayKey) {
-        const prevSnapshot = makeSnapshot(localGoals, localHabits, lastReset);
-        weeklyHistory = upsertSnapshot(weeklyHistory, prevSnapshot);
-      }
-
-      const reset = applyDailyReset(localGoals, localHabits, lastReset);
-      const liveStreak = normalizeStreak({
-        streakCount,
-        lastCompletedDate: lastCompleted,
-      });
-
-      const todaySnapshot = makeSnapshot(reset.goals, reset.habits, todayKey);
-      weeklyHistory = upsertSnapshot(weeklyHistory, todaySnapshot);
-      const totalXp = computeTotalXp(weeklyHistory);
-
+      const envelope = await loadLocalProductivity();
+      const normalized = normalizeLoadedData(envelope.data);
       set({
-        goals: reset.goals,
-        habits: reset.habits,
-        streak: liveStreak,
-        lastCompletedDate: lastCompleted,
-        lastResetDate: reset.todayKey,
-        weeklyHistory,
-        totalXp,
+        ...statePatch(normalized),
         stateLoaded: true,
+        syncStatus: envelope.outbox.length ? 'pending' : 'local',
+        lastSyncedAt: envelope.lastSyncedAt,
       });
-
-      const persisted = {
-        goals: reset.goals,
-        habits: reset.habits,
-        lastResetDate: reset.todayKey,
-        streakCount: liveStreak,
-        lastCompletedDate: lastCompleted,
-        weeklyHistory,
-        totalXp,
-      };
-      await AsyncStorage.setItem(HOME_STATE_KEY, JSON.stringify(persisted));
-      if (user?.uid && reset.didReset) {
-        await saveUserData(user.uid, persisted).catch(() => undefined);
-      }
-    } catch (err) {
-      console.error('Failed to load state:', err);
-      set({ stateLoaded: true });
+      void get().syncNow();
+    } catch {
+      set({ stateLoaded: true, syncStatus: 'error' });
     }
+  },
+
+  reloadState: async () => {
+    set({ stateLoaded: false });
+    await get().loadState();
   },
 
   saveState: async () => {
@@ -327,7 +323,6 @@ export const useHomeStore = create<HomeState>((set, get) => ({
 
     try {
       const { goals, habits, streak, lastCompletedDate, lastResetDate, weeklyHistory } = get();
-      const user = auth.currentUser;
 
       const todaySnapshot = makeSnapshot(goals, habits);
       const updatedHistory = upsertSnapshot(weeklyHistory, todaySnapshot);
@@ -337,7 +332,7 @@ export const useHomeStore = create<HomeState>((set, get) => ({
         set({ weeklyHistory: updatedHistory, totalXp });
       }
 
-      const stateObj = {
+      const data: ProductivityData = {
         goals,
         habits,
         lastResetDate: lastResetDate ?? localDateKey(),
@@ -346,13 +341,14 @@ export const useHomeStore = create<HomeState>((set, get) => ({
         weeklyHistory: updatedHistory,
         totalXp,
       };
-
-      await AsyncStorage.setItem(HOME_STATE_KEY, JSON.stringify(stateObj));
-      if (user?.uid) {
-        await saveUserData(user.uid, stateObj).catch(() => undefined);
-      }
-    } catch (err) {
-      console.error('Failed to save state:', err);
+      const envelope = await persistLocalProductivity(data);
+      const syncEnabled = useIntroStore.getState().syncEnabled;
+      set({
+        syncStatus: syncEnabled && envelope.outbox.length ? 'pending' : 'local',
+      });
+      if (syncEnabled) void get().syncNow();
+    } catch {
+      set({ syncStatus: 'error' });
     } finally {
       saveInFlight = false;
       if (saveQueued) {
@@ -360,5 +356,122 @@ export const useHomeStore = create<HomeState>((set, get) => ({
         void get().saveState();
       }
     }
+  },
+
+  syncNow: async () => {
+    const syncStartedAt = Date.now();
+    const user = auth.currentUser;
+    const intro = useIntroStore.getState();
+    const passwordProvider = user?.providerData.some((item) => item.providerId === 'password');
+    const canSync = Boolean(
+      intro.syncEnabled &&
+      user &&
+      !user.isAnonymous &&
+      (!passwordProvider || user.emailVerified),
+    );
+    if (!canSync || !user) {
+      set({ syncStatus: 'local' });
+      return;
+    }
+    if (syncInFlight) {
+      syncQueued = true;
+      return;
+    }
+    syncInFlight = true;
+    set({ syncStatus: 'syncing' });
+    try {
+      let envelope = await persistLocalProductivity(toProductivityData(get()));
+      if (envelope.outbox.length > 0) {
+        envelope = await flushProductivityOutbox(user.uid, envelope);
+      }
+
+      const cloud = await pullCloudProductivity(user.uid);
+      if (!cloud) {
+        set({ syncStatus: 'synced', lastSyncedAt: envelope.lastSyncedAt ?? new Date().toISOString() });
+        recordTelemetry('sync.completed', { result: 'success', direction: 'empty' }, Date.now() - syncStartedAt);
+        return;
+      }
+
+      const normalized = normalizeLoadedData(cloud.data);
+      const currentData = toProductivityData(get());
+      const stateChanged =
+        JSON.stringify(normalized.goals) !== JSON.stringify(currentData.goals) ||
+        JSON.stringify(normalized.habits) !== JSON.stringify(currentData.habits) ||
+        JSON.stringify(normalized.weeklyHistory) !== JSON.stringify(currentData.weeklyHistory) ||
+        normalized.lastResetDate !== currentData.lastResetDate ||
+        normalized.streakCount !== currentData.streakCount ||
+        normalized.lastCompletedDate !== currentData.lastCompletedDate ||
+        normalized.totalXp !== currentData.totalXp;
+      await replaceLocalProductivity(normalized, cloud.metadata);
+      let lastSyncedAt = new Date().toISOString();
+      if (cloud.migratedLegacy) {
+        const migration = await persistLocalProductivity(normalized);
+        const migrated = await flushProductivityOutbox(user.uid, migration);
+        lastSyncedAt = migrated.lastSyncedAt ?? lastSyncedAt;
+      }
+      set(stateChanged
+        ? { ...statePatch(normalized), syncStatus: 'synced', lastSyncedAt }
+        : { syncStatus: 'synced', lastSyncedAt });
+      recordTelemetry('sync.completed', { result: 'success', direction: 'push-pull' }, Date.now() - syncStartedAt);
+    } catch (error) {
+      const code = (error as { code?: string })?.code ?? '';
+      set({ syncStatus: code.includes('unavailable') || code.includes('network') ? 'offline' : 'error' });
+      recordTelemetry('sync.completed', { result: 'error' }, Date.now() - syncStartedAt);
+    } finally {
+      syncInFlight = false;
+      if (syncQueued) {
+        syncQueued = false;
+        void get().syncNow();
+      }
+    }
+  },
+
+  resolveCloudMerge: async (strategy) => {
+    const user = auth.currentUser;
+    if (!user || user.isAnonymous) return;
+    set({ syncStatus: 'syncing' });
+    try {
+      const local = await loadLocalProductivity();
+      const cloud = await pullCloudProductivity(user.uid);
+      const emptyCloud: ProductivityData = {
+            goals: [],
+            habits: [],
+            weeklyHistory: [],
+            streakCount: 0,
+            totalXp: 0,
+          };
+      const selected = strategy === 'cloud'
+        ? cloud?.data ?? emptyCloud
+        : combineProductivity(local.data, cloud?.data ?? emptyCloud);
+      const normalized = normalizeLoadedData(selected);
+      if (strategy === 'cloud') {
+        await replaceLocalProductivity(normalized, cloud?.metadata ?? {});
+      } else {
+        await replaceLocalProductivity(normalized);
+        const pending = await persistLocalProductivity(normalized);
+        await flushProductivityOutbox(user.uid, pending);
+      }
+      useIntroStore.getState().registerAccount(true);
+      set({ ...statePatch(normalized), stateLoaded: true, syncStatus: 'synced', lastSyncedAt: new Date().toISOString() });
+    } catch {
+      set({ syncStatus: 'error' });
+      throw new Error('merge-failed');
+    }
+  },
+
+  clearState: async () => {
+    await clearLocalProductivity();
+    set({
+      goals: [],
+      habits: [],
+      streak: 0,
+      lastCompletedDate: undefined,
+      lastResetDate: undefined,
+      weeklyHistory: [],
+      totalXp: 0,
+      stateLoaded: true,
+      syncStatus: 'local',
+      lastSyncedAt: null,
+    });
   },
 }));
