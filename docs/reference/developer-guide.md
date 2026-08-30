@@ -2,7 +2,7 @@
 
 ## Requisitos
 
-- Node.js `>=20 <25`, compatible con Expo SDK 57.
+- Node.js `>=22.13 <25`, compatible con Expo SDK 57. `.nvmrc` fija `22.13.1`.
 - npm.
 - Android Studio o un dispositivo con Expo Go para desarrollo móvil.
 - Firebase CLI para emuladores y despliegues.
@@ -10,21 +10,27 @@
 
 ## Comandos
 
-| Comando | Uso |
-|---|---|
-| `npm start` | Iniciar Expo |
-| `npm run android` | Ejecutar build Android local |
-| `npm run ios` | Ejecutar build iOS local |
-| `npm run web` | Ejecutar versión web |
-| `npm run export:web` | Exportar web a `dist` |
-| `npm run architecture` | Validar límites e impedir literales tipográficos |
-| `npm run check:production` | Validar variables obligatorias de release |
-| `npm run typecheck` | Validar TypeScript móvil |
-| `npm test` | Ejecutar tests unitarios |
-| `npm run functions:build` | Compilar Cloud Functions |
-| `npm run functions:test` | Compilar y probar Cloud Functions |
-| `npm run test:rules` | Probar reglas con Firestore Emulator |
-| `npm run check` | Ejecutar todas las verificaciones |
+| Comando                     | Uso                                                     |
+| --------------------------- | ------------------------------------------------------- |
+| `npm start`                 | Iniciar Expo                                            |
+| `npm run android`           | Ejecutar build Android local                            |
+| `npm run ios`               | Ejecutar build iOS local                                |
+| `npm run web`               | Ejecutar versión web                                    |
+| `npm run export:web`        | Exportar web a `dist`                                   |
+| `npm run lint`              | Ejecutar ESLint sin warnings                            |
+| `npm run format:changed`    | Comprobar Prettier sólo en archivos cambiados           |
+| `npm run architecture`      | Validar límites AST e impedir literales tipográficos    |
+| `npm run architecture:test` | Probar violaciones arquitectónicas controladas          |
+| `npm run dead-code`         | Detectar archivos, dependencias y unlisted con Knip     |
+| `npm run deps:check`        | Validar versiones compatibles con Expo                  |
+| `npm run audit:prod`        | Fallar por vulnerabilidades high/critical de producción |
+| `npm run check:production`  | Validar variables obligatorias de release               |
+| `npm run typecheck`         | Validar TypeScript móvil                                |
+| `npm test`                  | Ejecutar tests unitarios                                |
+| `npm run functions:build`   | Compilar Cloud Functions                                |
+| `npm run functions:test`    | Compilar y probar Cloud Functions                       |
+| `npm run test:rules`        | Probar reglas con Firestore Emulator                    |
+| `npm run check`             | Ejecutar todas las verificaciones                       |
 
 ## Convenciones de código
 
@@ -41,10 +47,13 @@ Expo resuelve el alias `@/` mediante `tsconfig.json`.
 
 ```typescript
 import { useAppTheme } from '@/shared/theme/theme';
-import { useChatStore } from '@/features/chat/store/useChatStore';
+import { ChatScreen } from '@/features/chat/public';
+import type { RootStackParamList } from '@/shared/navigation/types';
 ```
 
-Dentro de un mismo módulo se permiten imports relativos cortos. Evita barrels globales y rutas profundas hacia detalles privados de otra funcionalidad.
+Cada funcionalidad tiene `public.ts`. `application` y otras funcionalidades sólo
+pueden consumir esa API pública. Dentro de la misma funcionalidad, usa imports
+relativos. `shared` nunca importa funcionalidades o `application`.
 
 Después de modificar aliases, reinicia Expo CLI.
 
@@ -67,7 +76,7 @@ Después de modificar aliases, reinicia Expo CLI.
 1. Crea una carpeta bajo `src/features`.
 2. Añade solo las subcarpetas necesarias: `screens`, `components`, `hooks`, `model`, `services`, `store`, `types`.
 3. Coloca los tests junto al módulo probado en `__tests__`.
-4. Expón el mínimo necesario a `src/application`.
+4. Crea `public.ts` y expón el mínimo necesario a consumidores externos.
 5. No muevas código a `shared` hasta que sea realmente utilizado por varias funcionalidades.
 6. Ejecuta `npm run check`.
 
@@ -83,6 +92,9 @@ Consulta [API, persistencia y tema](api-and-theme.md) para claves y estructuras.
 ## Cloud Functions
 
 `functions/src/index.ts` registra Chat, conexiones Calendar y eliminación de cuenta. App Check inicia en monitor; producción migra a enforcement tras verificar clientes.
+
+Cliente y CI usan Node 22. Functions conserva runtime Node 20; cambiar runtime de
+deploy queda fuera de este hardening.
 
 Antes de desplegar:
 
@@ -115,6 +127,8 @@ cd android && ./gradlew assembleRelease
 - Imports y documentación actualizados.
 - Tests nuevos para reglas de negocio nuevas.
 - `npm run check` aprobado.
+- `npm run format:changed` aprobado contra base/head del PR.
+- Sin imports profundos entre funcionalidades.
 
 ## Documentación
 

@@ -43,12 +43,15 @@ Consulta [configuración cloud](docs/how-to/complete-cloud-configuration.md).
 
 ```bash
 npm run check
+npm run format:changed
+npm run audit:prod
 npm run export:web
 npx expo-doctor
 ```
 
-`npm run check` valida arquitectura, config productiva, TypeScript, unit tests,
-Functions y reglas Firestore.
+`npm run check` valida arquitectura, ESLint, Knip, dependencias Expo, config
+productiva, TypeScript, unit tests, Functions y reglas Firestore. Usa Node
+`>=22.13 <25`; Functions conserva runtime Node 20.
 
 ## Arquitectura
 
@@ -65,8 +68,10 @@ functions/src/
 └── http/               # CORS y App Check
 ```
 
-Reglas: `application` compone; `features` depende de `shared`; `shared` nunca
-depende de `features`. React Navigation permanece; no Expo Router.
+Reglas: `application` compone; cada feature expone `public.ts`; consumidores usan
+`@/features/<feature>/public`; imports internos son relativos; `features` depende
+de `shared`; `shared` nunca depende de `features`. Contratos de navegación viven
+en `shared/navigation`. React Navigation permanece; no Expo Router.
 
 ## Ambientes
 

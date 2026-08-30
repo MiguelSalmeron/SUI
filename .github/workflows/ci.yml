@@ -13,11 +13,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22.13.1'
           cache: npm
 
       - name: Setup Java for Firebase Emulator
@@ -32,8 +34,41 @@ jobs:
       - name: Install Functions dependencies
         run: npm ci --prefix functions
 
-      - name: Run full checks
-        run: npm run check
+      - name: Check formatting of changed files
+        env:
+          FORMAT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FORMAT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: npm run format:changed
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check architecture
+        run: npm run architecture && npm run architecture:test
+
+      - name: Check dead code and dependencies
+        run: npm run dead-code
+
+      - name: Check Expo dependencies
+        run: npm run deps:check
+
+      - name: Check production configuration
+        run: npm run check:production
+
+      - name: Typecheck client
+        run: npm run typecheck
+
+      - name: Test client
+        run: npm test
+
+      - name: Test Functions
+        run: npm run functions:test
+
+      - name: Test Firestore rules
+        run: npm run test:rules
+
+      - name: Audit production dependencies
+        run: npm run audit:prod
 
       - name: Export web bundle
         run: npm run export:web
