@@ -19,11 +19,7 @@ jest.mock('expo-notifications', () => ({
   },
 }));
 
-import * as Notifications from 'expo-notifications';
-import {
-  isNightlyReportResponse,
-  NIGHTLY_REPORT_TYPE,
-} from '../notifications';
+import { isNightlyReportResponse, NIGHTLY_REPORT_TYPE } from '../notifications';
 
 describe('notifications', () => {
   beforeEach(() => {

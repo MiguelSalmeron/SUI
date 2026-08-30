@@ -1,10 +1,5 @@
 import { SUI_FONTS } from '../brand';
-import {
-  FONT_SCALE_MAP,
-  MD3_TYPE,
-  TYPOGRAPHY,
-  scaleTypography,
-} from '../typography';
+import { FONT_SCALE_MAP, MD3_TYPE, TYPOGRAPHY, scaleTypography } from '../typography';
 
 describe('sistema tipográfico Sui', () => {
   it('expone escala semántica completa', () => {
@@ -65,7 +60,7 @@ describe('sistema tipográfico Sui', () => {
   ] as const)('escala %s sin alterar familia, peso ni espaciado', (_name, scale) => {
     const scaled = scaleTypography(TYPOGRAPHY, scale);
 
-    for (const token of Object.keys(TYPOGRAPHY) as Array<keyof typeof TYPOGRAPHY>) {
+    for (const token of Object.keys(TYPOGRAPHY) as (keyof typeof TYPOGRAPHY)[]) {
       const original = TYPOGRAPHY[token];
       expect(scaled[token]).toEqual({
         ...original,
