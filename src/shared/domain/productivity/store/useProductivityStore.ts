@@ -395,6 +395,9 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
           collisions: result.collisions,
           pending: result.pending,
           migratedLegacy: result.migratedLegacy,
+          pages: result.pages,
+          compacted: result.compacted,
+          epochResets: result.epochResets,
         },
         Date.now() - syncStartedAt,
       );
@@ -438,12 +441,14 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
           normalized,
           cloud?.metadata ?? {},
           cloud?.summaryMeta ?? null,
+          cloud?.pullState,
         );
       } else {
         await replaceLocalProductivity(
           normalized,
           cloud?.metadata ?? {},
           cloud?.summaryMeta ?? null,
+          cloud?.pullState,
         );
         const result = await synchronizeProductivity(user.uid, normalized);
         lastSyncedAt = result.lastSyncedAt;

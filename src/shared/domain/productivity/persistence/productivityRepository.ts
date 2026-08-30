@@ -4,15 +4,22 @@ import { HOME_STATE_KEY } from '../model/homeStorage';
 import type { DailySnapshot } from '../model/gamification';
 import type { Goal, Habit } from '@/shared/types/models';
 import type {
+  CloudChange,
+  CloudMetadataV2,
   ProductivityData,
   ProductivityEntityType,
-  ProductivityEnvelopeV8,
+  ProductivityEnvelopeV9,
   ProductivitySummary,
+  PullStateV9,
+  SerializedTimestamp,
+  SummaryChange,
+  SyncEntityType,
   SyncMetadata,
   SyncMutation,
 } from '../sync/syncTypes';
 
-export const PRODUCTIVITY_STORAGE_KEY = 'sui-productivity-v8';
+export const PRODUCTIVITY_STORAGE_KEY = 'sui-productivity-v9';
+export const LEGACY_PRODUCTIVITY_V8_STORAGE_KEY = 'sui-productivity-v8';
 export const LEGACY_PRODUCTIVITY_STORAGE_KEY = 'sui-productivity-v7';
 const DEVICE_ID_KEY = '@sui/device-id-v1';
 const SUMMARY_ID = 'singleton';
@@ -24,6 +31,13 @@ export const EMPTY_PRODUCTIVITY_DATA: ProductivityData = {
   weeklyHistory: [],
   totalXp: 0,
 };
+
+export const emptyPullState = (): PullStateV9 => ({
+  syncEpoch: null,
+  cursors: { goals: null, habits: null, snapshots: null },
+  needsBootstrap: true,
+  needsRebase: false,
+});
 
 export const fingerprintValue = (value: unknown): string => JSON.stringify(value);
 export const metadataKey = (type: ProductivityEntityType, id: string): string => `${type}:${id}`;
@@ -66,51 +80,54 @@ const isValidData = (value: unknown): value is ProductivityData => {
     value.habits.every((item) => isRecord(item) && typeof item.id === 'string') &&
     Array.isArray(value.weeklyHistory) &&
     value.weeklyHistory.every((item) => isRecord(item) && typeof item.date === 'string') &&
-    typeof value.streakCount === 'number' &&
     Number.isInteger(value.streakCount) &&
-    value.streakCount >= 0 &&
-    typeof value.totalXp === 'number' &&
+    Number(value.streakCount) >= 0 &&
     Number.isInteger(value.totalXp) &&
-    value.totalXp >= 0 &&
+    Number(value.totalXp) >= 0 &&
     (value.lastResetDate === undefined || typeof value.lastResetDate === 'string') &&
     (value.lastCompletedDate === undefined || typeof value.lastCompletedDate === 'string')
   );
 };
 
-const isValidMetadata = (value: unknown): value is SyncMetadata => {
-  if (!isRecord(value)) return false;
-  return (
-    value.schemaVersion === 1 &&
-    typeof value.updatedAt === 'string' &&
-    Number.isInteger(value.revision) &&
-    Number(value.revision) >= 1 &&
-    typeof value.deviceId === 'string' &&
-    value.deviceId.length > 0 &&
-    typeof value.fingerprint === 'string' &&
-    (value.serverUpdatedAt === undefined || typeof value.serverUpdatedAt === 'string') &&
-    (value.deletedAt === undefined || typeof value.deletedAt === 'string')
-  );
-};
+const isTimestamp = (value: unknown): value is SerializedTimestamp =>
+  isRecord(value) &&
+  Number.isInteger(value.seconds) &&
+  Number.isInteger(value.nanoseconds) &&
+  Number(value.nanoseconds) >= 0 &&
+  Number(value.nanoseconds) < 1_000_000_000;
 
-const parseMetadata = (value: unknown): Record<string, SyncMetadata> | null => {
-  if (value === undefined) return {};
-  if (!isRecord(value) || !Object.values(value).every(isValidMetadata)) return null;
-  return value as Record<string, SyncMetadata>;
-};
+const isValidMetadata = (value: unknown): value is SyncMetadata =>
+  isRecord(value) &&
+  value.schemaVersion === 2 &&
+  Number.isInteger(value.serverRevision) &&
+  Number(value.serverRevision) >= 0 &&
+  Number.isInteger(value.localRevision) &&
+  Number(value.localRevision) >= 0 &&
+  typeof value.updatedAt === 'string' &&
+  value.updatedAt.length > 0 &&
+  typeof value.deviceId === 'string' &&
+  value.deviceId.length > 0 &&
+  typeof value.fingerprint === 'string' &&
+  (value.lastMutationId === undefined || typeof value.lastMutationId === 'string') &&
+  (value.serverUpdatedAt === undefined || typeof value.serverUpdatedAt === 'string') &&
+  (value.deletedAt === undefined || typeof value.deletedAt === 'string') &&
+  (value.purgeAfter === undefined || typeof value.purgeAfter === 'string');
 
 const isValidMutation = (value: unknown): value is SyncMutation => {
-  if (!isRecord(value) || !isValidMetadata(value.meta)) return false;
+  if (!isRecord(value)) return false;
   if (
     typeof value.mutationId !== 'string' ||
     typeof value.entityId !== 'string' ||
     !['goal', 'habit', 'snapshot', 'summary'].includes(String(value.entityType)) ||
-    !['upsert', 'delete'].includes(String(value.operation))
-  ) {
+    !['upsert', 'delete'].includes(String(value.operation)) ||
+    !Number.isInteger(value.baseServerRevision) ||
+    Number(value.baseServerRevision) < 0 ||
+    typeof value.deviceId !== 'string' ||
+    typeof value.clientUpdatedAt !== 'string' ||
+    typeof value.fingerprint !== 'string'
+  )
     return false;
-  }
-  if (value.operation === 'delete') {
-    return value.entityType !== 'summary' && value.payload === null;
-  }
+  if (value.operation === 'delete') return value.entityType !== 'summary' && value.payload === null;
   if (!isRecord(value.payload)) return false;
   if (value.entityType === 'summary') {
     return (
@@ -124,42 +141,57 @@ const isValidMutation = (value: unknown): value is SyncMutation => {
   return identity === value.entityId;
 };
 
-const parseOutbox = (value: unknown): SyncMutation[] | null => {
-  if (value === undefined) return [];
-  if (!Array.isArray(value) || !value.every(isValidMutation)) return null;
-  return value;
+const isPullState = (value: unknown): value is PullStateV9 => {
+  if (!isRecord(value) || !isRecord(value.cursors)) return false;
+  const validCursor = (cursor: unknown) =>
+    cursor === null ||
+    (isRecord(cursor) && isTimestamp(cursor) && typeof cursor.documentId === 'string');
+  return (
+    (value.syncEpoch === null ||
+      (Number.isInteger(value.syncEpoch) && Number(value.syncEpoch) >= 0)) &&
+    validCursor(value.cursors.goals) &&
+    validCursor(value.cursors.habits) &&
+    validCursor(value.cursors.snapshots) &&
+    typeof value.needsBootstrap === 'boolean' &&
+    typeof value.needsRebase === 'boolean'
+  );
 };
 
 const emptyEnvelope = (
   data: ProductivityData = EMPTY_PRODUCTIVITY_DATA,
-): ProductivityEnvelopeV8 => ({
-  schemaVersion: 8,
+): ProductivityEnvelopeV9 => ({
+  schemaVersion: 9,
   data,
   metadata: {},
   summaryMeta: null,
   outbox: [],
+  pullState: emptyPullState(),
   lastSyncedAt: null,
 });
 
-const parseV8 = (raw: string): ProductivityEnvelopeV8 | null => {
+const parseV9 = (raw: string): ProductivityEnvelopeV9 | null => {
   try {
-    const value = JSON.parse(raw) as Partial<ProductivityEnvelopeV8>;
-    const metadata = parseMetadata(value.metadata);
-    const outbox = parseOutbox(value.outbox);
-    if (value.schemaVersion !== 8 || !isValidData(value.data) || !metadata || !outbox) return null;
+    const value = JSON.parse(raw) as Partial<ProductivityEnvelopeV9>;
     if (
-      value.summaryMeta !== undefined &&
-      value.summaryMeta !== null &&
-      !isValidMetadata(value.summaryMeta)
-    ) {
+      value.schemaVersion !== 9 ||
+      !isValidData(value.data) ||
+      !isRecord(value.metadata) ||
+      !Object.values(value.metadata).every(isValidMetadata) ||
+      (value.summaryMeta !== null &&
+        value.summaryMeta !== undefined &&
+        !isValidMetadata(value.summaryMeta)) ||
+      !Array.isArray(value.outbox) ||
+      !value.outbox.every(isValidMutation) ||
+      !isPullState(value.pullState)
+    )
       return null;
-    }
     return {
-      schemaVersion: 8,
+      schemaVersion: 9,
       data: value.data,
-      metadata,
+      metadata: value.metadata as Record<string, SyncMetadata>,
       summaryMeta: value.summaryMeta ?? null,
-      outbox,
+      outbox: value.outbox,
+      pullState: value.pullState,
       lastSyncedAt: typeof value.lastSyncedAt === 'string' ? value.lastSyncedAt : null,
     };
   } catch {
@@ -167,32 +199,110 @@ const parseV8 = (raw: string): ProductivityEnvelopeV8 | null => {
   }
 };
 
-const migrateLegacy = async (): Promise<ProductivityEnvelopeV8> => {
+interface LegacyMetadata {
+  revision?: number;
+  updatedAt?: string;
+  deviceId?: string;
+  fingerprint?: string;
+  lastMutationId?: string;
+  serverUpdatedAt?: string;
+  deletedAt?: string;
+}
+
+interface LegacyMutation {
+  mutationId?: string;
+  entityType?: SyncEntityType;
+  entityId?: string;
+  operation?: 'upsert' | 'delete';
+  payload?: SyncMutation['payload'];
+  meta?: LegacyMetadata;
+}
+
+const migrateMetadata = (value: unknown): Record<string, SyncMetadata> => {
+  if (!isRecord(value)) return {};
+  const migrated: Record<string, SyncMetadata> = {};
+  for (const [key, raw] of Object.entries(value)) {
+    if (!isRecord(raw)) continue;
+    const meta = raw as LegacyMetadata;
+    if (typeof meta.deviceId !== 'string' || typeof meta.fingerprint !== 'string') continue;
+    migrated[key] = {
+      schemaVersion: 2,
+      serverRevision: 0,
+      localRevision: typeof meta.revision === 'number' ? meta.revision : 0,
+      updatedAt: meta.updatedAt ?? new Date(0).toISOString(),
+      deviceId: meta.deviceId,
+      fingerprint: meta.fingerprint,
+      ...(meta.lastMutationId ? { lastMutationId: meta.lastMutationId } : {}),
+      ...(meta.serverUpdatedAt ? { serverUpdatedAt: meta.serverUpdatedAt } : {}),
+      ...(meta.deletedAt ? { deletedAt: meta.deletedAt } : {}),
+    };
+  }
+  return migrated;
+};
+
+const migrateOutbox = (value: unknown): SyncMutation[] => {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((raw): SyncMutation[] => {
+    if (!isRecord(raw)) return [];
+    const mutation = raw as LegacyMutation;
+    if (
+      typeof mutation.mutationId !== 'string' ||
+      typeof mutation.entityId !== 'string' ||
+      !mutation.entityType ||
+      !mutation.operation ||
+      !mutation.meta?.deviceId ||
+      !mutation.meta.fingerprint
+    )
+      return [];
+    return [
+      {
+        mutationId: mutation.mutationId,
+        entityType: mutation.entityType,
+        entityId: mutation.entityId,
+        operation: mutation.operation,
+        payload: mutation.payload ?? null,
+        baseServerRevision: 0,
+        deviceId: mutation.meta.deviceId,
+        clientUpdatedAt: mutation.meta.updatedAt ?? new Date(0).toISOString(),
+        fingerprint: mutation.meta.fingerprint,
+      },
+    ];
+  });
+};
+
+const migrateEnvelope = (raw: string, expectedVersion: 7 | 8): ProductivityEnvelopeV9 | null => {
+  try {
+    const value = JSON.parse(raw) as Record<string, unknown>;
+    if (value.schemaVersion !== expectedVersion || !isValidData(value.data)) return null;
+    const outbox = migrateOutbox(value.outbox);
+    const summaryValues = isRecord(value.summaryMeta)
+      ? Object.values(migrateMetadata({ summary: value.summaryMeta }))
+      : [];
+    return {
+      schemaVersion: 9,
+      data: value.data,
+      metadata: migrateMetadata(value.metadata),
+      summaryMeta: summaryValues[0] ?? null,
+      outbox,
+      pullState: { ...emptyPullState(), needsRebase: outbox.length > 0 },
+      lastSyncedAt: typeof value.lastSyncedAt === 'string' ? value.lastSyncedAt : null,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const migrateLegacy = async (): Promise<ProductivityEnvelopeV9> => {
+  const v8 = await AsyncStorage.getItem(LEGACY_PRODUCTIVITY_V8_STORAGE_KEY);
+  if (v8) {
+    const migrated = migrateEnvelope(v8, 8);
+    if (migrated) return migrated;
+  }
   const v7 = await AsyncStorage.getItem(LEGACY_PRODUCTIVITY_STORAGE_KEY);
   if (v7) {
-    try {
-      const value = JSON.parse(v7) as {
-        schemaVersion?: number;
-        data?: Partial<ProductivityData>;
-        metadata?: unknown;
-        outbox?: unknown;
-        lastSyncedAt?: unknown;
-      };
-      const metadata = parseMetadata(value.metadata);
-      const outbox = parseOutbox(value.outbox);
-      if (value.schemaVersion === 7 && isValidData(value.data) && metadata && outbox) {
-        return {
-          schemaVersion: 8,
-          data: value.data,
-          metadata,
-          summaryMeta: null,
-          outbox,
-          lastSyncedAt: typeof value.lastSyncedAt === 'string' ? value.lastSyncedAt : null,
-        };
-      }
-    } catch {}
+    const migrated = migrateEnvelope(v7, 7);
+    if (migrated) return migrated;
   }
-
   const v6 = await AsyncStorage.getItem(HOME_STATE_KEY);
   if (!v6) return emptyEnvelope();
   try {
@@ -202,14 +312,14 @@ const migrateLegacy = async (): Promise<ProductivityEnvelopeV8> => {
   }
 };
 
-export const writeLocalProductivity = async (envelope: ProductivityEnvelopeV8): Promise<void> => {
+export const writeLocalProductivity = async (envelope: ProductivityEnvelopeV9): Promise<void> => {
   await AsyncStorage.setItem(PRODUCTIVITY_STORAGE_KEY, JSON.stringify(envelope));
 };
 
-export const loadLocalProductivity = async (): Promise<ProductivityEnvelopeV8> => {
+export const loadLocalProductivity = async (): Promise<ProductivityEnvelopeV9> => {
   const current = await AsyncStorage.getItem(PRODUCTIVITY_STORAGE_KEY);
   if (current) {
-    const parsed = parseV8(current);
+    const parsed = parseV9(current);
     if (parsed) return parsed;
     await AsyncStorage.removeItem(PRODUCTIVITY_STORAGE_KEY);
   }
@@ -218,18 +328,22 @@ export const loadLocalProductivity = async (): Promise<ProductivityEnvelopeV8> =
   return migrated;
 };
 
+const existingMutation = (outbox: SyncMutation[], type: SyncEntityType, id: string) =>
+  outbox.find((item) => item.entityType === type && item.entityId === id);
+
 const nextMetadata = (
   previous: SyncMetadata | undefined,
   fingerprint: string,
   deviceId: string,
   deletedAt?: string,
 ): SyncMetadata => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
+  serverRevision: previous?.serverRevision ?? 0,
+  localRevision: (previous?.localRevision ?? 0) + 1,
   updatedAt: new Date().toISOString(),
-  revision: (previous?.revision ?? 0) + 1,
   deviceId,
-  ...(deletedAt ? { deletedAt } : {}),
   fingerprint,
+  ...(deletedAt ? { deletedAt } : {}),
 });
 
 const replaceMutation = (outbox: SyncMutation[], mutation: SyncMutation): void => {
@@ -237,6 +351,28 @@ const replaceMutation = (outbox: SyncMutation[], mutation: SyncMutation): void =
     (item) => item.entityType !== mutation.entityType || item.entityId !== mutation.entityId,
   );
   outbox.splice(0, outbox.length, ...remaining, mutation);
+};
+
+const queueMutation = (
+  type: SyncEntityType,
+  id: string,
+  operation: 'upsert' | 'delete',
+  payload: SyncMutation['payload'],
+  meta: SyncMetadata,
+  outbox: SyncMutation[],
+): void => {
+  const pending = existingMutation(outbox, type, id);
+  replaceMutation(outbox, {
+    mutationId: Crypto.randomUUID(),
+    entityType: type,
+    entityId: id,
+    operation,
+    payload,
+    baseServerRevision: pending?.baseServerRevision ?? meta.serverRevision,
+    deviceId: meta.deviceId,
+    clientUpdatedAt: meta.updatedAt,
+    fingerprint: meta.fingerprint,
+  });
 };
 
 const queueEntity = <T extends Goal | Habit | DailySnapshot>(
@@ -253,14 +389,7 @@ const queueEntity = <T extends Goal | Habit | DailySnapshot>(
   if (previous?.fingerprint === fingerprint && !previous.deletedAt) return;
   const meta = nextMetadata(previous, fingerprint, deviceId);
   metadata[key] = meta;
-  replaceMutation(outbox, {
-    mutationId: Crypto.randomUUID(),
-    entityType: type,
-    entityId: id,
-    operation: 'upsert',
-    payload: value,
-    meta,
-  });
+  queueMutation(type, id, 'upsert', value, meta, outbox);
 };
 
 const queueDeleted = (
@@ -278,14 +407,7 @@ const queueDeleted = (
     const deletedAt = new Date().toISOString();
     const meta = nextMetadata(previous, 'deleted', deviceId, deletedAt);
     metadata[key] = meta;
-    replaceMutation(outbox, {
-      mutationId: Crypto.randomUUID(),
-      entityType: type,
-      entityId: id,
-      operation: 'delete',
-      payload: null,
-      meta,
-    });
+    queueMutation(type, id, 'delete', null, meta, outbox);
   }
 };
 
@@ -299,20 +421,13 @@ const queueSummary = (
   const fingerprint = fingerprintValue(summary);
   if (previous?.fingerprint === fingerprint && !previous.deletedAt) return previous;
   const meta = nextMetadata(previous ?? undefined, fingerprint, deviceId);
-  replaceMutation(outbox, {
-    mutationId: Crypto.randomUUID(),
-    entityType: 'summary',
-    entityId: SUMMARY_ID,
-    operation: 'upsert',
-    payload: summary,
-    meta,
-  });
+  queueMutation('summary', SUMMARY_ID, 'upsert', summary, meta, outbox);
   return meta;
 };
 
 export const persistLocalProductivity = async (
   data: ProductivityData,
-): Promise<ProductivityEnvelopeV8> => {
+): Promise<ProductivityEnvelopeV9> => {
   const current = await loadLocalProductivity();
   const deviceId = await getDeviceId();
   const metadata = { ...current.metadata };
@@ -320,9 +435,8 @@ export const persistLocalProductivity = async (
   for (const goal of data.goals) queueEntity('goal', goal.id, goal, metadata, outbox, deviceId);
   for (const habit of data.habits)
     queueEntity('habit', habit.id, habit, metadata, outbox, deviceId);
-  for (const snapshot of data.weeklyHistory) {
+  for (const snapshot of data.weeklyHistory)
     queueEntity('snapshot', snapshot.date, snapshot, metadata, outbox, deviceId);
-  }
   queueDeleted('goal', new Set(data.goals.map((item) => item.id)), metadata, outbox, deviceId);
   queueDeleted('habit', new Set(data.habits.map((item) => item.id)), metadata, outbox, deviceId);
   queueDeleted(
@@ -333,13 +447,7 @@ export const persistLocalProductivity = async (
     deviceId,
   );
   const summaryMeta = queueSummary(data, current.summaryMeta, outbox, deviceId);
-  const envelope: ProductivityEnvelopeV8 = {
-    ...current,
-    data,
-    metadata,
-    summaryMeta,
-    outbox,
-  };
+  const envelope = { ...current, data, metadata, summaryMeta, outbox };
   await writeLocalProductivity(envelope);
   return envelope;
 };
@@ -353,7 +461,7 @@ export const applyPendingMutations = (
   data: ProductivityData,
   mutations: SyncMutation[],
 ): ProductivityData => {
-  let next: ProductivityData = {
+  let next = {
     ...data,
     goals: [...data.goals],
     habits: [...data.habits],
@@ -385,17 +493,112 @@ export const applyPendingMutations = (
   return next;
 };
 
+const timestampIso = (value?: SerializedTimestamp): string | undefined =>
+  value
+    ? new Date(value.seconds * 1000 + Math.floor(value.nanoseconds / 1_000_000)).toISOString()
+    : undefined;
+
+export const localMetadata = (
+  meta: CloudMetadataV2,
+  serverUpdatedAt: SerializedTimestamp,
+): SyncMetadata => ({
+  schemaVersion: 2,
+  serverRevision: meta.serverRevision,
+  localRevision: 0,
+  updatedAt: meta.clientUpdatedAt,
+  serverUpdatedAt: timestampIso(serverUpdatedAt),
+  deviceId: meta.originDeviceId,
+  fingerprint: meta.fingerprint,
+  lastMutationId: meta.lastMutationId,
+  deletedAt: timestampIso(meta.deletedAt),
+  purgeAfter: timestampIso(meta.purgeAfter),
+});
+
+export const applyCloudChanges = (
+  data: ProductivityData,
+  metadata: Record<string, SyncMetadata>,
+  changes: CloudChange[],
+  summary: SummaryChange | null,
+): {
+  data: ProductivityData;
+  metadata: Record<string, SyncMetadata>;
+  summaryMeta: SyncMetadata | null;
+} => {
+  let next = {
+    ...data,
+    goals: [...data.goals],
+    habits: [...data.habits],
+    weeklyHistory: [...data.weeklyHistory],
+  };
+  const nextMetadata = { ...metadata };
+  for (const change of changes) {
+    nextMetadata[metadataKey(change.entityType, change.entityId)] = localMetadata(
+      change.meta,
+      change.serverUpdatedAt,
+    );
+    if (change.entityType === 'goal') {
+      next.goals = change.data
+        ? upsertById(next.goals, change.data as Goal)
+        : next.goals.filter((item) => item.id !== change.entityId);
+    } else if (change.entityType === 'habit') {
+      next.habits = change.data
+        ? upsertById(next.habits, change.data as Habit)
+        : next.habits.filter((item) => item.id !== change.entityId);
+    } else {
+      next.weeklyHistory = change.data
+        ? [
+            change.data as DailySnapshot,
+            ...next.weeklyHistory.filter((item) => item.date !== change.entityId),
+          ]
+        : next.weeklyHistory.filter((item) => item.date !== change.entityId);
+    }
+  }
+  const summaryMeta = summary ? localMetadata(summary.meta, summary.serverUpdatedAt) : null;
+  if (summary) next = { ...next, ...summary.data };
+  return { data: next, metadata: nextMetadata, summaryMeta };
+};
+
+export const rebasePendingMutations = (
+  mutations: SyncMutation[],
+  metadata: Record<string, SyncMetadata>,
+  summaryMeta: SyncMetadata | null,
+): SyncMutation[] =>
+  mutations.flatMap((mutation) => {
+    const cloudMeta =
+      mutation.entityType === 'summary'
+        ? summaryMeta
+        : metadata[metadataKey(mutation.entityType, mutation.entityId)];
+    if (cloudMeta?.fingerprint === mutation.fingerprint) return [];
+    if (!cloudMeta && mutation.baseServerRevision > 0) return [];
+    return [{ ...mutation, baseServerRevision: cloudMeta?.serverRevision ?? 0 }];
+  });
+
+export const pendingMetadata = (
+  cloud: Record<string, SyncMetadata>,
+  latest: ProductivityEnvelopeV9,
+): Record<string, SyncMetadata> => {
+  const metadata = { ...cloud };
+  for (const mutation of latest.outbox) {
+    if (mutation.entityType === 'summary') continue;
+    const current = latest.metadata[metadataKey(mutation.entityType, mutation.entityId)];
+    if (current) metadata[metadataKey(mutation.entityType, mutation.entityId)] = current;
+  }
+  return metadata;
+};
+
 export const replaceLocalProductivity = async (
   data: ProductivityData,
   metadata: Record<string, SyncMetadata> = {},
   summaryMeta: SyncMetadata | null = null,
+  pullState: PullStateV9 = emptyPullState(),
 ): Promise<void> => {
   await writeLocalProductivity({
-    schemaVersion: 8,
+    schemaVersion: 9,
     data,
     metadata,
     summaryMeta,
     outbox: [],
+    pullState,
     lastSyncedAt: new Date().toISOString(),
   });
 };
@@ -425,6 +628,7 @@ export const combineProductivity = (
 export const clearLocalProductivity = async (): Promise<void> => {
   await AsyncStorage.multiRemove([
     PRODUCTIVITY_STORAGE_KEY,
+    LEGACY_PRODUCTIVITY_V8_STORAGE_KEY,
     LEGACY_PRODUCTIVITY_STORAGE_KEY,
     HOME_STATE_KEY,
   ]);
