@@ -86,7 +86,7 @@ Este dominio contiene:
 - Eventos de celebración compartidos.
 
 `public.ts` es su única API externa. `model` contiene reglas puras; `persistence`
-administra AsyncStorage y migraciones; `sync` coordina Firestore y conflictos;
+administra AsyncStorage y migraciones; `sync` coordina endpoint batch y cursores;
 `store` adapta dominio a Zustand.
 
 Las pantallas de metas, hábitos, calendario y resumen consumen este dominio sin depender entre sí.
@@ -98,23 +98,23 @@ graph TD
     A[Abrir aplicación] --> B[Leer AsyncStorage]
     B --> C[Renderizar estado local]
     C --> D{Sesión y red disponibles}
-    D -- Sí --> E[Leer entidades Firestore]
-    E --> F[Reconciliar metadata y outbox]
+    D -- Sí --> E[POST syncProductivity]
+    E --> F[CAS batch y pull incremental]
     D -- No --> G[Continuar offline]
     H[Mutación del usuario] --> I[Actualizar Zustand]
     I --> J[Persistir AsyncStorage]
     J --> K[Encolar mutationId]
     K --> L{Cuenta verificada y red}
-    L -- Sí --> M[Commit transaccional idempotente]
+    L -- Sí --> M[Cloud Function: commit CAS agrupado]
     M --> N[Pull autoritativo]
     N --> O[Superponer outbox creado durante vuelo]
 ```
 
-La UI nunca espera nube. Repositorio v8 conserva metadata por entidad, metadata
-del resumen, tombstones, outbox y `lastSyncedAt`. Migración lee v7 y luego v6;
-v7 permanece como respaldo de solo lectura. Conflictos eligen mayor `revision` y,
-en empate, mayor `deviceId` lexicográfico. El reloj cliente no decide. Usuarios
-anónimos no escriben productividad en Firestore.
+La UI nunca espera nube. Repositorio v9 conserva metadata por entidad/resumen,
+outbox, cursores, `syncEpoch` y `lastSyncedAt`. Migración lee v8, luego v7/v6; v8
+permanece respaldo read-only. Servidor asigna revisiones y primer commit CAS válido
+gana. Tombstones viven 90 días; epoch distinto fuerza bootstrap. Cliente nunca
+escribe productividad directamente en Firestore.
 
 ## Navegación
 

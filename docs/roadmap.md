@@ -10,8 +10,8 @@ Alcance: [PRD](product/PRD.md). UX/UI: [sistema de diseño](product/DESIGN_SYSTE
 - [x] Auth correo, Google, Apple iOS e invitado técnico.
 - [x] Recuperación de contraseña y verificación por correo.
 - [x] Fusión explícita de datos locales/cloud.
-- [x] Repositorio local-first v8, outbox, conflictos deterministas y tombstones.
-- [x] Firestore por entidad y migración cloud legado.
+- [x] Repositorio local-first v9, outbox, CAS servidor y tombstones de 90 días.
+- [x] Sync batch por Cloud Function, pull incremental y compactación por epoch.
 - [x] Centro de Conexiones y Google Calendar PKCE sólo lectura.
 - [x] Exportación, logout y eliminación completa.
 - [x] Reglas Firestore con pruebas Emulator Suite.
@@ -26,7 +26,7 @@ Alcance: [PRD](product/PRD.md). UX/UI: [sistema de diseño](product/DESIGN_SYSTE
 - [ ] Configurar App Check web/Android/iOS.
 - [ ] Configurar DSN Sentry y revisar retención.
 - [ ] Cargar crisis config por país/idioma con revisión legal.
-- [ ] Desplegar reglas v8 antes del cliente y luego Functions en staging.
+- [ ] Desplegar Function v9, reglas/índices y luego cliente v9 en staging.
 
 ## Validación release
 

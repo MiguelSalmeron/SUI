@@ -170,10 +170,11 @@ Ninguna fuente se elimina antes de completar operación.
 - Lectura/escritura local inmediata.
 - Storage versionado con migraciones idempotentes.
 - Outbox persistente e IDs estables.
-- Metadata por entidad: versión, revisión, dispositivo, timestamps, fingerprint,
+- Metadata por entidad: versión servidor, dispositivo, timestamps, fingerprint,
   mutation ID y tombstone.
 - Operaciones idempotentes.
-- Último commit válido por entidad gana; eliminación posterior gana.
+- Primer commit CAS válido en servidor gana; mutación stale recibe estado autoritativo.
+- Tombstones permanecen 90 días; compactación incrementa `syncEpoch` y fuerza bootstrap.
 - Cambio pendiente local nunca se sobrescribe silenciosamente.
 - Invitado técnico puede usar Chat/APIs autorizadas, no escribir productividad
   en Firestore.

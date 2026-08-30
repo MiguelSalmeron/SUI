@@ -2,12 +2,9 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isOwner(uid) {
-      return request.auth != null && request.auth.uid == uid;
-    }
-
     function isRegisteredOwner(uid) {
-      return isOwner(uid)
+      return request.auth != null
+        && request.auth.uid == uid
         && request.auth.token.firebase.sign_in_provider != 'anonymous'
         && (
           request.auth.token.firebase.sign_in_provider != 'password'
@@ -15,170 +12,23 @@ service cloud.firestore {
         );
     }
 
-    function validRootDocument() {
-      return request.resource.data.keys().hasOnly([
-        'schemaVersion', 'profile', 'preferences', 'consent', 'productivity',
-        'createdAt', 'updatedAt'
-      ])
-      && request.resource.data.schemaVersion is int
-      && request.resource.data.schemaVersion >= 1
-      && request.resource.data.schemaVersion <= 8
-      && (
-        request.resource.data.schemaVersion < 8
-        || validProductivitySummary()
-      );
-    }
-
-    function validMetadata(meta) {
-      return meta is map
-        && meta.keys().hasAll([
-          'schemaVersion', 'updatedAt', 'revision', 'deviceId', 'fingerprint',
-          'lastMutationId'
-        ])
-        && meta.keys().hasOnly([
-          'schemaVersion', 'updatedAt', 'serverUpdatedAt', 'revision',
-          'deviceId', 'deletedAt', 'fingerprint', 'lastMutationId'
-        ])
-        && meta.schemaVersion == 1
-        && meta.revision is int
-        && meta.revision >= 1
-        && meta.deviceId is string
-        && meta.deviceId.size() > 0
-        && meta.deviceId.size() <= 128
-        && meta.updatedAt is string
-        && meta.updatedAt.size() > 0
-        && meta.updatedAt.size() <= 64
-        && meta.fingerprint is string
-        && meta.fingerprint.size() > 0
-        && meta.fingerprint.size() <= 200000
-        && meta.lastMutationId is string
-        && meta.lastMutationId.size() > 0
-        && meta.lastMutationId.size() <= 128
-        && (
-          !('deletedAt' in meta)
-          || meta.deletedAt is string
-        )
-        && (
-          !('serverUpdatedAt' in meta)
-          || meta.serverUpdatedAt is string
-        );
-    }
-
-    function validProductivitySummary() {
-      return request.resource.data.productivity is map
-        && request.resource.data.productivity.keys().hasAll([
-          'lastResetDate', 'streakCount', 'lastCompletedDate', 'totalXp',
-          'meta', 'serverUpdatedAt'
-        ])
-        && request.resource.data.productivity.keys().hasOnly([
-          'lastResetDate', 'streakCount', 'lastCompletedDate', 'totalXp',
-          'meta', 'serverUpdatedAt'
-        ])
-        && request.resource.data.productivity.streakCount is int
-        && request.resource.data.productivity.streakCount >= 0
-        && request.resource.data.productivity.totalXp is int
-        && request.resource.data.productivity.totalXp >= 0
-        && (
-          request.resource.data.productivity.lastResetDate == null
-          || (
-            request.resource.data.productivity.lastResetDate is string
-            && request.resource.data.productivity.lastResetDate.size() <= 64
-          )
-        )
-        && (
-          request.resource.data.productivity.lastCompletedDate == null
-          || (
-            request.resource.data.productivity.lastCompletedDate is string
-            && request.resource.data.productivity.lastCompletedDate.size() <= 64
-          )
-        )
-        && validMetadata(request.resource.data.productivity.meta)
-        && request.resource.data.productivity.serverUpdatedAt == request.time;
-    }
-
-    function validEntityEnvelope() {
-      return request.resource.data.keys().hasOnly(['data', 'meta', 'serverUpdatedAt'])
-        && validMetadata(request.resource.data.meta)
-        && request.resource.data.serverUpdatedAt == request.time;
-    }
-
-    function validGoal(goalId) {
-      return request.resource.data.data == null
-        || (
-          request.resource.data.data is map
-          && request.resource.data.data.keys().hasAll([
-            'id', 'title', 'deadline', 'progress', 'milestones', 'completed',
-            'gravity', 'createdAt'
-          ])
-          && request.resource.data.data.keys().hasOnly([
-            'id', 'title', 'deadline', 'progress', 'milestones', 'impactDays',
-            'completed', 'gravity', 'createdAt'
-          ])
-          && request.resource.data.data.id == goalId
-          && request.resource.data.data.title is string
-          && request.resource.data.data.title.size() > 0
-          && request.resource.data.data.title.size() <= 240
-          && request.resource.data.data.progress is int
-          && request.resource.data.data.progress >= 0
-          && request.resource.data.data.progress <= 100
-        );
-    }
-
-    function validHabit(habitId) {
-      return request.resource.data.data == null
-        || (
-          request.resource.data.data is map
-          && request.resource.data.data.keys().hasAll([
-            'id', 'title', 'completed', 'frequency', 'streak', 'createdAt'
-          ])
-          && request.resource.data.data.keys().hasOnly([
-            'id', 'title', 'completed', 'frequency', 'streak', 'linkedGoalId',
-            'createdAt', 'lastCompletedDate', 'frozenUntil'
-          ])
-          && request.resource.data.data.id == habitId
-          && request.resource.data.data.title is string
-          && request.resource.data.data.title.size() > 0
-          && request.resource.data.data.title.size() <= 240
-          && request.resource.data.data.streak is int
-          && request.resource.data.data.streak >= 0
-        );
-    }
-
-    function validSnapshot(date) {
-      return request.resource.data.data == null
-        || (
-          request.resource.data.data is map
-          && request.resource.data.data.keys().hasOnly([
-            'date', 'goalsCompleted', 'goalsTotal', 'habitsCompleted', 'habitsTotal'
-          ])
-          && request.resource.data.data.date == date
-        );
-    }
-
     match /users/{uid} {
       allow read: if isRegisteredOwner(uid);
-      allow create, update: if isRegisteredOwner(uid) && validRootDocument();
-      allow delete: if isRegisteredOwner(uid);
+      allow write: if false;
 
       match /goals/{goalId} {
         allow read: if isRegisteredOwner(uid);
-        allow create, update: if isRegisteredOwner(uid)
-          && validEntityEnvelope() && validGoal(goalId);
-        allow delete: if isRegisteredOwner(uid);
+        allow write: if false;
       }
 
       match /habits/{habitId} {
         allow read: if isRegisteredOwner(uid);
-        allow create, update: if isRegisteredOwner(uid)
-          && validEntityEnvelope() && validHabit(habitId);
-        allow delete: if isRegisteredOwner(uid);
+        allow write: if false;
       }
 
       match /snapshots/{date} {
         allow read: if isRegisteredOwner(uid);
-        allow create, update: if isRegisteredOwner(uid)
-          && validEntityEnvelope() && validSnapshot(date);
-        allow delete: if isRegisteredOwner(uid);
+        allow write: if false;
       }
 
       match /connections/{connectionId} {

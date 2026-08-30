@@ -42,8 +42,9 @@ firebase deploy --only firestore:rules
 firebase deploy --only functions
 ```
 
-Para cliente v8, desplegar y validar reglas primero. Sólo después distribuir build
-v8 en staging. No habilitar cliente v8 contra reglas anteriores.
+Desplegar y validar Function v9; después reglas que bloquean escritura directa e
+índices. Sólo entonces distribuir cliente v9 en staging. No desplegar cliente v9
+sin endpoint configurado mediante `EXPO_PUBLIC_SYNC_API_URL`.
 
 Configurar secretos y allowlists de `functions/.env.example`. Calendar requiere OAuth web secret sólo en backend. `ALLOWED_ORIGINS` debe enumerar dominios web reales.
 
@@ -89,7 +90,7 @@ Respaldo Nicaragua usa Policía `118` y Bomberos `115`, confirmados en fuentes o
 - Invitado: arranque offline, CRUD local, cero documentos productivos Firestore.
 - Auth: correo, verificación, recuperación, Google, Apple, cancelación, restauración.
 - Fusión: combinar, usar nube, cancelar; sin eliminación previa.
-- Sync: dos dispositivos, edición offline, reconexión, tombstone, replay, empate y clocks desalineados.
+- Sync: dos dispositivos, edición concurrente, delete offline, stale, replay, duplicados, epoch reset y clocks desalineados.
 - Calendar: permiso incremental, renovación, revocación, caché offline.
 - Seguridad: App Check, CORS, rate limits, reglas cruzadas.
 - Rendimiento: UI local útil en máximo 1.5 s.
