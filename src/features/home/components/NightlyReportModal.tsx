@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -9,9 +9,14 @@ import {
   View,
 } from 'react-native';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
-import { buildEmotionalProfile } from '@/features/chat/services/chatPrompt';
-import { buildReportPayload, DayStats, summarizeStats } from '@/features/chat/services/reportPrompt';
-import { streamChat, StreamController } from '@/features/chat/services/chatStream';
+import {
+  buildEmotionalProfile,
+  buildReportPayload,
+  streamChat,
+  summarizeStats,
+  type DayStats,
+  type StreamController,
+} from '@/features/chat/public';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { useI18n } from '@/shared/i18n/i18n';
 import type { TranslationKey } from '@/shared/i18n/translations';
@@ -59,7 +64,10 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
     setStatus('loading');
 
     const emotional = buildEmotionalProfile({
-      goals: goals.filter((goal) => !goal.completed).slice(0, 3).map((goal) => goal.title),
+      goals: goals
+        .filter((goal) => !goal.completed)
+        .slice(0, 3)
+        .map((goal) => goal.title),
       locale,
     });
     const payload = buildReportPayload(emotional, stats);
@@ -115,7 +123,12 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
             )}
           </ScrollView>
 
-          <TouchableOpacity style={styles.closeButton} onPress={onClose} accessibilityRole="button" accessibilityLabel={t('nightly.closeLabel')}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel={t('nightly.closeLabel')}
+          >
             <Text style={styles.closeButtonText}>{t('common.close')}</Text>
           </TouchableOpacity>
         </View>
@@ -124,67 +137,68 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
   );
 };
 
-const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: colors.scrim,
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: SPACING.lg,
-    paddingBottom: SPACING.xl,
-    maxHeight: '80%',
-  },
-  handle: {
-    alignSelf: 'center',
-    width: 44,
-    height: 5,
-    borderRadius: 999,
-    backgroundColor: colors.outlineVariant,
-    marginBottom: SPACING.md,
-  },
-  title: {
-    ...type.headlineSm,
-    color: colors.onSurface,
-  },
-  subtitle: {
-    ...type.bodyMd,
-    color: colors.onSurfaceVariant,
-    marginTop: 2,
-    marginBottom: SPACING.md,
-  },
-  body: {
-    maxHeight: 320,
-  },
-  bodyContent: {
-    paddingVertical: SPACING.sm,
-  },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingVertical: SPACING.md,
-  },
-  loadingText: {
-    ...type.bodyMd,
-    color: colors.onSurfaceVariant,
-  },
-  reportText: {
-    ...type.bodyLg,
-    color: colors.onSurface,
-  },
-  closeButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    paddingVertical: SPACING.md,
-    alignItems: 'center',
-    marginTop: SPACING.lg,
-  },
-  closeButtonText: {
-    ...type.titleMd,
-    color: colors.onPrimary,
-  },
-});
+const createStyles = ({ colors, type }: AppTheme) =>
+  StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: colors.scrim,
+      justifyContent: 'flex-end',
+    },
+    sheet: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      padding: SPACING.lg,
+      paddingBottom: SPACING.xl,
+      maxHeight: '80%',
+    },
+    handle: {
+      alignSelf: 'center',
+      width: 44,
+      height: 5,
+      borderRadius: 999,
+      backgroundColor: colors.outlineVariant,
+      marginBottom: SPACING.md,
+    },
+    title: {
+      ...type.headlineSm,
+      color: colors.onSurface,
+    },
+    subtitle: {
+      ...type.bodyMd,
+      color: colors.onSurfaceVariant,
+      marginTop: 2,
+      marginBottom: SPACING.md,
+    },
+    body: {
+      maxHeight: 320,
+    },
+    bodyContent: {
+      paddingVertical: SPACING.sm,
+    },
+    loadingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      paddingVertical: SPACING.md,
+    },
+    loadingText: {
+      ...type.bodyMd,
+      color: colors.onSurfaceVariant,
+    },
+    reportText: {
+      ...type.bodyLg,
+      color: colors.onSurface,
+    },
+    closeButton: {
+      backgroundColor: colors.primary,
+      borderRadius: 16,
+      paddingVertical: SPACING.md,
+      alignItems: 'center',
+      marginTop: SPACING.lg,
+    },
+    closeButtonText: {
+      ...type.titleMd,
+      color: colors.onPrimary,
+    },
+  });

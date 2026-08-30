@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Linking,
   ScrollView,
@@ -8,10 +8,10 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/shared/ui/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@/application/navigation/types';
+import type { RootStackParamList } from '@/shared/navigation/types';
 import { PRODUCT_CONFIG } from '@/shared/config/product';
 import { useI18n } from '@/shared/i18n/i18n';
 import { SPACING, type AppTheme, useAppTheme } from '@/shared/theme/theme';
@@ -28,7 +28,11 @@ const Mosaic = ({ compact }: { compact: boolean }) => {
   const { colors } = theme;
 
   return (
-    <View style={styles.mosaic} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <View
+      style={styles.mosaic}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
       <View style={styles.mosaicColumn}>
         <View style={[styles.tile, styles.tileTall, { backgroundColor: colors.primaryContainer }]}>
           <SuiDoodle variant="sprout" size={58} color={colors.primary} />
@@ -47,10 +51,14 @@ const Mosaic = ({ compact }: { compact: boolean }) => {
         </View>
       </View>
       <View style={[styles.mosaicColumn, styles.middleColumn]}>
-        <View style={[styles.tile, styles.tileShort, { backgroundColor: colors.secondaryContainer }]}>
+        <View
+          style={[styles.tile, styles.tileShort, { backgroundColor: colors.secondaryContainer }]}
+        >
           <SuiDoodle variant="path" size={52} color={colors.secondary} />
         </View>
-        <View style={[styles.tile, styles.tileTall, { backgroundColor: colors.surfaceContainerHigh }]}>
+        <View
+          style={[styles.tile, styles.tileTall, { backgroundColor: colors.surfaceContainerHigh }]}
+        >
           <Ionicons name="calendar-outline" size={30} color={colors.primary} />
           <View style={styles.calendarGrid}>
             {Array.from({ length: 12 }, (_, index) => (
@@ -66,7 +74,7 @@ const Mosaic = ({ compact }: { compact: boolean }) => {
         </View>
       </View>
       <View style={styles.mosaicColumn}>
-        <View style={[styles.tile, styles.tileTall, { backgroundColor: SUI_BRAND.navy }]}> 
+        <View style={[styles.tile, styles.tileTall, { backgroundColor: SUI_BRAND.navy }]}>
           <Ionicons name="flag-outline" size={30} color={SUI_BRAND.blue} />
           <View style={[styles.progressRing, { borderColor: SUI_BRAND.blue }]} />
         </View>
@@ -219,8 +227,17 @@ const createStyles = ({ colors, radius, type }: AppTheme, compact: boolean) =>
       marginTop: SPACING.md,
     },
     mosaicFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 28, opacity: 0.72 },
-    brandBlock: { alignItems: 'center', paddingHorizontal: SPACING.lg, marginTop: compact ? 0 : SPACING.xs },
-    title: { ...type.brandDisplaySm, color: colors.onSurface, marginTop: SPACING.xs, textAlign: 'center' },
+    brandBlock: {
+      alignItems: 'center',
+      paddingHorizontal: SPACING.lg,
+      marginTop: compact ? 0 : SPACING.xs,
+    },
+    title: {
+      ...type.brandDisplaySm,
+      color: colors.onSurface,
+      marginTop: SPACING.xs,
+      textAlign: 'center',
+    },
     subtitle: { ...type.bodyMd, color: colors.onSurfaceVariant, textAlign: 'center', marginTop: 2 },
     ageRow: {
       flexDirection: 'row',

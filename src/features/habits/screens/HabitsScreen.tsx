@@ -1,18 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import {
-  SCREEN_CONTENT_BOTTOM_PADDING,
-  SPACING,
-  useAppTheme,
-} from '@/shared/theme/theme';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@/shared/ui/Ionicons';
+import { SCREEN_CONTENT_BOTTOM_PADDING, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { ScreenIntro } from '@/shared/ui/ScreenIntro';
 import { SuiDoodle } from '@/shared/ui/SuiDoodle';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
@@ -23,7 +12,7 @@ import { HabitFormModal } from '../components/HabitFormModal';
 import { useI18n } from '@/shared/i18n/i18n';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import type { MainTabParamList } from '@/application/navigation/types';
+import type { MainTabParamList } from '@/shared/navigation/types';
 
 type Filter = 'today' | 'all';
 
@@ -54,20 +43,14 @@ export const HabitsScreen = () => {
 
   const todayHabits = useMemo(() => habits.filter((habit) => isHabitDueToday(habit)), [habits]);
   const completedToday = todayHabits.filter((habit) => habit.completed).length;
-  const progress = todayHabits.length
-    ? Math.round((completedToday / todayHabits.length) * 100)
-    : 0;
+  const progress = todayHabits.length ? Math.round((completedToday / todayHabits.length) * 100) : 0;
   const visibleHabits = filter === 'today' ? todayHabits : habits;
 
   const confirmRemove = (habit: Habit) => {
-    Alert.alert(
-      t('habits.delete'),
-      t('habits.deleteBody', { title: habit.title }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: t('goals.remove'), style: 'destructive', onPress: () => removeHabit(habit.id) },
-      ],
-    );
+    Alert.alert(t('habits.delete'), t('habits.deleteBody', { title: habit.title }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('goals.remove'), style: 'destructive', onPress: () => removeHabit(habit.id) },
+    ]);
   };
 
   const openActions = (habit: Habit) => {
@@ -76,7 +59,11 @@ export const HabitsScreen = () => {
       ...(!frozen
         ? [{ text: t('habits.protectStreak'), onPress: () => freezeStreak(habit.id) }]
         : []),
-      { text: t('goals.remove'), style: 'destructive' as const, onPress: () => confirmRemove(habit) },
+      {
+        text: t('goals.remove'),
+        style: 'destructive' as const,
+        onPress: () => confirmRemove(habit),
+      },
       { text: t('common.cancel'), style: 'cancel' as const },
     ]);
   };
@@ -138,9 +125,13 @@ export const HabitsScreen = () => {
           accessibilityRole="tab"
           accessibilityState={{ selected: filter === 'today' }}
         >
-          <Text style={[styles.filterText, filter === 'today' && styles.filterTextActive]}>{t('habits.today')}</Text>
+          <Text style={[styles.filterText, filter === 'today' && styles.filterTextActive]}>
+            {t('habits.today')}
+          </Text>
           <View style={[styles.countBadge, filter === 'today' && styles.countBadgeActive]}>
-            <Text style={[styles.countText, filter === 'today' && styles.countTextActive]}>{todayHabits.length}</Text>
+            <Text style={[styles.countText, filter === 'today' && styles.countTextActive]}>
+              {todayHabits.length}
+            </Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
@@ -149,9 +140,13 @@ export const HabitsScreen = () => {
           accessibilityRole="tab"
           accessibilityState={{ selected: filter === 'all' }}
         >
-          <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>{t('habits.mine')}</Text>
+          <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
+            {t('habits.mine')}
+          </Text>
           <View style={[styles.countBadge, filter === 'all' && styles.countBadgeActive]}>
-            <Text style={[styles.countText, filter === 'all' && styles.countTextActive]}>{habits.length}</Text>
+            <Text style={[styles.countText, filter === 'all' && styles.countTextActive]}>
+              {habits.length}
+            </Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -163,13 +158,13 @@ export const HabitsScreen = () => {
             {filter === 'today' ? t('habits.emptyToday') : t('habits.emptyAll')}
           </Text>
           <Text style={styles.emptyText}>
-            {filter === 'today'
-              ? t('habits.emptyTodayBody')
-              : t('habits.emptyAllBody')}
+            {filter === 'today' ? t('habits.emptyTodayBody') : t('habits.emptyAllBody')}
           </Text>
           <TouchableOpacity
             style={styles.emptyAction}
-            onPress={() => (filter === 'today' && habits.length ? setFilter('all') : setFormVisible(true))}
+            onPress={() =>
+              filter === 'today' && habits.length ? setFilter('all') : setFormVisible(true)
+            }
           >
             <Text style={styles.emptyActionText}>
               {filter === 'today' && habits.length ? t('habits.viewMine') : t('habits.first')}
@@ -202,7 +197,10 @@ export const HabitsScreen = () => {
                 </TouchableOpacity>
 
                 <View style={styles.habitCopy}>
-                  <Text style={[styles.habitTitle, habit.completed && styles.habitDone]} numberOfLines={2}>
+                  <Text
+                    style={[styles.habitTitle, habit.completed && styles.habitDone]}
+                    numberOfLines={2}
+                  >
                     {habit.title}
                   </Text>
                   <View style={styles.metadataRow}>
@@ -226,7 +224,9 @@ export const HabitsScreen = () => {
                       size={15}
                       color={frozen ? colors.primary : colors.flame}
                     />
-                    <Text style={[styles.streakText, frozen && { color: colors.primary }]}>{habit.streak}</Text>
+                    <Text style={[styles.streakText, frozen && { color: colors.primary }]}>
+                      {habit.streak}
+                    </Text>
                   </View>
                   <TouchableOpacity
                     style={styles.menuButton}
@@ -234,7 +234,11 @@ export const HabitsScreen = () => {
                     accessibilityRole="button"
                     accessibilityLabel={t('habits.actionsLabel', { title: habit.title })}
                   >
-                    <Ionicons name="ellipsis-horizontal" size={20} color={colors.onSurfaceVariant} />
+                    <Ionicons
+                      name="ellipsis-horizontal"
+                      size={20}
+                      color={colors.onSurfaceVariant}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>

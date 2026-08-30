@@ -33,10 +33,12 @@ src/
 │   ├── goals/
 │   ├── habits/
 │   ├── calendar/
+│   ├── connections/
 │   └── settings/
 └── shared/
     ├── domain/productivity/
     ├── infrastructure/firebase/
+    ├── navigation/
     ├── account/
     ├── config/
     ├── i18n/
@@ -50,11 +52,16 @@ src/
 ### Reglas de dependencia
 
 1. `application` compone navegación, providers y funcionalidades.
-2. Una funcionalidad puede depender de `shared`.
-3. `shared` no debe importar funcionalidades.
-4. Código privado permanece dentro de su funcionalidad.
-5. Dependencias entre funcionalidades deben ser explícitas y pequeñas.
-6. No se usan barrels globales; los imports apuntan al módulo concreto.
+2. Cada funcionalidad publica su superficie externa en `public.ts`.
+3. Imports externos usan exclusivamente `@/features/<feature>/public`.
+4. Imports internos de una misma funcionalidad son relativos.
+5. Una funcionalidad puede depender de `shared`, nunca de `application`.
+6. `shared` no puede depender de `features` ni `application`.
+7. Dependencias entre funcionalidades no pueden formar ciclos.
+8. Contratos React Navigation viven en `shared/navigation/types`.
+
+`scripts/check-architecture.mjs` aplica estas reglas mediante AST TypeScript,
+resuelve aliases e imports relativos y verifica todas las APIs públicas.
 
 Sui conserva React Navigation con Native Stack y Bottom Tabs. Se evita `src/app` porque Expo la reserva para Expo Router.
 

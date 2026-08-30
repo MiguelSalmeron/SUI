@@ -1,7 +1,14 @@
-import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@/application/navigation/types';
+import type { RootStackParamList } from '@/shared/navigation/types';
 import { createOrLinkEmailAccount } from '../services/emailAuth';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import { useAppleAuth } from '../hooks/useAppleAuth';
@@ -10,7 +17,7 @@ import { AppleSignInButton } from '../components/AppleSignInButton';
 import { AuthScaffold } from '../components/AuthScaffold';
 import { SPACING, type AppTheme, useAppTheme } from '@/shared/theme/theme';
 import { useI18n } from '@/shared/i18n/i18n';
-import { useIntroStore } from '@/features/onboarding/store/useIntroStore';
+import { useIntroStore } from '@/features/onboarding/public';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { recordTelemetry } from '@/shared/observability/telemetry';
 
@@ -54,9 +61,17 @@ export const RegisterScreen = ({ navigation }: Props) => {
     setBusy(true);
     const result = await createOrLinkEmailAccount(email, password);
     setBusy(false);
-    recordTelemetry('auth.completed', { provider: 'password', flow: 'register', result: result.ok ? 'success' : 'error' });
+    recordTelemetry('auth.completed', {
+      provider: 'password',
+      flow: 'register',
+      result: result.ok ? 'success' : 'error',
+    });
     if (!result.ok) {
-      return setError(result.error === 'auth/email-already-in-use' ? t('auth.emailInUse') : t('auth.genericError'));
+      return setError(
+        result.error === 'auth/email-already-in-use'
+          ? t('auth.emailInUse')
+          : t('auth.genericError'),
+      );
     }
     setNotice(t('auth.verify'));
     setPendingCloudMerge(false);
@@ -67,7 +82,11 @@ export const RegisterScreen = ({ navigation }: Props) => {
   const submitGoogle = async () => {
     setError('');
     const result = await signInWithGoogle();
-    recordTelemetry('auth.completed', { provider: 'google', flow: 'register', result: result.cancelled ? 'cancel' : result.ok ? 'success' : 'error' });
+    recordTelemetry('auth.completed', {
+      provider: 'google',
+      flow: 'register',
+      result: result.cancelled ? 'cancel' : result.ok ? 'success' : 'error',
+    });
     if (result.cancelled) return;
     if (!result.ok) return setError(t('auth.genericError'));
     finishSocial(result.linked);
@@ -76,28 +95,79 @@ export const RegisterScreen = ({ navigation }: Props) => {
   const submitApple = async () => {
     setError('');
     const result = await signInWithApple();
-    recordTelemetry('auth.completed', { provider: 'apple', flow: 'register', result: result.cancelled ? 'cancel' : result.ok ? 'success' : 'error' });
+    recordTelemetry('auth.completed', {
+      provider: 'apple',
+      flow: 'register',
+      result: result.cancelled ? 'cancel' : result.ok ? 'success' : 'error',
+    });
     if (result.cancelled) return;
     if (!result.ok) return setError(t('auth.genericError'));
     finishSocial(result.linked);
   };
 
   return (
-    <AuthScaffold title={t('auth.createTitle')} subtitle={t('auth.createSubtitle')} onBack={navigation.goBack}>
+    <AuthScaffold
+      title={t('auth.createTitle')}
+      subtitle={t('auth.createSubtitle')}
+      onBack={navigation.goBack}
+    >
       <Text style={styles.label}>{t('auth.email')}</Text>
-      <TextInput style={styles.input} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" placeholder="name@example.com" placeholderTextColor={theme.colors.onSurfaceVariant} />
+      <TextInput
+        style={styles.input}
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoComplete="email"
+        placeholder="name@example.com"
+        placeholderTextColor={theme.colors.onSurfaceVariant}
+      />
       <Text style={styles.label}>{t('auth.password')}</Text>
-      <TextInput style={styles.input} value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" placeholder="••••••••" placeholderTextColor={theme.colors.onSurfaceVariant} />
+      <TextInput
+        style={styles.input}
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        autoComplete="new-password"
+        placeholder="••••••••"
+        placeholderTextColor={theme.colors.onSurfaceVariant}
+      />
       <Text style={styles.label}>{t('auth.confirmPassword')}</Text>
-      <TextInput style={styles.input} value={confirmation} onChangeText={setConfirmation} secureTextEntry autoComplete="new-password" placeholder="••••••••" placeholderTextColor={theme.colors.onSurfaceVariant} />
-      {error ? <Text style={styles.error} accessibilityRole="alert">{error}</Text> : null}
+      <TextInput
+        style={styles.input}
+        value={confirmation}
+        onChangeText={setConfirmation}
+        secureTextEntry
+        autoComplete="new-password"
+        placeholder="••••••••"
+        placeholderTextColor={theme.colors.onSurfaceVariant}
+      />
+      {error ? (
+        <Text style={styles.error} accessibilityRole="alert">
+          {error}
+        </Text>
+      ) : null}
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
       <TouchableOpacity style={styles.primary} onPress={() => void submitEmail()} disabled={busy}>
-        {busy ? <ActivityIndicator color={theme.colors.onPrimary} /> : <Text style={styles.primaryText}>{t('auth.create')}</Text>}
+        {busy ? (
+          <ActivityIndicator color={theme.colors.onPrimary} />
+        ) : (
+          <Text style={styles.primaryText}>{t('auth.create')}</Text>
+        )}
       </TouchableOpacity>
       <View style={styles.divider} />
-      <GoogleSignInButton label={t('auth.google')} onPress={() => void submitGoogle()} busy={googleBusy} />
-      {appleAvailable ? <AppleSignInButton label={t('auth.apple')} onPress={() => void submitApple()} busy={appleBusy} /> : null}
+      <GoogleSignInButton
+        label={t('auth.google')}
+        onPress={() => void submitGoogle()}
+        busy={googleBusy}
+      />
+      {appleAvailable ? (
+        <AppleSignInButton
+          label={t('auth.apple')}
+          onPress={() => void submitApple()}
+          busy={appleBusy}
+        />
+      ) : null}
       <TouchableOpacity onPress={() => navigation.replace('Login')}>
         <Text style={styles.link}>{t('auth.haveAccount')}</Text>
       </TouchableOpacity>
@@ -105,13 +175,34 @@ export const RegisterScreen = ({ navigation }: Props) => {
   );
 };
 
-const createStyles = ({ colors, radius, type }: AppTheme) => StyleSheet.create({
-  label: { ...type.labelLg, color: colors.onSurface, marginBottom: -SPACING.sm },
-  input: { ...type.bodyLg, minHeight: 50, borderWidth: 1, borderColor: colors.outlineVariant, backgroundColor: colors.surfaceContainerLow, borderRadius: radius.md, paddingHorizontal: SPACING.md, color: colors.onSurface },
-  error: { ...type.bodySm, color: colors.error },
-  notice: { ...type.bodySm, color: colors.secondary },
-  primary: { minHeight: 52, borderRadius: radius.full, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  primaryText: { ...type.titleMd, color: colors.onPrimary },
-  link: { ...type.labelLg, color: colors.primary, textAlign: 'center', paddingVertical: SPACING.xs },
-  divider: { height: 1, backgroundColor: colors.outlineVariant, marginVertical: SPACING.xs },
-});
+const createStyles = ({ colors, radius, type }: AppTheme) =>
+  StyleSheet.create({
+    label: { ...type.labelLg, color: colors.onSurface, marginBottom: -SPACING.sm },
+    input: {
+      ...type.bodyLg,
+      minHeight: 50,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      backgroundColor: colors.surfaceContainerLow,
+      borderRadius: radius.md,
+      paddingHorizontal: SPACING.md,
+      color: colors.onSurface,
+    },
+    error: { ...type.bodySm, color: colors.error },
+    notice: { ...type.bodySm, color: colors.secondary },
+    primary: {
+      minHeight: 52,
+      borderRadius: radius.full,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    primaryText: { ...type.titleMd, color: colors.onPrimary },
+    link: {
+      ...type.labelLg,
+      color: colors.primary,
+      textAlign: 'center',
+      paddingVertical: SPACING.xs,
+    },
+    divider: { height: 1, backgroundColor: colors.outlineVariant, marginVertical: SPACING.xs },
+  });

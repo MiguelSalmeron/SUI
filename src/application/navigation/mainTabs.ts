@@ -1,4 +1,4 @@
-import type { MainTabParamList } from './types';
+import type { MainTabParamList } from '@/shared/navigation/types';
 
 type TabIcon =
   | 'home'
@@ -23,8 +23,6 @@ export const MAIN_TAB_ITEMS: Record<keyof MainTabParamList, TabPresentation> = {
   Calendar: { label: 'Agenda', focused: 'calendar', outline: 'calendar-outline' },
 };
 
-export const MAIN_TAB_ORDER = Object.keys(
-  MAIN_TAB_ITEMS,
-) as (keyof MainTabParamList)[];
+export const MAIN_TAB_ORDER = Object.keys(MAIN_TAB_ITEMS) as (keyof MainTabParamList)[];
 
 export const ASSISTANT_INSERT_INDEX = 2;

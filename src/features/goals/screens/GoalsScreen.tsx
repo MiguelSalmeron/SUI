@@ -1,18 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import {
-  SCREEN_CONTENT_BOTTOM_PADDING,
-  SPACING,
-  useAppTheme,
-} from '@/shared/theme/theme';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@/shared/ui/Ionicons';
+import { SCREEN_CONTENT_BOTTOM_PADDING, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { ScreenIntro } from '@/shared/ui/ScreenIntro';
 import { SuiDoodle } from '@/shared/ui/SuiDoodle';
 import { PromptModal } from '@/shared/ui/PromptModal';
@@ -23,7 +12,7 @@ import { GoalFormModal } from '../components/GoalFormModal';
 import { useI18n } from '@/shared/i18n/i18n';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import type { MainTabParamList } from '@/application/navigation/types';
+import type { MainTabParamList } from '@/shared/navigation/types';
 
 type Filter = 'active' | 'completed';
 
@@ -62,7 +51,8 @@ export const GoalsScreen = () => {
   }, [navigation, route.params?.create]);
 
   const activeGoals = useMemo(
-    () => goals.filter((goal) => !goal.completed).sort((a, b) => a.deadline.localeCompare(b.deadline)),
+    () =>
+      goals.filter((goal) => !goal.completed).sort((a, b) => a.deadline.localeCompare(b.deadline)),
     [goals],
   );
   const completedGoals = useMemo(() => goals.filter((goal) => goal.completed), [goals]);
@@ -70,14 +60,10 @@ export const GoalsScreen = () => {
   const importantCount = activeGoals.filter((goal) => goal.gravity === 'high').length;
 
   const confirmRemove = (goal: Goal) => {
-    Alert.alert(
-      t('goals.delete'),
-      t('goals.deleteBody', { title: goal.title }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: t('goals.remove'), style: 'destructive', onPress: () => removeGoal(goal.id) },
-      ],
-    );
+    Alert.alert(t('goals.delete'), t('goals.deleteBody', { title: goal.title }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('goals.remove'), style: 'destructive', onPress: () => removeGoal(goal.id) },
+    ]);
   };
 
   const openActions = (goal: Goal) => {
@@ -111,7 +97,9 @@ export const GoalsScreen = () => {
         </View>
         <View style={styles.summaryDivider} />
         <View style={styles.summaryItem}>
-          <Text style={[styles.summaryValue, importantCount > 0 && { color: colors.flame }]}>{importantCount}</Text>
+          <Text style={[styles.summaryValue, importantCount > 0 && { color: colors.flame }]}>
+            {importantCount}
+          </Text>
           <Text style={styles.summaryLabel}>{t('goals.importantLower')}</Text>
         </View>
         <View style={styles.summaryDivider} />
@@ -128,9 +116,13 @@ export const GoalsScreen = () => {
           accessibilityRole="tab"
           accessibilityState={{ selected: filter === 'active' }}
         >
-          <Text style={[styles.filterText, filter === 'active' && styles.filterTextActive]}>{t('goals.active')}</Text>
+          <Text style={[styles.filterText, filter === 'active' && styles.filterTextActive]}>
+            {t('goals.active')}
+          </Text>
           <View style={[styles.countBadge, filter === 'active' && styles.countBadgeActive]}>
-            <Text style={[styles.countText, filter === 'active' && styles.countTextActive]}>{activeGoals.length}</Text>
+            <Text style={[styles.countText, filter === 'active' && styles.countTextActive]}>
+              {activeGoals.length}
+            </Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
@@ -139,9 +131,13 @@ export const GoalsScreen = () => {
           accessibilityRole="tab"
           accessibilityState={{ selected: filter === 'completed' }}
         >
-          <Text style={[styles.filterText, filter === 'completed' && styles.filterTextActive]}>{t('goals.completed')}</Text>
+          <Text style={[styles.filterText, filter === 'completed' && styles.filterTextActive]}>
+            {t('goals.completed')}
+          </Text>
           <View style={[styles.countBadge, filter === 'completed' && styles.countBadgeActive]}>
-            <Text style={[styles.countText, filter === 'completed' && styles.countTextActive]}>{completedGoals.length}</Text>
+            <Text style={[styles.countText, filter === 'completed' && styles.countTextActive]}>
+              {completedGoals.length}
+            </Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -153,9 +149,7 @@ export const GoalsScreen = () => {
             {filter === 'active' ? t('goals.emptyActive') : t('goals.emptyCompleted')}
           </Text>
           <Text style={styles.emptyText}>
-            {filter === 'active'
-              ? t('goals.emptyActiveBody')
-              : t('goals.emptyCompletedBody')}
+            {filter === 'active' ? t('goals.emptyActiveBody') : t('goals.emptyCompletedBody')}
           </Text>
           {filter === 'active' ? (
             <TouchableOpacity style={styles.emptyAction} onPress={() => setFormVisible(true)}>
@@ -182,7 +176,10 @@ export const GoalsScreen = () => {
                     <View
                       style={[
                         styles.priorityDot,
-                        { backgroundColor: goal.gravity === 'high' ? colors.flame : colors.secondary },
+                        {
+                          backgroundColor:
+                            goal.gravity === 'high' ? colors.flame : colors.secondary,
+                        },
                       ]}
                     />
                     <Text
@@ -200,17 +197,33 @@ export const GoalsScreen = () => {
                     accessibilityRole="button"
                     accessibilityLabel={t('goals.actionsLabel', { title: goal.title })}
                   >
-                    <Ionicons name="ellipsis-horizontal" size={20} color={colors.onSurfaceVariant} />
+                    <Ionicons
+                      name="ellipsis-horizontal"
+                      size={20}
+                      color={colors.onSurfaceVariant}
+                    />
                   </TouchableOpacity>
                 </View>
 
-                <Text style={[styles.goalTitle, goal.completed && styles.goalTitleDone]}>{goal.title}</Text>
+                <Text style={[styles.goalTitle, goal.completed && styles.goalTitleDone]}>
+                  {goal.title}
+                </Text>
                 <View style={styles.deadlineRow}>
                   <Ionicons name="calendar-outline" size={14} color={colors.onSurfaceVariant} />
-                  <Text style={styles.deadlineText}>{formatDate(new Date(`${goal.deadline}T00:00:00`), { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+                  <Text style={styles.deadlineText}>
+                    {formatDate(new Date(`${goal.deadline}T00:00:00`), {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </Text>
                   {!goal.completed && remaining <= 7 ? (
                     <Text style={[styles.remainingText, remaining < 0 && { color: colors.error }]}>
-                      {remaining < 0 ? t('goals.overdue') : remaining === 0 ? t('goals.today') : t('goals.days', { count: remaining })}
+                      {remaining < 0
+                        ? t('goals.overdue')
+                        : remaining === 0
+                          ? t('goals.today')
+                          : t('goals.days', { count: remaining })}
                     </Text>
                   ) : null}
                 </View>
@@ -241,7 +254,10 @@ export const GoalsScreen = () => {
                     <Ionicons name="list-outline" size={17} color={colors.primary} />
                     <Text style={styles.milestoneSummaryText}>
                       {goal.milestones.length
-                        ? t('goals.milestones', { done: milestonesDone, total: goal.milestones.length })
+                        ? t('goals.milestones', {
+                            done: milestonesDone,
+                            total: goal.milestones.length,
+                          })
                         : t('goals.addMilestones')}
                     </Text>
                   </View>
@@ -261,7 +277,10 @@ export const GoalsScreen = () => {
                         onPress={() => {
                           toggleMilestone(goal.id, milestone.id);
                           if (!milestone.completed) {
-                            celebrate({ kind: 'goal', subtitle: t('goals.milestoneDone', { title: milestone.title }) });
+                            celebrate({
+                              kind: 'goal',
+                              subtitle: t('goals.milestoneDone', { title: milestone.title }),
+                            });
                           }
                         }}
                         accessibilityRole="checkbox"
@@ -272,7 +291,12 @@ export const GoalsScreen = () => {
                           size={20}
                           color={milestone.completed ? colors.success : colors.outline}
                         />
-                        <Text style={[styles.milestoneText, milestone.completed && styles.milestoneDone]}>
+                        <Text
+                          style={[
+                            styles.milestoneText,
+                            milestone.completed && styles.milestoneDone,
+                          ]}
+                        >
                           {milestone.title}
                         </Text>
                       </TouchableOpacity>

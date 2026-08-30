@@ -1,17 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import {
-  SCREEN_CONTENT_BOTTOM_PADDING,
-  SPACING,
-  useAppTheme,
-} from '@/shared/theme/theme';
+import { useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@/shared/ui/Ionicons';
+import { SCREEN_CONTENT_BOTTOM_PADDING, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { ScreenIntro } from '@/shared/ui/ScreenIntro';
 import { SuiDoodle } from '@/shared/ui/SuiDoodle';
 import { PromptModal } from '@/shared/ui/PromptModal';
@@ -20,7 +10,7 @@ import { isHabitDueToday, localDateKey } from '@/shared/domain/productivity/home
 import type { GoalGravity } from '@/shared/types/models';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
 import { useNavigation } from '@react-navigation/native';
-import type { RootStackNavigationProp } from '@/application/navigation/types';
+import type { RootStackNavigationProp } from '@/shared/navigation/types';
 import { useI18n } from '@/shared/i18n/i18n';
 
 export const CalendarScreen = () => {
@@ -29,13 +19,9 @@ export const CalendarScreen = () => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation<RootStackNavigationProp>();
   const { locale, t, formatDate } = useI18n();
-  const daysHeader = locale === 'es'
-    ? ['L', 'M', 'X', 'J', 'V', 'S', 'D']
-    : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-  const {
-    events: googleEvents,
-    connected: calendarConnected,
-  } = useGoogleCalendar();
+  const daysHeader =
+    locale === 'es' ? ['L', 'M', 'X', 'J', 'V', 'S', 'D'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  const { events: googleEvents, connected: calendarConnected } = useGoogleCalendar();
 
   const goals = useHomeStore((s) => s.goals);
   const habits = useHomeStore((s) => s.habits);
@@ -170,7 +156,9 @@ export const CalendarScreen = () => {
 
         <View style={styles.daysHeader}>
           {daysHeader.map((day, index) => (
-            <Text key={`${day}-${index}`} style={styles.dayHeaderCell}>{day}</Text>
+            <Text key={`${day}-${index}`} style={styles.dayHeaderCell}>
+              {day}
+            </Text>
           ))}
         </View>
 
@@ -186,7 +174,9 @@ export const CalendarScreen = () => {
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
                 accessibilityLabel={formatDate(day.date, {
-                  weekday: 'long', day: 'numeric', month: 'long',
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
                 })}
               >
                 <Text
@@ -201,7 +191,12 @@ export const CalendarScreen = () => {
                 </Text>
                 <View style={styles.indicatorRow}>
                   {day.hasGoogleEvent ? (
-                    <View style={[styles.indicator, { backgroundColor: selected ? colors.onPrimary : colors.primary }]} />
+                    <View
+                      style={[
+                        styles.indicator,
+                        { backgroundColor: selected ? colors.onPrimary : colors.primary },
+                      ]}
+                    />
                   ) : null}
                   {day.hasGoal ? (
                     <View
@@ -228,11 +223,14 @@ export const CalendarScreen = () => {
         <View style={styles.detailHeaderCopy}>
           <Text style={styles.detailTitle}>
             {formatDate(new Date(`${selectedDate}T00:00:00`), {
-              weekday: 'long', day: 'numeric', month: 'long',
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
             })}
           </Text>
           <Text style={styles.detailMeta}>
-            {totalForSelectedDay} {totalForSelectedDay === 1 ? t('calendar.activity') : t('calendar.activities')}
+            {totalForSelectedDay}{' '}
+            {totalForSelectedDay === 1 ? t('calendar.activity') : t('calendar.activities')}
           </Text>
         </View>
         <TouchableOpacity
@@ -258,7 +256,11 @@ export const CalendarScreen = () => {
                 key={`google-${event.id}`}
                 icon="calendar-outline"
                 title={event.title || t('calendar.untitledEvent')}
-                meta={event.allDay ? `${t('calendar.allDay')} · Google Calendar` : `${event.time ?? ''} · Google Calendar`}
+                meta={
+                  event.allDay
+                    ? `${t('calendar.allDay')} · Google Calendar`
+                    : `${event.time ?? ''} · Google Calendar`
+                }
                 color={colors.primary}
                 backgroundColor={colors.primaryContainer}
               />
@@ -270,7 +272,9 @@ export const CalendarScreen = () => {
                 title={goal.title}
                 meta={t('calendar.goalDeadline')}
                 color={goal.gravity === 'high' ? colors.flame : colors.primary}
-                backgroundColor={goal.gravity === 'high' ? colors.flameContainer : colors.primaryContainer}
+                backgroundColor={
+                  goal.gravity === 'high' ? colors.flameContainer : colors.primaryContainer
+                }
               />
             ))}
             {selectedDayInfo.habits.map((habit) => (
@@ -291,7 +295,8 @@ export const CalendarScreen = () => {
         visible={addGoalModalVisible}
         title={t('calendar.newDelivery')}
         hint={`${t('calendar.newDeliveryHint')} ${formatDate(new Date(`${selectedDate}T00:00:00`), {
-          day: 'numeric', month: 'long',
+          day: 'numeric',
+          month: 'long',
         })}.`}
         placeholder={t('calendar.newDeliveryPlaceholder')}
         validate={(value) => (value ? null : t('calendar.titleRequired'))}
@@ -322,7 +327,9 @@ const DayRow = ({ icon, title, meta, color, backgroundColor }: DayRowProps) => {
         <Ionicons name={icon} size={17} color={color} />
       </View>
       <View style={styles.dayRowCopy}>
-        <Text style={styles.dayRowTitle} numberOfLines={2}>{title}</Text>
+        <Text style={styles.dayRowTitle} numberOfLines={2}>
+          {title}
+        </Text>
         <Text style={styles.dayRowMeta}>{meta}</Text>
       </View>
     </View>

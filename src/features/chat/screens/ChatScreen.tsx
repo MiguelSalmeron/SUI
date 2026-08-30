@@ -1,4 +1,12 @@
-import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   View,
   Text,
@@ -16,17 +24,13 @@ import { ChatInput } from '../components/ChatInput';
 import { EmergencyOverlay } from '../components/EmergencyOverlay';
 import { useChatStore } from '../store/useChatStore';
 import { buildEmotionalProfile, buildPayload } from '../services/chatPrompt';
-import {
-  CrisisConfig,
-  DEFAULT_CRISIS_CONFIG,
-  fetchCrisisConfig,
-} from '../services/crisisConfig';
+import { CrisisConfig, DEFAULT_CRISIS_CONFIG, fetchCrisisConfig } from '../services/crisisConfig';
 import { detectCrisis } from '../services/crisisDetection';
 import { streamChat, StreamController } from '../services/chatStream';
 import type { ChatMessage as ChatMessageType } from '../types/chat';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { useI18n } from '@/shared/i18n/i18n';
-import { AuthContext } from '@/features/auth/context/AuthContext';
+import { AuthContext } from '@/features/auth/public';
 import { PRODUCT_CONFIG } from '@/shared/config/product';
 
 interface Props {
@@ -38,7 +42,6 @@ interface Props {
 
 export const ChatScreen = ({ navigation }: Props) => {
   const theme = useAppTheme();
-  const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const messages = useChatStore((s) => s.messages);
   const streamingId = useChatStore((s) => s.streamingId);
@@ -120,7 +123,10 @@ export const ChatScreen = ({ navigation }: Props) => {
       // agregado) tomado del estado actual del store.
       const profileCard = buildEmotionalProfile({
         name: user?.displayName ?? '',
-        goals: goals.filter((goal) => !goal.completed).slice(0, 3).map((goal) => goal.title),
+        goals: goals
+          .filter((goal) => !goal.completed)
+          .slice(0, 3)
+          .map((goal) => goal.title),
         locale,
       });
       const payload = buildPayload(profileCard, useChatStore.getState().messages);
@@ -151,7 +157,7 @@ export const ChatScreen = ({ navigation }: Props) => {
       finalizeAssistant,
       markError,
       scrollToEnd,
-    ]
+    ],
   );
 
   return (
@@ -191,47 +197,48 @@ export const ChatScreen = ({ navigation }: Props) => {
   );
 };
 
-const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  flex: {
-    flex: 1,
-  },
-  headerBtn: {
-    paddingVertical: SPACING.xs,
-    paddingHorizontal: SPACING.xs,
-  },
-  headerBtnText: {
-    ...type.labelLg,
-    color: colors.primary,
-  },
-  listContent: {
-    padding: SPACING.lg,
-    paddingBottom: SPACING.md,
-  },
-  empty: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: SPACING.xl,
-  },
-  emptyTitle: {
-    ...type.headlineMd,
-    color: colors.onSurface,
-    marginBottom: SPACING.sm,
-  },
-  emptyText: {
-    ...type.bodyLg,
-    color: colors.onSurfaceVariant,
-    textAlign: 'center',
-    marginBottom: SPACING.md,
-  },
-  emptyNote: {
-    ...type.bodySm,
-    color: colors.onSurfaceVariant,
-    textAlign: 'center',
-    opacity: 0.8,
-  },
-});
+const createStyles = ({ colors, type }: AppTheme) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    flex: {
+      flex: 1,
+    },
+    headerBtn: {
+      paddingVertical: SPACING.xs,
+      paddingHorizontal: SPACING.xs,
+    },
+    headerBtnText: {
+      ...type.labelLg,
+      color: colors.primary,
+    },
+    listContent: {
+      padding: SPACING.lg,
+      paddingBottom: SPACING.md,
+    },
+    empty: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: SPACING.xl,
+    },
+    emptyTitle: {
+      ...type.headlineMd,
+      color: colors.onSurface,
+      marginBottom: SPACING.sm,
+    },
+    emptyText: {
+      ...type.bodyLg,
+      color: colors.onSurfaceVariant,
+      textAlign: 'center',
+      marginBottom: SPACING.md,
+    },
+    emptyNote: {
+      ...type.bodySm,
+      color: colors.onSurfaceVariant,
+      textAlign: 'center',
+      opacity: 0.8,
+    },
+  });

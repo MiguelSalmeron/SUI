@@ -1,19 +1,10 @@
-import React, {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import {
-  createBottomTabNavigator,
-  type BottomTabBarProps,
-} from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator, type BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/shared/ui/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AuthContext } from '@/features/auth/context/AuthContext';
+import { AuthContext } from '@/features/auth/public';
 import {
   NAV_BAR_HEIGHT,
   SPACING,
@@ -22,31 +13,20 @@ import {
   useAppTheme,
 } from '@/shared/theme/theme';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
-import {
-  isHabitDueToday,
-  localDateKey,
-} from '@/shared/domain/productivity/homeStorage';
+import { isHabitDueToday, localDateKey } from '@/shared/domain/productivity/homeStorage';
 import { Avatar } from '@/shared/ui/Avatar';
 import { SuiMark } from '@/shared/ui/SuiMark';
-import type {
-  MainTabParamList,
-  RootStackNavigationProp,
-} from './types';
-import {
-  ASSISTANT_INSERT_INDEX,
-  MAIN_TAB_ITEMS,
-} from './mainTabs';
+import type { MainTabParamList, RootStackNavigationProp } from '@/shared/navigation/types';
+import { ASSISTANT_INSERT_INDEX, MAIN_TAB_ITEMS } from './mainTabs';
+import { CalendarScreen } from '@/features/calendar/public';
+import { GoalsScreen } from '@/features/goals/public';
+import { HabitsScreen } from '@/features/habits/public';
+import { CelebrationToast, OverviewScreen } from '@/features/home/public';
+import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
+import { requestNotificationPermission } from '@/features/settings/public';
+import { useI18n } from '@/shared/i18n/i18n';
 
 export { MAIN_TAB_ITEMS } from './mainTabs';
-
-import { OverviewScreen } from '@/features/home/screens/OverviewScreen';
-import { GoalsScreen } from '@/features/goals/screens/GoalsScreen';
-import { HabitsScreen } from '@/features/habits/screens/HabitsScreen';
-import { CalendarScreen } from '@/features/calendar/screens/CalendarScreen';
-import { CelebrationToast } from '@/features/home/components/CelebrationToast';
-import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
-import { requestNotificationPermission } from '@/features/settings/services/notifications';
-import { useI18n } from '@/shared/i18n/i18n';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -59,28 +39,33 @@ type TabHeaderProps = {
   onSettings: () => void;
 };
 
-export const TabHeader = React.memo(
-  ({ colors, topInset, profileName, settingsLabel, settingsHint, onSettings }: TabHeaderProps) => {
-    const styles = useMemo(() => headerStyles(colors), [colors]);
-    return (
-      <View style={[styles.headerShell, { paddingTop: topInset + SPACING.sm }]}>
-        <View style={styles.headerContent}>
-          <SuiMark variant="isologo" size={28} accessible />
-          <TouchableOpacity
-            style={styles.avatarButton}
-            onPress={onSettings}
-            activeOpacity={0.78}
-            accessibilityRole="button"
-            accessibilityLabel={settingsLabel}
-            accessibilityHint={settingsHint}
-          >
-            <Avatar name={profileName} size="sm" variant="primary" />
-          </TouchableOpacity>
-        </View>
+export const TabHeader = React.memo(function TabHeader({
+  colors,
+  topInset,
+  profileName,
+  settingsLabel,
+  settingsHint,
+  onSettings,
+}: TabHeaderProps) {
+  const styles = useMemo(() => headerStyles(colors), [colors]);
+  return (
+    <View style={[styles.headerShell, { paddingTop: topInset + SPACING.sm }]}>
+      <View style={styles.headerContent}>
+        <SuiMark variant="isologo" size={28} accessible />
+        <TouchableOpacity
+          style={styles.avatarButton}
+          onPress={onSettings}
+          activeOpacity={0.78}
+          accessibilityRole="button"
+          accessibilityLabel={settingsLabel}
+          accessibilityHint={settingsHint}
+        >
+          <Avatar name={profileName} size="sm" variant="primary" />
+        </TouchableOpacity>
       </View>
-    );
-  },
-);
+    </View>
+  );
+});
 
 type MainTabBarProps = BottomTabBarProps & {
   colors: ColorScheme;
@@ -191,12 +176,15 @@ export const TabNavigator = () => {
   const navigation = useNavigation<RootStackNavigationProp>();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
-  const tabLabels = useMemo(() => ({
-    Overview: t('nav.home'),
-    Goals: t('nav.goals'),
-    Habits: t('nav.habits'),
-    Calendar: t('nav.calendar'),
-  }), [t]);
+  const tabLabels = useMemo(
+    () => ({
+      Overview: t('nav.home'),
+      Goals: t('nav.goals'),
+      Habits: t('nav.habits'),
+      Calendar: t('nav.calendar'),
+    }),
+    [t],
+  );
 
   const stateLoaded = useHomeStore((state) => state.stateLoaded);
   const loadState = useHomeStore((state) => state.loadState);
@@ -211,8 +199,7 @@ export const TabNavigator = () => {
     requestNotificationPermission().catch(() => undefined);
   }, []);
 
-  const profileName =
-    user?.displayName?.trim() || user?.email?.split('@')[0] || 'Sui';
+  const profileName = user?.displayName?.trim() || user?.email?.split('@')[0] || 'Sui';
 
   useEffect(() => {
     loadState();
@@ -230,24 +217,13 @@ export const TabNavigator = () => {
     };
   }, [goals, habits, streak, stateLoaded, saveState]);
 
-  const completedGoals = useMemo(
-    () => goals.filter((goal) => goal.completed).length,
-    [goals],
-  );
-  const completedHabits = useMemo(
-    () => habits.filter((habit) => habit.completed).length,
-    [habits],
-  );
+  const completedGoals = useMemo(() => goals.filter((goal) => goal.completed).length, [goals]);
+  const completedHabits = useMemo(() => habits.filter((habit) => habit.completed).length, [habits]);
   const todayGoals = useMemo(() => {
     const today = localDateKey();
-    return goals.filter(
-      (goal) => goal.deadline === today || goal.impactDays?.includes(today),
-    );
+    return goals.filter((goal) => goal.deadline === today || goal.impactDays?.includes(today));
   }, [goals]);
-  const todayHabits = useMemo(
-    () => habits.filter((habit) => isHabitDueToday(habit)),
-    [habits],
-  );
+  const todayHabits = useMemo(() => habits.filter((habit) => isHabitDueToday(habit)), [habits]);
   const dailyCompleted =
     todayGoals.filter((goal) => goal.completed).length +
     todayHabits.filter((habit) => habit.completed).length;
@@ -260,25 +236,13 @@ export const TabNavigator = () => {
     if (!stateLoaded) return;
     if (totalCompletedActions > prevCompletedActions.current) {
       bumpStreak();
-      if (
-        dailyTotal > 0 &&
-        dailyCompleted === dailyTotal &&
-        !perfectDayShown.current
-      ) {
+      if (dailyTotal > 0 && dailyCompleted === dailyTotal && !perfectDayShown.current) {
         perfectDayShown.current = true;
         celebrate({ kind: 'perfect_day', subtitle: t('celebration.perfectBody') });
       }
     }
     prevCompletedActions.current = totalCompletedActions;
-  }, [
-    dailyCompleted,
-    dailyTotal,
-    totalCompletedActions,
-    stateLoaded,
-    bumpStreak,
-    celebrate,
-    t,
-  ]);
+  }, [dailyCompleted, dailyTotal, totalCompletedActions, stateLoaded, bumpStreak, celebrate, t]);
 
   const openAssistant = useCallback(() => {
     navigation.navigate('Chat');
@@ -321,16 +285,8 @@ export const TabNavigator = () => {
           component={OverviewScreen}
           options={{ title: tabLabels.Overview }}
         />
-        <Tab.Screen
-          name="Goals"
-          component={GoalsScreen}
-          options={{ title: tabLabels.Goals }}
-        />
-        <Tab.Screen
-          name="Habits"
-          component={HabitsScreen}
-          options={{ title: tabLabels.Habits }}
-        />
+        <Tab.Screen name="Goals" component={GoalsScreen} options={{ title: tabLabels.Goals }} />
+        <Tab.Screen name="Habits" component={HabitsScreen} options={{ title: tabLabels.Habits }} />
         <Tab.Screen
           name="Calendar"
           component={CalendarScreen}
