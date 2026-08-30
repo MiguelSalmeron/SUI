@@ -29,7 +29,7 @@
 | `npm test`                  | Ejecutar tests unitarios                                |
 | `npm run functions:build`   | Compilar Cloud Functions                                |
 | `npm run functions:test`    | Compilar y probar Cloud Functions                       |
-| `npm run test:sync`         | Probar convergencia v8 contra Firestore Emulator        |
+| `npm run test:sync`         | Probar CAS, incremental y compactación v9 en Emulator   |
 | `npm run test:rules`        | Probar reglas y sync con Firestore Emulator             |
 | `npm run check`             | Ejecutar todas las verificaciones                       |
 
@@ -85,14 +85,14 @@ Después de modificar aliases, reinicia Expo CLI.
 
 - Entrada/cuenta: Zustand persistido en AsyncStorage, sin perfil obligatorio.
 - Chat: AsyncStorage con TTL de 48 horas; no se sincroniza a Firestore.
-- Productividad: repositorio v8, respaldo v7 read-only, outbox y Firestore por entidad.
+- Productividad: repositorio v9, respaldo v8 read-only, outbox y endpoint batch.
 - Google Calendar: eventos normalizados en caché local; tokens sólo en backend.
 
 Consulta [API, persistencia y tema](api-and-theme.md) para claves y estructuras.
 
 ## Cloud Functions
 
-`functions/src/index.ts` registra Chat, conexiones Calendar y eliminación de cuenta. App Check inicia en monitor; producción migra a enforcement tras verificar clientes.
+`functions/src/index.ts` registra Chat, sync productividad, conexiones Calendar y eliminación de cuenta. App Check inicia en monitor; producción migra a enforcement tras verificar clientes.
 
 Cliente y CI usan Node 22. Functions conserva runtime Node 20; cambiar runtime de
 deploy queda fuera de este hardening.

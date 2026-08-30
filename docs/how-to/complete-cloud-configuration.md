@@ -61,6 +61,13 @@ Calendar no comparte consentimiento con login.
 
 Probar conexión, cancelación, refresh, revocación, caché offline y desconexión.
 
+## Sync productividad
+
+Desplegar `syncProductivity` en staging y configurar su URL base en
+`EXPO_PUBLIC_SYNC_API_URL`. Desplegar después reglas que niegan escritura
+productiva directa. Verificar CAS, pull incremental, tombstones y epoch con dos
+dispositivos antes de distribuir cliente v9.
+
 ## App Check
 
 Configurar reCAPTCHA Enterprise, Play Integrity y App Attest/DeviceCheck. Mantener `APP_CHECK_MODE=monitor` hasta observar staging estable; luego habilitar enforcement y cambiar a `enforce`.

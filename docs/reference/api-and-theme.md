@@ -7,7 +7,7 @@ Plantilla canónica: `.env.example`.
 | Grupo          | Variables                                                                                                                                                           |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Firebase       | `EXPO_PUBLIC_FIREBASE_*`, `EXPO_PUBLIC_FIREBASE_APP_CHECK_SITE_KEY`                                                                                                 |
-| APIs           | `EXPO_PUBLIC_CHAT_PROXY_URL`, `EXPO_PUBLIC_CONNECTIONS_API_URL`                                                                                                     |
+| APIs           | `EXPO_PUBLIC_CHAT_PROXY_URL`, `EXPO_PUBLIC_CONNECTIONS_API_URL`, `EXPO_PUBLIC_SYNC_API_URL`                                                                         |
 | OAuth          | `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`                                                      |
 | Producto       | `EXPO_PUBLIC_APP_ENV`, `EXPO_PUBLIC_POLICY_VERSION`, `EXPO_PUBLIC_TERMS_URL`, `EXPO_PUBLIC_PRIVACY_URL`, `EXPO_PUBLIC_COUNTRY_CODE`, `EXPO_PUBLIC_APPROVED_MARKETS` |
 | Observabilidad | `EXPO_PUBLIC_SENTRY_DSN`                                                                                                                                            |
@@ -19,8 +19,9 @@ Variables `EXPO_PUBLIC_*` forman parte del bundle: nunca contienen secretos. Azu
 | Clave                 | Contenido                                                         |
 | --------------------- | ----------------------------------------------------------------- |
 | `sui-onboarding-v3`   | clave histórica vigente; `IntroState` v4, cuenta y consentimiento |
-| `sui-productivity-v8` | datos, metadata por entidad/resumen, outbox y `lastSyncedAt`      |
-| `sui-productivity-v7` | respaldo legado de solo lectura                                   |
+| `sui-productivity-v9` | datos, metadata, outbox, cursores, epoch y `lastSyncedAt`         |
+| `sui-productivity-v8` | respaldo legado de solo lectura                                   |
+| `sui-productivity-v7` | segundo respaldo legado                                           |
 | `sui-home-state-v6`   | segundo origen legado leído durante migración                     |
 | `sui-chat-v1`         | conversación local con TTL 48 h                                   |
 | `@sui/settings-v1`    | tema, tamaño de texto, idioma y preferencias                      |
@@ -35,31 +36,31 @@ users/{uid}
 └── connections/{provider}  # backend solamente
 ```
 
-Documento raíz v8 guarda versión y resumen productivo con misma metadata de
-conflicto. Reglas siguen aceptando documentos raíz v7. Perfil, preferencias y
-consentimiento permanecen reservados para evolución compatible. Entidades usan
-siguiente sobre:
+Documento raíz v9 guarda resumen productivo y `syncControl` con epoch/fecha de
+compactación. Cloud Function es único writer; reglas permiten lectura sólo al owner
+verificado. Entidades usan siguiente sobre:
 
 ```typescript
 type SyncedEntity<T> = {
   data: T | null;
   meta: {
-    schemaVersion: 1;
-    updatedAt: string;
-    serverUpdatedAt?: string;
-    revision: number;
-    deviceId: string;
-    deletedAt?: string;
+    schemaVersion: 2;
+    serverRevision: number;
+    originDeviceId: string;
+    clientUpdatedAt: string;
+    deletedAt?: Timestamp;
+    purgeAfter?: Timestamp;
     fingerprint: string;
     lastMutationId: string;
   };
+  serverUpdatedAt: Timestamp;
 };
 ```
 
-Política común para entidades, tombstones y resumen: gana mayor `revision`; empate
-gana `deviceId` lexicográficamente mayor. `lastMutationId` vuelve replays
-idempotentes. Cada push termina con pull autoritativo y sólo elimina mutationIds
-confirmados del snapshot procesado.
+Política común: `baseServerRevision` debe igualar `serverRevision`. Backend incrementa
+versión; primer commit válido gana. `lastMutationId` vuelve retry idempotente.
+Tombstones expiran tras 90 días; compactación incrementa epoch. Pull incremental
+usa `{seconds, nanoseconds, documentId}` y upper bound estable.
 
 Usuarios anónimos no pueden leer/escribir productividad. Config crisis pública vive en `app_config/crisis/regions/{COUNTRY}-{locale}` con fallback `app_config/crisis`.
 

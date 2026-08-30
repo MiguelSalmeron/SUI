@@ -15,6 +15,7 @@ const required = [
   'EXPO_PUBLIC_FIREBASE_APP_CHECK_SITE_KEY',
   'EXPO_PUBLIC_CHAT_PROXY_URL',
   'EXPO_PUBLIC_CONNECTIONS_API_URL',
+  'EXPO_PUBLIC_SYNC_API_URL',
   'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID',
   'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID',
   'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID',
@@ -30,10 +31,10 @@ for (const key of required) {
   if (process.env[key]?.includes('REPLACE_')) missing.push(key);
 }
 
-const approvedMarkets = process.env.EXPO_PUBLIC_APPROVED_MARKETS
-  ?.split(',')
-  .map((value) => value.trim().toUpperCase())
-  .filter(Boolean) ?? [];
+const approvedMarkets =
+  process.env.EXPO_PUBLIC_APPROVED_MARKETS?.split(',')
+    .map((value) => value.trim().toUpperCase())
+    .filter(Boolean) ?? [];
 const countryCode = process.env.EXPO_PUBLIC_COUNTRY_CODE?.trim().toUpperCase();
 if (!countryCode || !approvedMarkets.includes(countryCode)) {
   missing.push('EXPO_PUBLIC_COUNTRY_CODE (must be approved)');

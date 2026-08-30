@@ -21,23 +21,29 @@ users/{uid}/habits/{habitId}
 users/{uid}/snapshots/{date}
 ```
 
-Cada documento lleva `schemaVersion`, `updatedAt`, `serverUpdatedAt`, `revision`, `deviceId`, `deletedAt`, `fingerprint` y `lastMutationId`. Eliminaciones usan tombstones. Transacciones ignoran `mutationId` ya aplicado.
+Cloud Function es único writer productivo. Cada documento lleva metadata v2:
+`serverRevision`, `serverUpdatedAt`, `originDeviceId`, `fingerprint` y
+`lastMutationId`. Mutación declara `baseServerRevision`; backend acepta sólo si
+coincide con versión actual e incrementa versión. Primer commit válido gana.
+Duplicado inmediato es replay; mutación vieja o base incorrecta es stale y recibe
+estado autoritativo. Política también aplica al resumen de racha, fechas y XP.
 
-Reconciliación v8 es determinista por entidad: gana mayor `revision`; empate gana
-`deviceId` lexicográficamente mayor. `updatedAt` del cliente no decide. Misma
-versión y fingerprint es replay; misma versión con fingerprint distinto es
-colisión técnica y conserva remoto. Política también aplica al resumen, que
-sincroniza racha, fechas, historial derivado y XP.
+Endpoint procesa máximo 50 mutaciones distintas en transacción agrupada. Después
+hace pull incremental de `goals`, `habits` y `snapshots`, máximo 100 cambios por
+colección/página. Cursor preciso combina timestamp y document ID; páginas comparten
+upper bound. Sobre local se escribe sólo al completar pull. Outbox conserva
+mutaciones ante fallo/respuesta perdida y cambios creados durante vuelo se
+superponen al delta autoritativo.
 
-Sync procesa snapshot de outbox, elimina sólo mutationIds confirmados y siempre
-hace pull autoritativo después del push. Mutaciones creadas durante vuelo quedan
-pendientes y se superponen al pull. Fusión entre invitado y cuenta siempre
-requiere elección.
-
-Storage v7 migra a v8 después de validación y queda como respaldo de solo lectura;
-si no existe, se migra v6. Cloud conserva rutas por subcolección. No existen seeds
-para usuarios nuevos.
+Eliminaciones crean tombstones con retención de 90 días. Compactación oportunista
+por usuario incrementa `syncEpoch`; cliente con epoch distinto hace bootstrap antes
+de push. Storage v8 migra a v9 después de validación y queda como respaldo de solo
+lectura; después se intentan v7 y v6. Mutaciones v8 pendientes hacen bootstrap y
+un único rebase. Cloud conserva rutas por subcolección.
 
 ## Consecuencias
 
-Lectura y escritura permanecen inmediatas sin red. Estado observable: `local`, `pending`, `syncing`, `synced`, `offline`, `error`. Cambios futuros de esquema requieren migración idempotente y prueba de conservación.
+Lectura y escritura local permanecen inmediatas sin red. Estado observable:
+`local`, `pending`, `syncing`, `synced`, `offline`, `error`. Firestore Rules niega
+escritura productiva cliente; owner verificado conserva lectura. Cambios futuros de
+esquema requieren migración idempotente y prueba de conservación.
