@@ -1,20 +1,20 @@
-import React, { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
-import { WelcomeScreen } from '@/features/onboarding/screens/WelcomeScreen';
-import { LoginScreen } from '@/features/auth/screens/LoginScreen';
-import { RegisterScreen } from '@/features/auth/screens/RegisterScreen';
-import { ForgotPasswordScreen } from '@/features/auth/screens/ForgotPasswordScreen';
-import { MergeDataScreen } from '@/features/auth/screens/MergeDataScreen';
-import { ChatScreen } from '@/features/chat/screens/ChatScreen';
-import { SettingsScreen } from '@/features/settings/screens/SettingsScreen';
-import { ConnectionsScreen } from '@/features/settings/screens/ConnectionsScreen';
-import { SummaryScreen } from '@/features/home/screens/SummaryScreen';
-import { useIntroStore } from '@/features/onboarding/store/useIntroStore';
+import {
+  ForgotPasswordScreen,
+  LoginScreen,
+  MergeDataScreen,
+  RegisterScreen,
+} from '@/features/auth/public';
+import { ChatScreen } from '@/features/chat/public';
+import { SummaryScreen } from '@/features/home/public';
+import { useIntroStore, WelcomeScreen } from '@/features/onboarding/public';
+import { ConnectionsScreen, SettingsScreen } from '@/features/settings/public';
 import { useAppTheme } from '@/shared/theme/theme';
 import { TabNavigator } from './TabNavigator';
-import type { RootStackParamList } from './types';
+import type { RootStackParamList } from '@/shared/navigation/types';
 import { useI18n } from '@/shared/i18n/i18n';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -74,16 +74,54 @@ export const AppNavigator = () => {
           contentStyle: { backgroundColor: theme.colors.background },
         }}
       >
-        <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ gestureEnabled: false, animation: 'fade' }} />
+        <Stack.Screen
+          name="Welcome"
+          component={WelcomeScreen}
+          options={{ gestureEnabled: false, animation: 'fade' }}
+        />
         <Stack.Screen name="Home" component={TabNavigator} options={{ gestureEnabled: false }} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        <Stack.Screen name="MergeData" component={MergeDataScreen} options={{ gestureEnabled: false }} />
-        <Stack.Screen name="Chat" component={ChatScreen} options={{ ...standardHeader, title: 'Sui', headerBackTitle: t('nav.backHome') }} />
-        <Stack.Screen name="Progress" component={SummaryScreen} options={{ ...standardHeader, title: '', headerBackTitle: t('nav.backHome'), headerStyle: { backgroundColor: theme.colors.background }, headerShadowVisible: false }} />
-        <Stack.Screen name="Settings" component={SettingsScreen} options={{ ...standardHeader, title: t('nav.settings'), headerBackTitle: t('nav.backHome') }} />
-        <Stack.Screen name="Connections" component={ConnectionsScreen} options={{ ...standardHeader, title: t('settings.connections'), headerBackTitle: t('nav.backSettings') }} />
+        <Stack.Screen
+          name="MergeData"
+          component={MergeDataScreen}
+          options={{ gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={{ ...standardHeader, title: 'Sui', headerBackTitle: t('nav.backHome') }}
+        />
+        <Stack.Screen
+          name="Progress"
+          component={SummaryScreen}
+          options={{
+            ...standardHeader,
+            title: '',
+            headerBackTitle: t('nav.backHome'),
+            headerStyle: { backgroundColor: theme.colors.background },
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{
+            ...standardHeader,
+            title: t('nav.settings'),
+            headerBackTitle: t('nav.backHome'),
+          }}
+        />
+        <Stack.Screen
+          name="Connections"
+          component={ConnectionsScreen}
+          options={{
+            ...standardHeader,
+            title: t('settings.connections'),
+            headerBackTitle: t('nav.backSettings'),
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

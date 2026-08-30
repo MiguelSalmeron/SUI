@@ -1,31 +1,22 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@/shared/ui/Ionicons';
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useNavigation, type CompositeNavigationProp } from '@react-navigation/native';
+  useFocusEffect,
+  useNavigation,
+  type CompositeNavigationProp,
+} from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
-import {
-  SCREEN_CONTENT_BOTTOM_PADDING,
-  SPACING,
-  useAppTheme,
-} from '@/shared/theme/theme';
+import { SCREEN_CONTENT_BOTTOM_PADDING, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { Skeleton } from '@/shared/ui/Skeleton';
-import {
-  buildUnifiedTimeline,
-  loadCachedGoogleEvents,
-} from '@/features/calendar/services/googleSync';
+import { buildUnifiedTimeline, loadCachedGoogleEvents } from '@/features/calendar/public';
 import type { GoogleEvent, TimelineItem } from '@/shared/types/models';
 import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
 import { localDateKey } from '@/shared/domain/productivity/homeStorage';
-import type { MainTabParamList, RootStackParamList } from '@/application/navigation/types';
+import type { MainTabParamList, RootStackParamList } from '@/shared/navigation/types';
 import { SuiDoodle } from '@/shared/ui/SuiDoodle';
 import { useI18n } from '@/shared/i18n/i18n';
 import type { TranslationKey } from '@/shared/i18n/translations';
@@ -125,7 +116,9 @@ export const OverviewScreen = () => {
   }
 
   const formattedToday = formatDate(new Date(`${todayKey}T00:00:00`), {
-    weekday: 'long', day: 'numeric', month: 'long',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
   });
 
   return (
@@ -146,11 +139,17 @@ export const OverviewScreen = () => {
           <Text style={styles.firstRunTitle}>{t('home.emptyTitle')}</Text>
           <Text style={styles.firstRunBody}>{t('home.emptyBody')}</Text>
           <View style={styles.firstRunActions}>
-            <TouchableOpacity style={styles.firstRunPrimary} onPress={() => navigation.navigate('Goals', { create: true })}>
+            <TouchableOpacity
+              style={styles.firstRunPrimary}
+              onPress={() => navigation.navigate('Goals', { create: true })}
+            >
               <Ionicons name="flag-outline" size={18} color={colors.onPrimary} />
               <Text style={styles.firstRunPrimaryText}>{t('home.firstGoal')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.firstRunSecondary} onPress={() => navigation.navigate('Habits', { create: true })}>
+            <TouchableOpacity
+              style={styles.firstRunSecondary}
+              onPress={() => navigation.navigate('Habits', { create: true })}
+            >
               <Ionicons name="repeat" size={18} color={colors.secondary} />
               <Text style={styles.firstRunSecondaryText}>{t('home.firstHabit')}</Text>
             </TouchableOpacity>
@@ -186,7 +185,9 @@ export const OverviewScreen = () => {
                   onPress={() => handleToggleItem(nextItem)}
                   activeOpacity={0.8}
                   accessibilityRole="button"
-                  accessibilityLabel={t('home.markDone', { title: nextItem.title || t('calendar.untitledEvent') })}
+                  accessibilityLabel={t('home.markDone', {
+                    title: nextItem.title || t('calendar.untitledEvent'),
+                  })}
                 >
                   <Ionicons name="checkmark" size={17} color={colors.onFlame} />
                   <Text style={styles.focusActionText}>{t('home.done')}</Text>
@@ -251,7 +252,8 @@ export const OverviewScreen = () => {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{t('home.agenda')}</Text>
         <Text style={styles.sectionMeta}>
-          {timelineItems.length} {timelineItems.length === 1 ? t('calendar.activity') : t('calendar.activities')}
+          {timelineItems.length}{' '}
+          {timelineItems.length === 1 ? t('calendar.activity') : t('calendar.activities')}
         </Text>
       </View>
 
@@ -274,9 +276,7 @@ export const OverviewScreen = () => {
                     styles.itemIcon,
                     {
                       backgroundColor:
-                        item.origin === 'habit'
-                          ? colors.flameContainer
-                          : colors.primaryContainer,
+                        item.origin === 'habit' ? colors.flameContainer : colors.primaryContainer,
                     },
                   ]}
                 >
@@ -348,12 +348,38 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       alignItems: 'center',
       marginBottom: SPACING.md,
     },
-    firstRunTitle: { ...type.titleLg, color: colors.onSurface, textAlign: 'center', marginTop: SPACING.sm },
-    firstRunBody: { ...type.bodyMd, color: colors.onSurfaceVariant, textAlign: 'center', marginTop: SPACING.xs },
+    firstRunTitle: {
+      ...type.titleLg,
+      color: colors.onSurface,
+      textAlign: 'center',
+      marginTop: SPACING.sm,
+    },
+    firstRunBody: {
+      ...type.bodyMd,
+      color: colors.onSurfaceVariant,
+      textAlign: 'center',
+      marginTop: SPACING.xs,
+    },
     firstRunActions: { width: '100%', gap: SPACING.sm, marginTop: SPACING.lg },
-    firstRunPrimary: { minHeight: 48, borderRadius: radius.full, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm },
+    firstRunPrimary: {
+      minHeight: 48,
+      borderRadius: radius.full,
+      backgroundColor: colors.primary,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: SPACING.sm,
+    },
     firstRunPrimaryText: { ...type.labelLg, color: colors.onPrimary },
-    firstRunSecondary: { minHeight: 48, borderRadius: radius.full, backgroundColor: colors.secondaryContainer, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm },
+    firstRunSecondary: {
+      minHeight: 48,
+      borderRadius: radius.full,
+      backgroundColor: colors.secondaryContainer,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: SPACING.sm,
+    },
     firstRunSecondaryText: { ...type.labelLg, color: colors.onSecondaryContainer },
     focusCard: {
       minHeight: 158,

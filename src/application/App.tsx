@@ -1,13 +1,12 @@
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { AuthProvider } from '@/features/auth/context/AuthContext';
-import { useIntroStore } from '@/features/onboarding/store/useIntroStore';
-import { signInAnon } from '@/features/auth/services/onboardingAuth';
-import { configureNotificationHandler } from '@/features/settings/services/notifications';
+import { AuthProvider, signInAnon } from '@/features/auth/public';
+import { useIntroStore } from '@/features/onboarding/public';
+import { configureNotificationHandler } from '@/features/settings/public';
 import { ThemeProvider, useAppTheme } from '@/shared/theme/theme';
 import { AppNavigator } from './navigation/AppNavigator';
 import { recordTelemetry, wrapApplication } from '@/shared/observability/telemetry';
@@ -45,10 +44,7 @@ const useSyncWebChrome = (background: string) => {
     if (viewport) {
       const content = viewport.getAttribute('content') ?? '';
       if (!content.includes('viewport-fit=cover')) {
-        viewport.setAttribute(
-          'content',
-          `${content.replace(/,\s*$/, '')}, viewport-fit=cover`,
-        );
+        viewport.setAttribute('content', `${content.replace(/,\s*$/, '')}, viewport-fit=cover`);
       }
     }
   }, [background]);

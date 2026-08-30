@@ -18,7 +18,7 @@ import {
   syncGoogleCalendarConnection,
 } from '../services/googleConnectionApi';
 import type { GoogleEvent } from '@/shared/types/models';
-import type { ConnectionProvider, ConnectionStatus } from '@/features/connections/types';
+import type { ConnectionProvider, ConnectionStatus } from '@/features/connections/public';
 import { recordTelemetry } from '@/shared/observability/telemetry';
 import { useI18n } from '@/shared/i18n/i18n';
 import type { TranslationKey } from '@/shared/i18n/translations';
@@ -53,6 +53,11 @@ export const useGoogleCalendar = () => {
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const inFlightRef = useRef(false);
+  const cacheRef = useRef(cache);
+
+  useEffect(() => {
+    cacheRef.current = cache;
+  }, [cache]);
 
   const configured = Boolean(webClientId) && googleCalendarApiConfigured();
   const effectiveWebId = configured ? webClientId : PLACEHOLDER_CLIENT_ID;
@@ -85,7 +90,7 @@ export const useGoogleCalendar = () => {
         setStatus(remoteConnected ? (stored.lastSyncedAt ? 'synced' : 'idle') : 'idle');
       })
       .catch(() => {
-        if (active) setStatus(cache.lastSyncedAt ? 'offline' : 'error');
+        if (active) setStatus(cacheRef.current.lastSyncedAt ? 'offline' : 'error');
       });
 
     return () => {
@@ -105,12 +110,20 @@ export const useGoogleCalendar = () => {
       setCache({ events: result.events, lastSyncedAt: result.syncedAt });
       setConnected(true);
       setStatus('synced');
-      recordTelemetry('connection.completed', { provider: 'google_calendar', action: 'sync', result: 'success' }, Date.now() - startedAt);
+      recordTelemetry(
+        'connection.completed',
+        { provider: 'google_calendar', action: 'sync', result: 'success' },
+        Date.now() - startedAt,
+      );
       return true;
     } catch (syncError) {
       setError(getCalendarError(syncError, t));
       setStatus(cache.lastSyncedAt ? 'offline' : 'error');
-      recordTelemetry('connection.completed', { provider: 'google_calendar', action: 'sync', result: 'error' }, Date.now() - startedAt);
+      recordTelemetry(
+        'connection.completed',
+        { provider: 'google_calendar', action: 'sync', result: 'error' },
+        Date.now() - startedAt,
+      );
       return false;
     } finally {
       inFlightRef.current = false;
@@ -193,15 +206,18 @@ export const useGoogleCalendar = () => {
     return null;
   }, [configured, t]);
 
-  const connectionStatus: ConnectionStatus = status === 'syncing'
-    ? connected ? 'syncing' : 'connecting'
-    : status === 'error'
-      ? 'error'
-      : status === 'offline'
-        ? 'offline'
-        : connected
-          ? 'connected'
-          : 'disconnected';
+  const connectionStatus: ConnectionStatus =
+    status === 'syncing'
+      ? connected
+        ? 'syncing'
+        : 'connecting'
+      : status === 'error'
+        ? 'error'
+        : status === 'offline'
+          ? 'offline'
+          : connected
+            ? 'connected'
+            : 'disconnected';
 
   return useMemo(
     () => ({
