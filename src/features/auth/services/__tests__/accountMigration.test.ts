@@ -1,4 +1,4 @@
-import { linkWithCredential, EmailAuthProvider, type User } from 'firebase/auth';
+import { linkWithCredential, type User } from 'firebase/auth';
 
 // Mock global de firebase/auth y config/firebase para aislar tests.
 jest.mock('firebase/auth', () => ({

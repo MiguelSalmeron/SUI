@@ -10,9 +10,24 @@ export type TypeStyle = {
 };
 
 export const TYPOGRAPHY = {
-  brandDisplayLg: { fontSize: 42, lineHeight: 50, fontWeight: '400', fontFamily: SUI_FONTS.display },
-  brandDisplayMd: { fontSize: 32, lineHeight: 40, fontWeight: '400', fontFamily: SUI_FONTS.display },
-  brandDisplaySm: { fontSize: 24, lineHeight: 32, fontWeight: '400', fontFamily: SUI_FONTS.display },
+  brandDisplayLg: {
+    fontSize: 42,
+    lineHeight: 50,
+    fontWeight: '400',
+    fontFamily: SUI_FONTS.display,
+  },
+  brandDisplayMd: {
+    fontSize: 32,
+    lineHeight: 40,
+    fontWeight: '400',
+    fontFamily: SUI_FONTS.display,
+  },
+  brandDisplaySm: {
+    fontSize: 24,
+    lineHeight: 32,
+    fontWeight: '400',
+    fontFamily: SUI_FONTS.display,
+  },
   brandTitle: { fontSize: 18, lineHeight: 24, fontWeight: '400', fontFamily: SUI_FONTS.display },
   brandLabel: { fontSize: 13, lineHeight: 18, fontWeight: '400', fontFamily: SUI_FONTS.display },
 
@@ -25,17 +40,53 @@ export const TYPOGRAPHY = {
   headlineSm: { fontSize: 22, lineHeight: 30, fontWeight: '700', fontFamily: SUI_FONTS.bold },
 
   titleLg: { fontSize: 20, lineHeight: 28, fontWeight: '700', fontFamily: SUI_FONTS.bold },
-  titleMd: { fontSize: 16, lineHeight: 24, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.1 },
-  titleSm: { fontSize: 14, lineHeight: 20, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.1 },
+  titleMd: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '600',
+    fontFamily: SUI_FONTS.semibold,
+    letterSpacing: 0.1,
+  },
+  titleSm: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
+    fontFamily: SUI_FONTS.semibold,
+    letterSpacing: 0.1,
+  },
 
   bodyLg: { fontSize: 16, lineHeight: 24, fontWeight: '400', fontFamily: SUI_FONTS.regular },
   bodyMd: { fontSize: 14, lineHeight: 20, fontWeight: '400', fontFamily: SUI_FONTS.regular },
   bodySm: { fontSize: 12, lineHeight: 16, fontWeight: '400', fontFamily: SUI_FONTS.regular },
 
-  labelLg: { fontSize: 14, lineHeight: 20, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.1 },
-  labelMd: { fontSize: 12, lineHeight: 16, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.5 },
-  labelSm: { fontSize: 11, lineHeight: 16, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.5 },
-  labelXs: { fontSize: 10, lineHeight: 14, fontWeight: '600', fontFamily: SUI_FONTS.semibold, letterSpacing: 0.4 },
+  labelLg: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
+    fontFamily: SUI_FONTS.semibold,
+    letterSpacing: 0.1,
+  },
+  labelMd: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+    fontFamily: SUI_FONTS.semibold,
+    letterSpacing: 0.5,
+  },
+  labelSm: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '600',
+    fontFamily: SUI_FONTS.semibold,
+    letterSpacing: 0.5,
+  },
+  labelXs: {
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '600',
+    fontFamily: SUI_FONTS.semibold,
+    letterSpacing: 0.4,
+  },
 } satisfies Record<string, TypeStyle>;
 
 export const MD3_TYPE = TYPOGRAPHY;
@@ -56,7 +107,7 @@ export const scaleTypography = <T extends Record<string, TypeStyle>>(
   if (scale === 1) return typeTokens;
 
   const result = {} as T;
-  for (const key of Object.keys(typeTokens) as Array<keyof T>) {
+  for (const key of Object.keys(typeTokens) as (keyof T)[]) {
     const style = typeTokens[key];
     result[key] = {
       ...style,
