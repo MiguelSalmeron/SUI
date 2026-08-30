@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/shared/ui/Ionicons';
 import { SPACING, useAppTheme } from '@/shared/theme/theme';
 import type { DayOfWeek, Goal } from '@/shared/types/models';
 import { useI18n } from '@/shared/i18n/i18n';
@@ -117,8 +117,16 @@ export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) =>
                 accessibilityRole="radio"
                 accessibilityState={{ selected: frequency === 'daily' }}
               >
-                <Ionicons name="sunny-outline" size={18} color={frequency === 'daily' ? colors.primary : colors.onSurfaceVariant} />
-                <Text style={[styles.optionText, frequency === 'daily' && styles.optionTextSelected]}>{t('habits.everyDay')}</Text>
+                <Ionicons
+                  name="sunny-outline"
+                  size={18}
+                  color={frequency === 'daily' ? colors.primary : colors.onSurfaceVariant}
+                />
+                <Text
+                  style={[styles.optionText, frequency === 'daily' && styles.optionTextSelected]}
+                >
+                  {t('habits.everyDay')}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.frequencyOption, frequency === 'weekdays' && styles.optionSelected]}
@@ -126,8 +134,16 @@ export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) =>
                 accessibilityRole="radio"
                 accessibilityState={{ selected: frequency === 'weekdays' }}
               >
-                <Ionicons name="briefcase-outline" size={18} color={frequency === 'weekdays' ? colors.primary : colors.onSurfaceVariant} />
-                <Text style={[styles.optionText, frequency === 'weekdays' && styles.optionTextSelected]}>{t('habitForm.weekdays')}</Text>
+                <Ionicons
+                  name="briefcase-outline"
+                  size={18}
+                  color={frequency === 'weekdays' ? colors.primary : colors.onSurfaceVariant}
+                />
+                <Text
+                  style={[styles.optionText, frequency === 'weekdays' && styles.optionTextSelected]}
+                >
+                  {t('habitForm.weekdays')}
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -148,29 +164,46 @@ export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) =>
                 accessibilityRole="radio"
                 accessibilityState={{ selected: linkedGoalId === null }}
               >
-                <Ionicons name="remove-circle-outline" size={17} color={linkedGoalId === null ? colors.primary : colors.onSurfaceVariant} />
-                <Text style={[styles.goalOptionText, linkedGoalId === null && styles.optionTextSelected]}>{t('habitForm.unlinked')}</Text>
+                <Ionicons
+                  name="remove-circle-outline"
+                  size={17}
+                  color={linkedGoalId === null ? colors.primary : colors.onSurfaceVariant}
+                />
+                <Text
+                  style={[
+                    styles.goalOptionText,
+                    linkedGoalId === null && styles.optionTextSelected,
+                  ]}
+                >
+                  {t('habitForm.unlinked')}
+                </Text>
               </TouchableOpacity>
-              {goals.filter((goal) => !goal.completed).map((goal) => {
-                const selected = linkedGoalId === goal.id;
-                return (
-                  <TouchableOpacity
-                    key={goal.id}
-                    style={[styles.goalOption, selected && styles.optionSelected]}
-                    onPress={() => setLinkedGoalId(goal.id)}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected }}
-                  >
-                    <Ionicons name="flag-outline" size={17} color={selected ? colors.primary : colors.onSurfaceVariant} />
-                    <Text
-                      style={[styles.goalOptionText, selected && styles.optionTextSelected]}
-                      numberOfLines={1}
+              {goals
+                .filter((goal) => !goal.completed)
+                .map((goal) => {
+                  const selected = linkedGoalId === goal.id;
+                  return (
+                    <TouchableOpacity
+                      key={goal.id}
+                      style={[styles.goalOption, selected && styles.optionSelected]}
+                      onPress={() => setLinkedGoalId(goal.id)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected }}
                     >
-                      {goal.title}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                      <Ionicons
+                        name="flag-outline"
+                        size={17}
+                        color={selected ? colors.primary : colors.onSurfaceVariant}
+                      />
+                      <Text
+                        style={[styles.goalOptionText, selected && styles.optionTextSelected]}
+                        numberOfLines={1}
+                      >
+                        {goal.title}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
             </ScrollView>
           </ScrollView>
 

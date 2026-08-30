@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import type { DailySnapshot } from '@/shared/domain/productivity/gamification';
@@ -10,7 +10,8 @@ type Props = {
 };
 
 const formatDayLabel = (dateKey: string, locale: 'es' | 'en'): string => {
-  const labels = locale === 'es' ? ['D', 'L', 'M', 'X', 'J', 'V', 'S'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const labels =
+    locale === 'es' ? ['D', 'L', 'M', 'X', 'J', 'V', 'S'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const [y, m, d] = dateKey.split('-').map(Number);
   const date = new Date(y, m - 1, d);
   return labels[date.getDay()];
@@ -45,8 +46,8 @@ export const WeeklyChart = ({ data }: Props) => {
                         ? rate >= 80
                           ? colors.success
                           : rate >= 50
-                          ? colors.primary
-                          : colors.secondary
+                            ? colors.primary
+                            : colors.secondary
                         : colors.outlineVariant,
                       opacity: isToday ? 1 : 0.75,
                     },
@@ -56,9 +57,7 @@ export const WeeklyChart = ({ data }: Props) => {
               <Text style={[styles.dayLabel, isToday && styles.dayLabelToday]}>
                 {formatDayLabel(day.date, locale)}
               </Text>
-              {hasActivity && (
-                <Text style={styles.rateLabel}>{rate}%</Text>
-              )}
+              {hasActivity && <Text style={styles.rateLabel}>{rate}%</Text>}
             </View>
           );
         })}

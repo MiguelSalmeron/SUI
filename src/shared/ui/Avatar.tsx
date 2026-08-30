@@ -39,14 +39,11 @@ export const Avatar: React.FC<AvatarProps> = ({
   style,
 }) => {
   const theme = useAppTheme();
-  const { colors } = theme;
   const dims = SIZES[size];
-  const styles = useMemo(() => createStyles(theme, dims.box, dims.token, variant), [
-    theme,
-    dims.box,
-    dims.token,
-    variant,
-  ]);
+  const styles = useMemo(
+    () => createStyles(theme, dims.box, dims.token, variant),
+    [theme, dims.box, dims.token, variant],
+  );
 
   return (
     <View

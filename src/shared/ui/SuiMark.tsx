@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Image, type ImageStyle, type StyleProp } from 'react-native';
 import { SUI_BRAND } from '@/shared/theme/brand';
 import { useAppTheme } from '@/shared/theme/theme';

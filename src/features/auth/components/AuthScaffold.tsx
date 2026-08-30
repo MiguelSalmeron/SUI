@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/shared/ui/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SPACING, type AppTheme, useAppTheme } from '@/shared/theme/theme';
 import { SuiMark } from '@/shared/ui/SuiMark';
@@ -64,7 +64,12 @@ const createStyles = ({ colors, radius, type }: AppTheme) =>
       zIndex: 2,
     },
     header: { alignItems: 'center', marginBottom: SPACING.lg, marginTop: SPACING.xl },
-    title: { ...type.brandDisplaySm, color: colors.onSurface, textAlign: 'center', marginTop: SPACING.sm },
+    title: {
+      ...type.brandDisplaySm,
+      color: colors.onSurface,
+      textAlign: 'center',
+      marginTop: SPACING.sm,
+    },
     subtitle: { ...type.bodyMd, color: colors.onSurfaceVariant, textAlign: 'center', marginTop: 2 },
     card: {
       backgroundColor: colors.surfaceContainer,

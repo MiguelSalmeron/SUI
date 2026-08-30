@@ -1,11 +1,6 @@
-import React, { useMemo, useState } from 'react';
-import {
-  View,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useMemo, useState } from 'react';
+import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@/shared/ui/Ionicons';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { MAX_INPUT_CHARS } from '../types/chat';
 import { useI18n } from '@/shared/i18n/i18n';
@@ -66,38 +61,39 @@ export const ChatInput = ({ busy, onSend }: Props) => {
   );
 };
 
-const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
-  wrapper: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.outlineVariant,
-    backgroundColor: colors.surface,
-  },
-  input: {
-    ...type.bodyLg,
-    flex: 1,
-    maxHeight: 120,
-    backgroundColor: colors.surfaceContainerLow,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    borderRadius: 20,
-    paddingVertical: SPACING.sm + 2,
-    paddingHorizontal: SPACING.md,
-    color: colors.onSurface,
-  },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendButtonDisabled: {
-    backgroundColor: colors.surfaceContainerHighest,
-  },
-});
+const createStyles = ({ colors, type }: AppTheme) =>
+  StyleSheet.create({
+    wrapper: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: SPACING.sm,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.sm,
+      borderTopWidth: 1,
+      borderTopColor: colors.outlineVariant,
+      backgroundColor: colors.surface,
+    },
+    input: {
+      ...type.bodyLg,
+      flex: 1,
+      maxHeight: 120,
+      backgroundColor: colors.surfaceContainerLow,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: 20,
+      paddingVertical: SPACING.sm + 2,
+      paddingHorizontal: SPACING.md,
+      color: colors.onSurface,
+    },
+    sendButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sendButtonDisabled: {
+      backgroundColor: colors.surfaceContainerHighest,
+    },
+  });

@@ -1,12 +1,6 @@
 import React from 'react';
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  ViewStyle,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
+import { Ionicons } from '@/shared/ui/Ionicons';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 
 type GoogleSignInButtonProps = {

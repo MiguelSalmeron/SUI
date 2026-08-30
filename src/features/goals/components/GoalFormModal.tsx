@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/shared/ui/Ionicons';
 import { SPACING, useAppTheme } from '@/shared/theme/theme';
 import { localDateKey } from '@/shared/domain/productivity/homeStorage';
 import type { GoalGravity } from '@/shared/types/models';
@@ -122,17 +122,23 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
                     accessibilityState={{ selected }}
                   >
                     <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
-                      {days === 7 ? t('goalForm.oneWeek') : days === 14 ? t('goalForm.twoWeeks') : t('goalForm.oneMonth')}
+                      {days === 7
+                        ? t('goalForm.oneWeek')
+                        : days === 14
+                          ? t('goalForm.twoWeeks')
+                          : t('goalForm.oneMonth')}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
             <Text style={styles.selectionHint}>
-              {t('goalForm.due', { date: formatDate(new Date(`${deadlineFromToday(deadlineDays)}T00:00:00`), {
-                day: 'numeric',
-                month: 'long',
-              }) })}
+              {t('goalForm.due', {
+                date: formatDate(new Date(`${deadlineFromToday(deadlineDays)}T00:00:00`), {
+                  day: 'numeric',
+                  month: 'long',
+                }),
+              })}
             </Text>
 
             <Text style={styles.fieldLabel}>{t('goalForm.priority')}</Text>
@@ -143,9 +149,17 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
                 accessibilityRole="radio"
                 accessibilityState={{ selected: gravity === 'low' }}
               >
-                <Ionicons name="leaf-outline" size={18} color={gravity === 'low' ? colors.primary : colors.onSurfaceVariant} />
+                <Ionicons
+                  name="leaf-outline"
+                  size={18}
+                  color={gravity === 'low' ? colors.primary : colors.onSurfaceVariant}
+                />
                 <View style={styles.priorityCopy}>
-                  <Text style={[styles.priorityTitle, gravity === 'low' && styles.optionTextSelected]}>{t('goals.normal')}</Text>
+                  <Text
+                    style={[styles.priorityTitle, gravity === 'low' && styles.optionTextSelected]}
+                  >
+                    {t('goals.normal')}
+                  </Text>
                   <Text style={styles.priorityDescription}>{t('goalForm.normalBody')}</Text>
                 </View>
               </TouchableOpacity>
@@ -155,9 +169,15 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
                 accessibilityRole="radio"
                 accessibilityState={{ selected: gravity === 'high' }}
               >
-                <Ionicons name="flash-outline" size={18} color={gravity === 'high' ? colors.flame : colors.onSurfaceVariant} />
+                <Ionicons
+                  name="flash-outline"
+                  size={18}
+                  color={gravity === 'high' ? colors.flame : colors.onSurfaceVariant}
+                />
                 <View style={styles.priorityCopy}>
-                  <Text style={[styles.priorityTitle, gravity === 'high' && styles.importantText]}>{t('goals.important')}</Text>
+                  <Text style={[styles.priorityTitle, gravity === 'high' && styles.importantText]}>
+                    {t('goals.important')}
+                  </Text>
                   <Text style={styles.priorityDescription}>{t('goalForm.importantBody')}</Text>
                 </View>
               </TouchableOpacity>
