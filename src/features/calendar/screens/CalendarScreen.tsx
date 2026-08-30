@@ -5,8 +5,11 @@ import { SCREEN_CONTENT_BOTTOM_PADDING, SPACING, useAppTheme } from '@/shared/th
 import { ScreenIntro } from '@/shared/ui/ScreenIntro';
 import { SuiDoodle } from '@/shared/ui/SuiDoodle';
 import { PromptModal } from '@/shared/ui/PromptModal';
-import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
-import { isHabitDueToday, localDateKey } from '@/shared/domain/productivity/homeStorage';
+import {
+  isHabitDueToday,
+  localDateKey,
+  useProductivityStore,
+} from '@/shared/domain/productivity/public';
 import type { GoalGravity } from '@/shared/types/models';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
 import { useNavigation } from '@react-navigation/native';
@@ -23,9 +26,9 @@ export const CalendarScreen = () => {
     locale === 'es' ? ['L', 'M', 'X', 'J', 'V', 'S', 'D'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   const { events: googleEvents, connected: calendarConnected } = useGoogleCalendar();
 
-  const goals = useHomeStore((s) => s.goals);
-  const habits = useHomeStore((s) => s.habits);
-  const addGoal = useHomeStore((s) => s.addGoal);
+  const goals = useProductivityStore((s) => s.goals);
+  const habits = useProductivityStore((s) => s.habits);
+  const addGoal = useProductivityStore((s) => s.addGoal);
 
   const todayKey = localDateKey();
   const [selectedDate, setSelectedDate] = useState(todayKey);

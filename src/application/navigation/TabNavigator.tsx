@@ -12,8 +12,12 @@ import {
   type TypographyScale,
   useAppTheme,
 } from '@/shared/theme/theme';
-import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
-import { isHabitDueToday, localDateKey } from '@/shared/domain/productivity/homeStorage';
+import {
+  isHabitDueToday,
+  localDateKey,
+  useCelebrationStore,
+  useProductivityStore,
+} from '@/shared/domain/productivity/public';
 import { Avatar } from '@/shared/ui/Avatar';
 import { SuiMark } from '@/shared/ui/SuiMark';
 import type { MainTabParamList, RootStackNavigationProp } from '@/shared/navigation/types';
@@ -22,7 +26,6 @@ import { CalendarScreen } from '@/features/calendar/public';
 import { GoalsScreen } from '@/features/goals/public';
 import { HabitsScreen } from '@/features/habits/public';
 import { CelebrationToast, OverviewScreen } from '@/features/home/public';
-import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
 import { requestNotificationPermission } from '@/features/settings/public';
 import { useI18n } from '@/shared/i18n/i18n';
 
@@ -186,13 +189,13 @@ export const TabNavigator = () => {
     [t],
   );
 
-  const stateLoaded = useHomeStore((state) => state.stateLoaded);
-  const loadState = useHomeStore((state) => state.loadState);
-  const saveState = useHomeStore((state) => state.saveState);
-  const goals = useHomeStore((state) => state.goals);
-  const habits = useHomeStore((state) => state.habits);
-  const streak = useHomeStore((state) => state.streak);
-  const bumpStreak = useHomeStore((state) => state.bumpStreak);
+  const stateLoaded = useProductivityStore((state) => state.stateLoaded);
+  const loadState = useProductivityStore((state) => state.loadState);
+  const saveState = useProductivityStore((state) => state.saveState);
+  const goals = useProductivityStore((state) => state.goals);
+  const habits = useProductivityStore((state) => state.habits);
+  const streak = useProductivityStore((state) => state.streak);
+  const bumpStreak = useProductivityStore((state) => state.bumpStreak);
   const celebrate = useCelebrationStore((state) => state.trigger);
 
   useEffect(() => {

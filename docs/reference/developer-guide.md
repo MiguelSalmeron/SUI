@@ -29,7 +29,8 @@
 | `npm test`                  | Ejecutar tests unitarios                                |
 | `npm run functions:build`   | Compilar Cloud Functions                                |
 | `npm run functions:test`    | Compilar y probar Cloud Functions                       |
-| `npm run test:rules`        | Probar reglas con Firestore Emulator                    |
+| `npm run test:sync`         | Probar convergencia v8 contra Firestore Emulator        |
+| `npm run test:rules`        | Probar reglas y sync con Firestore Emulator             |
 | `npm run check`             | Ejecutar todas las verificaciones                       |
 
 ## Convenciones de código
@@ -84,7 +85,7 @@ Después de modificar aliases, reinicia Expo CLI.
 
 - Entrada/cuenta: Zustand persistido en AsyncStorage, sin perfil obligatorio.
 - Chat: AsyncStorage con TTL de 48 horas; no se sincroniza a Firestore.
-- Productividad: repositorio v7, outbox local y documentos Firestore por entidad.
+- Productividad: repositorio v8, respaldo v7 read-only, outbox y Firestore por entidad.
 - Google Calendar: eventos normalizados en caché local; tokens sólo en backend.
 
 Consulta [API, persistencia y tema](api-and-theme.md) para claves y estructuras.

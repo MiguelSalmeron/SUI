@@ -1,14 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { GoogleEvent, TimelineItem, Goal, Habit } from '@/shared/types/models';
-import { isHabitDueToday } from '@/shared/domain/productivity/homeStorage';
+import { isHabitDueToday } from '@/shared/domain/productivity/public';
 
-export const GOOGLE_CALENDAR_READONLY_SCOPE =
-  'https://www.googleapis.com/auth/calendar.readonly';
+export const GOOGLE_CALENDAR_READONLY_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
 
 const GOOGLE_EVENTS_CACHE_KEY = '@sui/google-events-v2';
 const LEGACY_GOOGLE_EVENTS_CACHE_KEY = '@sui/google-events-v1';
 
-export type CalendarSyncStatus = 'idle' | 'loading-cache' | 'syncing' | 'synced' | 'offline' | 'error';
+export type CalendarSyncStatus =
+  'idle' | 'loading-cache' | 'syncing' | 'synced' | 'offline' | 'error';
 
 export interface GoogleCalendarCache {
   events: GoogleEvent[];
@@ -43,9 +43,7 @@ const parseCache = (raw: string | null): GoogleCalendarCache => {
     if (!parsed || typeof parsed !== 'object') return EMPTY_CACHE;
 
     const value = parsed as { events?: unknown; lastSyncedAt?: unknown };
-    const events = Array.isArray(value.events)
-      ? value.events.filter(isGoogleEvent)
-      : [];
+    const events = Array.isArray(value.events) ? value.events.filter(isGoogleEvent) : [];
     const lastSyncedAt =
       typeof value.lastSyncedAt === 'number' && Number.isFinite(value.lastSyncedAt)
         ? value.lastSyncedAt
@@ -159,8 +157,6 @@ export const buildUnifiedTimeline = (
     });
 
   return items.sort((a, b) =>
-    (a.startAt ?? `${a.date}T23:59:59`).localeCompare(
-      b.startAt ?? `${b.date}T23:59:59`,
-    ),
+    (a.startAt ?? `${a.date}T23:59:59`).localeCompare(b.startAt ?? `${b.date}T23:59:59`),
   );
 };

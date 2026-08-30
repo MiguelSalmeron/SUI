@@ -19,17 +19,20 @@ before(async () => {
 beforeEach(async () => environment.clearFirestore());
 after(async () => environment.cleanup());
 
-const registered = (uid) => environment.authenticatedContext(uid, {
-  firebase: { sign_in_provider: 'password' },
-  email_verified: true,
-});
-const unverified = (uid) => environment.authenticatedContext(uid, {
-  firebase: { sign_in_provider: 'password' },
-  email_verified: false,
-});
-const anonymous = (uid) => environment.authenticatedContext(uid, {
-  firebase: { sign_in_provider: 'anonymous' },
-});
+const registered = (uid) =>
+  environment.authenticatedContext(uid, {
+    firebase: { sign_in_provider: 'password' },
+    email_verified: true,
+  });
+const unverified = (uid) =>
+  environment.authenticatedContext(uid, {
+    firebase: { sign_in_provider: 'password' },
+    email_verified: false,
+  });
+const anonymous = (uid) =>
+  environment.authenticatedContext(uid, {
+    firebase: { sign_in_provider: 'anonymous' },
+  });
 
 const goalEnvelope = (id) => ({
   data: {
@@ -52,6 +55,29 @@ const goalEnvelope = (id) => ({
     lastMutationId: 'mutation-1',
   },
   serverUpdatedAt: serverTimestamp(),
+});
+
+const syncMetadata = (overrides = {}) => ({
+  schemaVersion: 1,
+  updatedAt: new Date().toISOString(),
+  revision: 1,
+  deviceId: 'device-1',
+  fingerprint: 'fingerprint',
+  lastMutationId: 'mutation-1',
+  ...overrides,
+});
+
+const productivityRootV8 = (meta = syncMetadata()) => ({
+  schemaVersion: 8,
+  productivity: {
+    lastResetDate: null,
+    streakCount: 2,
+    lastCompletedDate: '2026-08-30',
+    totalXp: 40,
+    meta,
+    serverUpdatedAt: serverTimestamp(),
+  },
+  updatedAt: serverTimestamp(),
 });
 
 test('registered owner writes valid entity', async () => {
@@ -80,4 +106,30 @@ test('invalid document and connection token access are denied', async () => {
   const db = registered('owner').firestore();
   await assertFails(setDoc(doc(db, 'users/owner/goals/wrong-id'), goalEnvelope('goal-1')));
   await assertFails(getDoc(doc(db, 'users/owner/connections/google_calendar')));
+});
+
+test('legacy v7 root remains readable and writable', async () => {
+  const db = registered('owner').firestore();
+  await assertSucceeds(
+    setDoc(doc(db, 'users/owner'), {
+      schemaVersion: 7,
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertSucceeds(getDoc(doc(db, 'users/owner')));
+});
+
+test('v8 root accepts validated summary metadata', async () => {
+  const db = registered('owner').firestore();
+  await assertSucceeds(setDoc(doc(db, 'users/owner'), productivityRootV8()));
+});
+
+test('v8 root rejects invalid summary metadata', async () => {
+  const db = registered('owner').firestore();
+  await assertFails(
+    setDoc(doc(db, 'users/owner'), productivityRootV8(syncMetadata({ revision: 0 }))),
+  );
+  const missingMutationId = syncMetadata();
+  delete missingMutationId.lastMutationId;
+  await assertFails(setDoc(doc(db, 'users/owner'), productivityRootV8(missingMutationId)));
 });

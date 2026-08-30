@@ -18,7 +18,7 @@ import { AuthScaffold } from '../components/AuthScaffold';
 import { SPACING, type AppTheme, useAppTheme } from '@/shared/theme/theme';
 import { useI18n } from '@/shared/i18n/i18n';
 import { useIntroStore } from '@/features/onboarding/public';
-import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
+import { useProductivityStore } from '@/shared/domain/productivity/public';
 import { recordTelemetry } from '@/shared/observability/telemetry';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
 
@@ -38,7 +38,7 @@ export const LoginScreen = ({ navigation }: Props) => {
   const [error, setError] = useState('');
 
   const finish = (linked: boolean, provider: 'password' | 'google' | 'apple') => {
-    const localState = useHomeStore.getState();
+    const localState = useProductivityStore.getState();
     const hasLocalData = localState.goals.length > 0 || localState.habits.length > 0;
     const current = auth.currentUser;
     if (provider === 'password' && current && !current.emailVerified) {
@@ -54,7 +54,7 @@ export const LoginScreen = ({ navigation }: Props) => {
     }
     setPendingCloudMerge(false);
     registerAccount(true);
-    void useHomeStore.getState().reloadState();
+    void useProductivityStore.getState().reloadState();
     navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
   };
 

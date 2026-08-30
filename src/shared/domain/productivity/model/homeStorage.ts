@@ -1,23 +1,7 @@
-import type { DailySnapshot } from './gamification';
 import type { Goal, Habit, DayOfWeek } from '@/shared/types/models';
 
 // Clave única del estado del tablero.
 export const HOME_STATE_KEY = 'sui-home-state-v6';
-
-export interface HomeState {
-  goals: Goal[];
-  habits: Habit[];
-  /** Fecha local (YYYY-MM-DD) del último reseteo diario del checklist. */
-  lastResetDate?: string;
-  /** Días consecutivos con al menos una meta/hábito cumplido. */
-  streakCount?: number;
-  /** Fecha local (YYYY-MM-DD) del último día que contó para la racha. */
-  lastCompletedDate?: string;
-  /** Historial diario de los últimos 14 días. */
-  weeklyHistory?: DailySnapshot[];
-  /** XP acumulado (derivado del historial). */
-  totalXp?: number;
-}
 
 /**
  * Clave de fecha local en formato estable YYYY-MM-DD.
@@ -65,10 +49,7 @@ export interface StreakState {
  */
 export const isStreakAlive = (lastCompletedDate?: string): boolean => {
   if (!lastCompletedDate) return false;
-  return (
-    lastCompletedDate === localDateKey() ||
-    lastCompletedDate === yesterdayKey()
-  );
+  return lastCompletedDate === localDateKey() || lastCompletedDate === yesterdayKey();
 };
 
 /**
@@ -114,7 +95,7 @@ export interface DailyResetResult {
 export const applyDailyReset = (
   goals: Goal[],
   habits: Habit[],
-  lastResetDate: string | undefined
+  lastResetDate: string | undefined,
 ): DailyResetResult => {
   const todayKey = localDateKey();
   if (lastResetDate === todayKey) {

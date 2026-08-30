@@ -18,7 +18,7 @@ import { AuthScaffold } from '../components/AuthScaffold';
 import { SPACING, type AppTheme, useAppTheme } from '@/shared/theme/theme';
 import { useI18n } from '@/shared/i18n/i18n';
 import { useIntroStore } from '@/features/onboarding/public';
-import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
+import { useProductivityStore } from '@/shared/domain/productivity/public';
 import { recordTelemetry } from '@/shared/observability/telemetry';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
@@ -39,7 +39,7 @@ export const RegisterScreen = ({ navigation }: Props) => {
   const [notice, setNotice] = useState('');
 
   const finishSocial = (linked: boolean) => {
-    const localState = useHomeStore.getState();
+    const localState = useProductivityStore.getState();
     const hasLocalData = localState.goals.length > 0 || localState.habits.length > 0;
     if (hasLocalData && !linked) {
       setPendingCloudMerge(false);
@@ -48,7 +48,7 @@ export const RegisterScreen = ({ navigation }: Props) => {
     }
     registerAccount(true);
     setPendingCloudMerge(false);
-    void useHomeStore.getState().syncNow();
+    void useProductivityStore.getState().syncNow();
     navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
   };
 

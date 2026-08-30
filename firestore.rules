@@ -22,35 +22,83 @@ service cloud.firestore {
       ])
       && request.resource.data.schemaVersion is int
       && request.resource.data.schemaVersion >= 1
-      && request.resource.data.schemaVersion <= 7;
+      && request.resource.data.schemaVersion <= 8
+      && (
+        request.resource.data.schemaVersion < 8
+        || validProductivitySummary()
+      );
     }
 
-    function validMetadata() {
-      return request.resource.data.meta is map
-        && request.resource.data.meta.keys().hasAll([
+    function validMetadata(meta) {
+      return meta is map
+        && meta.keys().hasAll([
           'schemaVersion', 'updatedAt', 'revision', 'deviceId', 'fingerprint',
           'lastMutationId'
         ])
-        && request.resource.data.meta.keys().hasOnly([
+        && meta.keys().hasOnly([
           'schemaVersion', 'updatedAt', 'serverUpdatedAt', 'revision',
           'deviceId', 'deletedAt', 'fingerprint', 'lastMutationId'
         ])
-        && request.resource.data.meta.schemaVersion == 1
-        && request.resource.data.meta.revision is int
-        && request.resource.data.meta.revision >= 1
-        && request.resource.data.meta.deviceId is string
-        && request.resource.data.meta.deviceId.size() <= 128
-        && request.resource.data.meta.updatedAt is string
-        && request.resource.data.meta.updatedAt.size() <= 64
-        && request.resource.data.meta.fingerprint is string
-        && request.resource.data.meta.fingerprint.size() <= 200000
-        && request.resource.data.meta.lastMutationId is string
-        && request.resource.data.meta.lastMutationId.size() <= 128;
+        && meta.schemaVersion == 1
+        && meta.revision is int
+        && meta.revision >= 1
+        && meta.deviceId is string
+        && meta.deviceId.size() > 0
+        && meta.deviceId.size() <= 128
+        && meta.updatedAt is string
+        && meta.updatedAt.size() > 0
+        && meta.updatedAt.size() <= 64
+        && meta.fingerprint is string
+        && meta.fingerprint.size() > 0
+        && meta.fingerprint.size() <= 200000
+        && meta.lastMutationId is string
+        && meta.lastMutationId.size() > 0
+        && meta.lastMutationId.size() <= 128
+        && (
+          !('deletedAt' in meta)
+          || meta.deletedAt is string
+        )
+        && (
+          !('serverUpdatedAt' in meta)
+          || meta.serverUpdatedAt is string
+        );
+    }
+
+    function validProductivitySummary() {
+      return request.resource.data.productivity is map
+        && request.resource.data.productivity.keys().hasAll([
+          'lastResetDate', 'streakCount', 'lastCompletedDate', 'totalXp',
+          'meta', 'serverUpdatedAt'
+        ])
+        && request.resource.data.productivity.keys().hasOnly([
+          'lastResetDate', 'streakCount', 'lastCompletedDate', 'totalXp',
+          'meta', 'serverUpdatedAt'
+        ])
+        && request.resource.data.productivity.streakCount is int
+        && request.resource.data.productivity.streakCount >= 0
+        && request.resource.data.productivity.totalXp is int
+        && request.resource.data.productivity.totalXp >= 0
+        && (
+          request.resource.data.productivity.lastResetDate == null
+          || (
+            request.resource.data.productivity.lastResetDate is string
+            && request.resource.data.productivity.lastResetDate.size() <= 64
+          )
+        )
+        && (
+          request.resource.data.productivity.lastCompletedDate == null
+          || (
+            request.resource.data.productivity.lastCompletedDate is string
+            && request.resource.data.productivity.lastCompletedDate.size() <= 64
+          )
+        )
+        && validMetadata(request.resource.data.productivity.meta)
+        && request.resource.data.productivity.serverUpdatedAt == request.time;
     }
 
     function validEntityEnvelope() {
       return request.resource.data.keys().hasOnly(['data', 'meta', 'serverUpdatedAt'])
-        && validMetadata()
+        && validMetadata(request.resource.data.meta)
         && request.resource.data.serverUpdatedAt == request.time;
     }
 

@@ -14,6 +14,7 @@ const runFixture = async (overrides, expectedMessage) => {
     'application/App.ts': '',
     'features/alpha/public.ts': '',
     'features/beta/public.ts': '',
+    'shared/domain/productivity/public.ts': '',
     'shared/lib.ts': '',
     ...overrides,
   };
@@ -79,4 +80,14 @@ test('rejects feature cycles', () =>
       'features/beta/public.ts': "import '@/features/alpha/public';",
     },
     /feature cycle: alpha -> beta -> alpha/,
+  ));
+
+test('rejects deep productivity imports', () =>
+  runFixture(
+    {
+      'features/alpha/internal.ts':
+        "import '@/shared/domain/productivity/store/useProductivityStore';",
+      'shared/domain/productivity/store/useProductivityStore.ts': '',
+    },
+    /import productivity through @\/shared\/domain\/productivity\/public/,
   ));

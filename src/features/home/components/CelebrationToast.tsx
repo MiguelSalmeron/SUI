@@ -3,7 +3,7 @@ import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
-import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
+import { useCelebrationStore } from '@/shared/domain/productivity/public';
 import { useI18n } from '@/shared/i18n/i18n';
 
 export const CelebrationToast = () => {

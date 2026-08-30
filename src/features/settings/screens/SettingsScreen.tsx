@@ -16,7 +16,7 @@ import { AuthContext, deleteRegisteredAccount } from '@/features/auth/public';
 import { clearGoogleEventsCache } from '@/features/calendar/public';
 import { useIntroStore } from '@/features/onboarding/public';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
-import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
+import { useProductivityStore } from '@/shared/domain/productivity/public';
 import type { RootStackParamList } from '@/shared/navigation/types';
 import { useI18n } from '@/shared/i18n/i18n';
 import {
@@ -109,7 +109,7 @@ export const SettingsScreen = ({ navigation }: Props) => {
   const pendingCloudMerge = useIntroStore((state) => state.pendingCloudMerge);
   const setPendingCloudMerge = useIntroStore((state) => state.setPendingCloudMerge);
   const resetIntro = useIntroStore((state) => state.resetIntro);
-  const home = useHomeStore();
+  const home = useProductivityStore();
   const passwordAccount = Boolean(
     user?.providerData.some((item) => item.providerId === 'password'),
   );

@@ -5,8 +5,7 @@ import { SCREEN_CONTENT_BOTTOM_PADDING, SPACING, useAppTheme } from '@/shared/th
 import { ScreenIntro } from '@/shared/ui/ScreenIntro';
 import { SuiDoodle } from '@/shared/ui/SuiDoodle';
 import { PromptModal } from '@/shared/ui/PromptModal';
-import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
-import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
+import { useCelebrationStore, useProductivityStore } from '@/shared/domain/productivity/public';
 import type { Goal } from '@/shared/types/models';
 import { GoalFormModal } from '../components/GoalFormModal';
 import { useI18n } from '@/shared/i18n/i18n';
@@ -32,12 +31,12 @@ export const GoalsScreen = () => {
   const route = useRoute<RouteProp<MainTabParamList, 'Goals'>>();
   const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList, 'Goals'>>();
 
-  const goals = useHomeStore((s) => s.goals);
-  const addGoal = useHomeStore((s) => s.addGoal);
-  const toggleGoal = useHomeStore((s) => s.toggleGoal);
-  const addMilestone = useHomeStore((s) => s.addMilestone);
-  const toggleMilestone = useHomeStore((s) => s.toggleMilestone);
-  const removeGoal = useHomeStore((s) => s.removeGoal);
+  const goals = useProductivityStore((s) => s.goals);
+  const addGoal = useProductivityStore((s) => s.addGoal);
+  const toggleGoal = useProductivityStore((s) => s.toggleGoal);
+  const addMilestone = useProductivityStore((s) => s.addMilestone);
+  const toggleMilestone = useProductivityStore((s) => s.toggleMilestone);
+  const removeGoal = useProductivityStore((s) => s.removeGoal);
 
   const [filter, setFilter] = useState<Filter>('active');
   const [formVisible, setFormVisible] = useState(false);

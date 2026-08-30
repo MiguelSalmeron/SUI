@@ -37,6 +37,11 @@ src/
 │   └── settings/
 └── shared/
     ├── domain/productivity/
+    │   ├── model/
+    │   ├── persistence/
+    │   ├── store/
+    │   ├── sync/
+    │   └── public.ts
     ├── infrastructure/firebase/
     ├── navigation/
     ├── account/
@@ -59,6 +64,8 @@ src/
 6. `shared` no puede depender de `features` ni `application`.
 7. Dependencias entre funcionalidades no pueden formar ciclos.
 8. Contratos React Navigation viven en `shared/navigation/types`.
+9. Consumidores externos del dominio productividad usan únicamente `@/shared/domain/productivity/public`.
+10. Imports internos de productividad son relativos.
 
 `scripts/check-architecture.mjs` aplica estas reglas mediante AST TypeScript,
 resuelve aliases e imports relativos y verifica todas las APIs públicas.
@@ -78,6 +85,10 @@ Este dominio contiene:
 - Cálculo de XP, niveles, logros y snapshots.
 - Eventos de celebración compartidos.
 
+`public.ts` es su única API externa. `model` contiene reglas puras; `persistence`
+administra AsyncStorage y migraciones; `sync` coordina Firestore y conflictos;
+`store` adapta dominio a Zustand.
+
 Las pantallas de metas, hábitos, calendario y resumen consumen este dominio sin depender entre sí.
 
 ## Flujo local-first
@@ -95,9 +106,15 @@ graph TD
     J --> K[Encolar mutationId]
     K --> L{Cuenta verificada y red}
     L -- Sí --> M[Commit transaccional idempotente]
+    M --> N[Pull autoritativo]
+    N --> O[Superponer outbox creado durante vuelo]
 ```
 
-La UI nunca espera nube. Repositorio v7 conserva metadata, tombstones y cola persistente. Usuarios anónimos no escriben productividad en Firestore.
+La UI nunca espera nube. Repositorio v8 conserva metadata por entidad, metadata
+del resumen, tombstones, outbox y `lastSyncedAt`. Migración lee v7 y luego v6;
+v7 permanece como respaldo de solo lectura. Conflictos eligen mayor `revision` y,
+en empate, mayor `deviceId` lexicográfico. El reloj cliente no decide. Usuarios
+anónimos no escriben productividad en Firestore.
 
 ## Navegación
 

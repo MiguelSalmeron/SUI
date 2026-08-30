@@ -73,7 +73,8 @@
     "test": "jest --runInBand",
     "functions:build": "npm --prefix functions run build",
     "functions:test": "npm --prefix functions test",
-    "test:rules": "firebase emulators:exec --only firestore --project sui-rules-test \"node --test test/firestore.rules.test.mjs\"",
+    "test:sync": "jest --runInBand --runTestsByPath src/shared/domain/productivity/__tests__/syncEmulator.test.ts",
+    "test:rules": "firebase emulators:exec --only firestore --project sui-rules-test \"node --test test/firestore.rules.test.mjs && npm run test:sync\"",
     "check": "npm run architecture && npm run architecture:test && npm run lint && npm run dead-code && npm run deps:check && npm run check:production && npm run typecheck && npm run test && npm run functions:test && npm run test:rules",
     "eas-build-pre-install": "node scripts/check-production-config.mjs"
   },

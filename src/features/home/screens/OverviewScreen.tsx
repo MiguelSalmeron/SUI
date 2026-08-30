@@ -13,9 +13,11 @@ import { SCREEN_CONTENT_BOTTOM_PADDING, SPACING, useAppTheme } from '@/shared/th
 import { Skeleton } from '@/shared/ui/Skeleton';
 import { buildUnifiedTimeline, loadCachedGoogleEvents } from '@/features/calendar/public';
 import type { GoogleEvent, TimelineItem } from '@/shared/types/models';
-import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
-import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
-import { localDateKey } from '@/shared/domain/productivity/homeStorage';
+import {
+  localDateKey,
+  useCelebrationStore,
+  useProductivityStore,
+} from '@/shared/domain/productivity/public';
 import type { MainTabParamList, RootStackParamList } from '@/shared/navigation/types';
 import { SuiDoodle } from '@/shared/ui/SuiDoodle';
 import { useI18n } from '@/shared/i18n/i18n';
@@ -42,13 +44,13 @@ export const OverviewScreen = () => {
   const { t, formatDate } = useI18n();
   const celebrate = useCelebrationStore((s) => s.trigger);
 
-  const stateLoaded = useHomeStore((s) => s.stateLoaded);
-  const goals = useHomeStore((s) => s.goals);
-  const habits = useHomeStore((s) => s.habits);
-  const streak = useHomeStore((s) => s.streak);
-  const totalXp = useHomeStore((s) => s.totalXp);
-  const toggleHabit = useHomeStore((s) => s.toggleHabit);
-  const toggleGoal = useHomeStore((s) => s.toggleGoal);
+  const stateLoaded = useProductivityStore((s) => s.stateLoaded);
+  const goals = useProductivityStore((s) => s.goals);
+  const habits = useProductivityStore((s) => s.habits);
+  const streak = useProductivityStore((s) => s.streak);
+  const totalXp = useProductivityStore((s) => s.totalXp);
+  const toggleHabit = useProductivityStore((s) => s.toggleHabit);
+  const toggleGoal = useProductivityStore((s) => s.toggleGoal);
 
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
   const todayKey = localDateKey();
