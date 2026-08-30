@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from './Ionicons';
 import { SPACING, useAppTheme } from '@/shared/theme/theme';
 
 type Props = {

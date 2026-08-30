@@ -1,13 +1,5 @@
-import React, { useMemo } from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Linking,
-  Alert,
-} from 'react-native';
+import { useMemo } from 'react';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, Linking, Alert } from 'react-native';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { CrisisConfig } from '../services/crisisConfig';
 import { useI18n } from '@/shared/i18n/i18n';
@@ -22,13 +14,8 @@ interface EmergencyOverlayProps {
  * Overlay de derivación inmediata ante señales de crisis.
  * Botones interactivos que abren el marcador telefónico (tel:).
  */
-export const EmergencyOverlay = ({
-  visible,
-  config,
-  onClose,
-}: EmergencyOverlayProps) => {
+export const EmergencyOverlay = ({ visible, config, onClose }: EmergencyOverlayProps) => {
   const theme = useAppTheme();
-  const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { t } = useI18n();
 
@@ -87,72 +74,73 @@ export const EmergencyOverlay = ({
   );
 };
 
-const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: colors.scrim,
-    justifyContent: 'center',
-    padding: SPACING.lg,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 26,
-    padding: SPACING.lg,
-    alignItems: 'center',
-  },
-  badge: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.error,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING.md,
-  },
-  badgeText: {
-    color: colors.onError,
-    fontSize: type.headlineMd.fontSize,
-    lineHeight: type.headlineMd.lineHeight,
-  },
-  title: {
-    ...type.headlineSm,
-    color: colors.onSurface,
-    textAlign: 'center',
-    marginBottom: SPACING.sm,
-  },
-  message: {
-    ...type.bodyMd,
-    color: colors.onSurfaceVariant,
-    textAlign: 'center',
-    marginBottom: SPACING.lg,
-  },
-  contacts: {
-    width: '100%',
-    gap: SPACING.sm,
-  },
-  contactBtn: {
-    backgroundColor: colors.error,
-    borderRadius: 18,
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.md,
-    alignItems: 'center',
-  },
-  contactLabel: {
-    ...type.titleMd,
-    color: colors.onError,
-  },
-  contactPhone: {
-    ...type.labelMd,
-    color: colors.onError,
-    opacity: 0.95,
-    marginTop: 2,
-  },
-  closeBtn: {
-    marginTop: SPACING.lg,
-    paddingVertical: SPACING.sm,
-  },
-  closeText: {
-    ...type.labelLg,
-    color: colors.primary,
-  },
-});
+const createStyles = ({ colors, type }: AppTheme) =>
+  StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: colors.scrim,
+      justifyContent: 'center',
+      padding: SPACING.lg,
+    },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 26,
+      padding: SPACING.lg,
+      alignItems: 'center',
+    },
+    badge: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.error,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: SPACING.md,
+    },
+    badgeText: {
+      color: colors.onError,
+      fontSize: type.headlineMd.fontSize,
+      lineHeight: type.headlineMd.lineHeight,
+    },
+    title: {
+      ...type.headlineSm,
+      color: colors.onSurface,
+      textAlign: 'center',
+      marginBottom: SPACING.sm,
+    },
+    message: {
+      ...type.bodyMd,
+      color: colors.onSurfaceVariant,
+      textAlign: 'center',
+      marginBottom: SPACING.lg,
+    },
+    contacts: {
+      width: '100%',
+      gap: SPACING.sm,
+    },
+    contactBtn: {
+      backgroundColor: colors.error,
+      borderRadius: 18,
+      paddingVertical: SPACING.md,
+      paddingHorizontal: SPACING.md,
+      alignItems: 'center',
+    },
+    contactLabel: {
+      ...type.titleMd,
+      color: colors.onError,
+    },
+    contactPhone: {
+      ...type.labelMd,
+      color: colors.onError,
+      opacity: 0.95,
+      marginTop: 2,
+    },
+    closeBtn: {
+      marginTop: SPACING.lg,
+      paddingVertical: SPACING.sm,
+    },
+    closeText: {
+      ...type.labelLg,
+      color: colors.primary,
+    },
+  });

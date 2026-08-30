@@ -1,6 +1,5 @@
-import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/shared/ui/Ionicons';
 import { SPACING, useAppTheme } from '@/shared/theme/theme';
 
 type Props = {

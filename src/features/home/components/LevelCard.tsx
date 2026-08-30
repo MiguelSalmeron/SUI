@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { calculateLevel } from '@/shared/domain/productivity/gamification';
@@ -11,7 +11,6 @@ type Props = {
 
 export const LevelCard = ({ totalXp }: Props) => {
   const theme = useAppTheme();
-  const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { t } = useI18n();
   const level = useMemo(() => calculateLevel(totalXp), [totalXp]);
@@ -37,7 +36,9 @@ export const LevelCard = ({ totalXp }: Props) => {
           <Text style={styles.levelNumber}>{level.level}</Text>
         </View>
         <View style={styles.textCol}>
-          <Text style={styles.title}>{t(`progress.level${Math.min(level.level, 7)}` as TranslationKey)}</Text>
+          <Text style={styles.title}>
+            {t(`progress.level${Math.min(level.level, 7)}` as TranslationKey)}
+          </Text>
           <Text style={styles.subtitle}>
             {t('progress.levelNext', { current: level.currentXp, total: level.nextLevelXp })}
           </Text>

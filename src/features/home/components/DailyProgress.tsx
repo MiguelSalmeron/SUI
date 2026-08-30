@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { useI18n } from '@/shared/i18n/i18n';
@@ -18,7 +18,6 @@ type Props = {
  */
 export const DailyProgress = ({ completed, total, label }: Props) => {
   const theme = useAppTheme();
-  const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { t } = useI18n();
   const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
@@ -41,8 +40,8 @@ export const DailyProgress = ({ completed, total, label }: Props) => {
     total === 0
       ? t('daily.empty')
       : percent === 100
-      ? t('daily.complete')
-      : t('daily.progress', { done: completed, total, label: label ?? t('daily.completed') });
+        ? t('daily.complete')
+        : t('daily.progress', { done: completed, total, label: label ?? t('daily.completed') });
 
   return (
     <View style={styles.card}>
@@ -60,7 +59,8 @@ export const DailyProgress = ({ completed, total, label }: Props) => {
   );
 };
 
-const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, type }: AppTheme) =>
+  StyleSheet.create({
     card: {
       backgroundColor: colors.surfaceContainer,
       borderRadius: 16,
@@ -69,34 +69,34 @@ const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
       borderColor: colors.outlineVariant,
       marginBottom: SPACING.sm,
     },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.sm,
-  },
-  title: {
-    ...type.titleMd,
-    color: colors.onSurface,
-  },
-  percent: {
-    ...type.titleLg,
-    color: colors.primary,
-  },
-  track: {
-    height: 12,
-    borderRadius: 999,
-    backgroundColor: colors.outlineVariant,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    borderRadius: 999,
-    backgroundColor: colors.success,
-  },
-  message: {
-    ...type.labelMd,
-    marginTop: SPACING.sm,
-    color: colors.onSurfaceVariant,
-  },
-});
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: SPACING.sm,
+    },
+    title: {
+      ...type.titleMd,
+      color: colors.onSurface,
+    },
+    percent: {
+      ...type.titleLg,
+      color: colors.primary,
+    },
+    track: {
+      height: 12,
+      borderRadius: 999,
+      backgroundColor: colors.outlineVariant,
+      overflow: 'hidden',
+    },
+    fill: {
+      height: '100%',
+      borderRadius: 999,
+      backgroundColor: colors.success,
+    },
+    message: {
+      ...type.labelMd,
+      marginTop: SPACING.sm,
+      color: colors.onSurfaceVariant,
+    },
+  });

@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/shared/ui/Ionicons';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import type { Achievement } from '@/shared/domain/productivity/gamification';
 import { useI18n } from '@/shared/i18n/i18n';
@@ -16,7 +16,8 @@ export const AchievementGrid = ({ achievements, compact = false }: Props) => {
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme, compact), [theme, compact]);
   const { t } = useI18n();
-  const achievementTitle = (id: Achievement['id']) => t(`achievement.${id}.title` as TranslationKey);
+  const achievementTitle = (id: Achievement['id']) =>
+    t(`achievement.${id}.title` as TranslationKey);
   const achievementBody = (id: Achievement['id']) => t(`achievement.${id}.body` as TranslationKey);
   const unlocked = achievements.filter((a) => a.unlocked);
   const locked = achievements.filter((a) => !a.unlocked);
@@ -38,7 +39,10 @@ export const AchievementGrid = ({ achievements, compact = false }: Props) => {
               color={a.unlocked ? colors.onPrimary : colors.onSurfaceVariant}
             />
           </View>
-          <Text style={[styles.badgeTitle, !a.unlocked && styles.badgeTitleLocked]} numberOfLines={1}>
+          <Text
+            style={[styles.badgeTitle, !a.unlocked && styles.badgeTitleLocked]}
+            numberOfLines={1}
+          >
             {achievementTitle(a.id)}
           </Text>
           {!compact && (
@@ -54,12 +58,25 @@ export const AchievementGrid = ({ achievements, compact = false }: Props) => {
   if (compact) {
     return (
       <View style={styles.compactSection}>
-        <Text style={styles.sectionTitle}>{t('progress.achievementsUnlocked', { done: unlocked.length, total: achievements.length })}</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontal}>
+        <Text style={styles.sectionTitle}>
+          {t('progress.achievementsUnlocked', {
+            done: unlocked.length,
+            total: achievements.length,
+          })}
+        </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.horizontal}
+        >
           {unlocked.map((a) => (
             <View key={a.id} style={styles.compactBadge}>
               <View style={styles.compactIcon}>
-                <Ionicons name={a.icon as keyof typeof Ionicons.glyphMap} size={20} color={colors.onPrimary} />
+                <Ionicons
+                  name={a.icon as keyof typeof Ionicons.glyphMap}
+                  size={20}
+                  color={colors.onPrimary}
+                />
               </View>
               <Text style={styles.compactTitle}>{achievementTitle(a.id)}</Text>
             </View>
@@ -77,7 +94,9 @@ export const AchievementGrid = ({ achievements, compact = false }: Props) => {
       {content}
       {locked.length > 0 && (
         <Text style={styles.hint}>
-          {locked.length === 1 ? t('progress.lockedOne') : t('progress.lockedMany', { count: locked.length })}
+          {locked.length === 1
+            ? t('progress.lockedOne')
+            : t('progress.lockedMany', { count: locked.length })}
         </Text>
       )}
     </View>

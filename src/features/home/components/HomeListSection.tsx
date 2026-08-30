@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/shared/ui/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 
@@ -33,7 +33,14 @@ type ItemRowProps = {
   onItemCompleted?: (title: string) => void;
 };
 
-const HomeListItemRow = React.memo(({ item, theme, onToggle, onEdit, onRemove, onItemCompleted }: ItemRowProps) => {
+const HomeListItemRow = React.memo(function HomeListItemRow({
+  item,
+  theme,
+  onToggle,
+  onEdit,
+  onRemove,
+  onItemCompleted,
+}: ItemRowProps) {
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -59,15 +66,10 @@ const HomeListItemRow = React.memo(({ item, theme, onToggle, onEdit, onRemove, o
         accessibilityLabel={`${item.completed ? 'Desmarcar' : 'Completar'} ${item.title}`}
         accessibilityState={{ checked: item.completed }}
       >
-        {item.completed && (
-          <Ionicons name="checkmark" size={16} color={colors.onSuccess} />
-        )}
+        {item.completed && <Ionicons name="checkmark" size={16} color={colors.onSuccess} />}
       </TouchableOpacity>
 
-      <Text
-        style={[styles.itemTitle, item.completed && styles.itemTitleDone]}
-        numberOfLines={2}
-      >
+      <Text style={[styles.itemTitle, item.completed && styles.itemTitleDone]} numberOfLines={2}>
         {item.title}
       </Text>
 
@@ -177,109 +179,110 @@ export const HomeListSection = ({
   );
 };
 
-const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
-  sectionSpacing: {
-    marginTop: SPACING.md,
-  },
-  sectionHeader: {
-    marginBottom: SPACING.md,
-  },
-  sectionTitle: {
-    ...type.titleLg,
-    color: colors.onSurface,
-  },
-  sectionSubtitle: {
-    ...type.bodyMd,
-    marginTop: 4,
-    color: colors.onSurfaceVariant,
-  },
-  card: {
-    backgroundColor: colors.surfaceContainer,
-    borderRadius: 16,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.xs,
-  },
-  progressText: {
-    ...type.labelLg,
-    color: colors.onSurface,
-  },
-  progressPercent: {
-    ...type.titleMd,
-  },
-  progressTrack: {
-    height: 6,
-    borderRadius: 999,
-    backgroundColor: colors.outlineVariant,
-    overflow: 'hidden',
-    marginBottom: SPACING.md,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 999,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: SPACING.lg,
-    gap: SPACING.sm,
-    marginBottom: SPACING.md,
-  },
-  emptyText: {
-    ...type.bodyMd,
-    color: colors.onSurfaceVariant,
-    textAlign: 'center',
-    paddingHorizontal: SPACING.md,
-  },
-  addButton: {
-    padding: SPACING.md,
-    borderRadius: 16,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  addButtonText: {
-    ...type.titleMd,
-  },
-  list: {
-    gap: SPACING.xs,
-    marginTop: SPACING.md,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.xs,
-    borderRadius: 14,
-  },
-  itemRowDone: {
-    backgroundColor: colors.surfaceContainerLow,
-  },
-  checkbox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  itemTitle: {
-    ...type.titleMd,
-    flex: 1,
-    color: colors.onSurface,
-  },
-  itemTitleDone: {
-    color: colors.onSurfaceVariant,
-    textDecorationLine: 'line-through',
-  },
-  actionBtn: {
-    padding: 6,
-  },
-});
+const createStyles = ({ colors, type }: AppTheme) =>
+  StyleSheet.create({
+    sectionSpacing: {
+      marginTop: SPACING.md,
+    },
+    sectionHeader: {
+      marginBottom: SPACING.md,
+    },
+    sectionTitle: {
+      ...type.titleLg,
+      color: colors.onSurface,
+    },
+    sectionSubtitle: {
+      ...type.bodyMd,
+      marginTop: 4,
+      color: colors.onSurfaceVariant,
+    },
+    card: {
+      backgroundColor: colors.surfaceContainer,
+      borderRadius: 16,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+    },
+    progressHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: SPACING.xs,
+    },
+    progressText: {
+      ...type.labelLg,
+      color: colors.onSurface,
+    },
+    progressPercent: {
+      ...type.titleMd,
+    },
+    progressTrack: {
+      height: 6,
+      borderRadius: 999,
+      backgroundColor: colors.outlineVariant,
+      overflow: 'hidden',
+      marginBottom: SPACING.md,
+    },
+    progressFill: {
+      height: '100%',
+      borderRadius: 999,
+    },
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: SPACING.lg,
+      gap: SPACING.sm,
+      marginBottom: SPACING.md,
+    },
+    emptyText: {
+      ...type.bodyMd,
+      color: colors.onSurfaceVariant,
+      textAlign: 'center',
+      paddingHorizontal: SPACING.md,
+    },
+    addButton: {
+      padding: SPACING.md,
+      borderRadius: 16,
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 6,
+    },
+    addButtonText: {
+      ...type.titleMd,
+    },
+    list: {
+      gap: SPACING.xs,
+      marginTop: SPACING.md,
+    },
+    itemRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      paddingVertical: SPACING.sm,
+      paddingHorizontal: SPACING.xs,
+      borderRadius: 14,
+    },
+    itemRowDone: {
+      backgroundColor: colors.surfaceContainerLow,
+    },
+    checkbox: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      borderWidth: 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    itemTitle: {
+      ...type.titleMd,
+      flex: 1,
+      color: colors.onSurface,
+    },
+    itemTitleDone: {
+      color: colors.onSurfaceVariant,
+      textDecorationLine: 'line-through',
+    },
+    actionBtn: {
+      padding: 6,
+    },
+  });

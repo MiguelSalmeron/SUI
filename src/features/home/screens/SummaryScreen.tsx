@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/shared/ui/Ionicons';
 import {
   AppTheme,
   ColorScheme,
@@ -41,9 +41,7 @@ export const SummaryScreen = () => {
   const weekTotals = useMemo(() => {
     const goalsDone = week.reduce((s, d) => s + d.goalsCompleted, 0);
     const habitsDone = week.reduce((s, d) => s + d.habitsCompleted, 0);
-    const activeDays = week.filter(
-      (d) => d.goalsCompleted + d.habitsCompleted > 0,
-    ).length;
+    const activeDays = week.filter((d) => d.goalsCompleted + d.habitsCompleted > 0).length;
     return { goalsDone, habitsDone, activeDays };
   }, [week]);
 
@@ -67,13 +65,14 @@ export const SummaryScreen = () => {
   );
 
   const insightData = useMemo(() => getWeeklyInsight(week, streak), [week, streak]);
-  const insight = insightData.kind === 'empty'
-    ? t('progress.insightEmpty')
-    : insightData.kind === 'excellent'
-      ? t('progress.insightExcellent', { rate: insightData.rate, streak: insightData.streak })
-      : insightData.kind === 'active'
-        ? t('progress.insightActive', { days: insightData.days })
-        : t('progress.insightAverage', { rate: insightData.rate });
+  const insight =
+    insightData.kind === 'empty'
+      ? t('progress.insightEmpty')
+      : insightData.kind === 'excellent'
+        ? t('progress.insightExcellent', { rate: insightData.rate, streak: insightData.streak })
+        : insightData.kind === 'active'
+          ? t('progress.insightActive', { days: insightData.days })
+          : t('progress.insightAverage', { rate: insightData.rate });
 
   return (
     <ScrollView
@@ -81,10 +80,7 @@ export const SummaryScreen = () => {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <ScreenIntro
-        title={t('progress.title')}
-        subtitle={t('progress.subtitle')}
-      />
+      <ScreenIntro title={t('progress.title')} subtitle={t('progress.subtitle')} />
 
       <LevelCard totalXp={totalXp} />
 
@@ -132,7 +128,12 @@ export const SummaryScreen = () => {
         <Text style={styles.todayTitle}>{t('progress.today')}</Text>
         <View style={styles.todayRow}>
           <Text style={styles.todayStat}>
-            {t('progress.todaySummary', { goalsDone: completedGoals, goalsTotal: goals.length, habitsDone: completedHabits, habitsTotal: habits.length })}
+            {t('progress.todaySummary', {
+              goalsDone: completedGoals,
+              goalsTotal: goals.length,
+              habitsDone: completedHabits,
+              habitsTotal: habits.length,
+            })}
           </Text>
           <Text style={styles.todayRate}>{todayRate}%</Text>
         </View>
@@ -152,30 +153,36 @@ type StatBoxProps = {
 };
 
 const StatBox = ({ icon, label, value, colors, styles }: StatBoxProps) => (
-  <View style={[styles.box, { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant }]}>
+  <View
+    style={[
+      styles.box,
+      { backgroundColor: colors.surfaceContainer, borderColor: colors.outlineVariant },
+    ]}
+  >
     <Ionicons name={icon} size={18} color={colors.primary} />
     <Text style={[styles.value, { color: colors.onSurface }]}>{value}</Text>
     <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>{label}</Text>
   </View>
 );
 
-const createStatStyles = ({ type }: AppTheme) => StyleSheet.create({
-  box: {
-    width: '47%',
-    borderRadius: 16,
-    padding: SPACING.md,
-    borderWidth: 1,
-    alignItems: 'center',
-    gap: 4,
-  },
-  value: {
-    ...type.headlineSm,
-  },
-  label: {
-    ...type.labelSm,
-    textTransform: 'uppercase',
-  },
-});
+const createStatStyles = ({ type }: AppTheme) =>
+  StyleSheet.create({
+    box: {
+      width: '47%',
+      borderRadius: 16,
+      padding: SPACING.md,
+      borderWidth: 1,
+      alignItems: 'center',
+      gap: 4,
+    },
+    value: {
+      ...type.headlineSm,
+    },
+    label: {
+      ...type.labelSm,
+      textTransform: 'uppercase',
+    },
+  });
 
 const createStyles = ({ colors, type }: AppTheme) =>
   StyleSheet.create({

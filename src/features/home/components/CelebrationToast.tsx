@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/shared/ui/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
@@ -15,11 +15,12 @@ export const CelebrationToast = () => {
   const kind = useCelebrationStore((s) => s.kind);
   const subtitle = useCelebrationStore((s) => s.subtitle);
   const { t } = useI18n();
-  const title = kind === 'goal'
-    ? t('celebration.goal')
-    : kind === 'habit'
-      ? t('celebration.habit')
-      : t('celebration.perfectDay');
+  const title =
+    kind === 'goal'
+      ? t('celebration.goal')
+      : kind === 'habit'
+        ? t('celebration.habit')
+        : t('celebration.perfectDay');
   const visibleSubtitle = subtitle || t('celebration.consistency');
   const translateY = useRef(new Animated.Value(-120)).current;
   const opacity = useRef(new Animated.Value(0)).current;

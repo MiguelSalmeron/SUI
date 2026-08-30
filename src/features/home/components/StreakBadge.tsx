@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/shared/ui/Ionicons';
 import { AppTheme, MD3_RADIUS, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { useI18n } from '@/shared/i18n/i18n';
 
@@ -35,11 +35,7 @@ export const StreakBadge = ({ streak }: Props) => {
   return (
     <View style={[styles.card, active ? styles.cardActive : styles.cardIdle]}>
       <Animated.View
-        style={[
-          styles.dot,
-          active ? styles.dotActive : styles.dotIdle,
-          { transform: [{ scale }] },
-        ]}
+        style={[styles.dot, active ? styles.dotActive : styles.dotIdle, { transform: [{ scale }] }]}
       >
         <Ionicons
           name={active ? 'flame' : 'flame-outline'}
@@ -66,51 +62,52 @@ export const StreakBadge = ({ streak }: Props) => {
   );
 };
 
-const createStyles = ({ colors, type }: AppTheme) => StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    borderRadius: MD3_RADIUS.xl,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    marginBottom: SPACING.sm,
-  },
-  cardActive: {
-    backgroundColor: colors.flameContainer,
-    borderColor: colors.flameOutline,
-  },
-  cardIdle: {
-    backgroundColor: colors.surface,
-    borderColor: colors.outlineVariant,
-  },
-  dot: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dotActive: {
-    backgroundColor: colors.flame,
-  },
-  dotIdle: {
-    backgroundColor: colors.primaryContainer,
-  },
-  textCol: {
-    flex: 1,
-  },
-  count: {
-    ...type.headlineMd,
-    color: colors.flame,
-  },
-  countIdle: {
-    ...type.titleLg,
-    color: colors.onSurface,
-  },
-  label: {
-    ...type.labelMd,
-    color: colors.onSurfaceVariant,
-    marginTop: 2,
-  },
-});
+const createStyles = ({ colors, type }: AppTheme) =>
+  StyleSheet.create({
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+      borderRadius: MD3_RADIUS.xl,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      marginBottom: SPACING.sm,
+    },
+    cardActive: {
+      backgroundColor: colors.flameContainer,
+      borderColor: colors.flameOutline,
+    },
+    cardIdle: {
+      backgroundColor: colors.surface,
+      borderColor: colors.outlineVariant,
+    },
+    dot: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dotActive: {
+      backgroundColor: colors.flame,
+    },
+    dotIdle: {
+      backgroundColor: colors.primaryContainer,
+    },
+    textCol: {
+      flex: 1,
+    },
+    count: {
+      ...type.headlineMd,
+      color: colors.flame,
+    },
+    countIdle: {
+      ...type.titleLg,
+      color: colors.onSurface,
+    },
+    label: {
+      ...type.labelMd,
+      color: colors.onSurfaceVariant,
+      marginTop: 2,
+    },
+  });
