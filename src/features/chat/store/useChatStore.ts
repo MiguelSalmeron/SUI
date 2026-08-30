@@ -5,8 +5,7 @@ import { ChatMessage, CHAT_TTL_MS } from '../types/chat';
 
 export const CHAT_STORAGE_KEY = 'sui-chat-v1';
 
-const newId = (): string =>
-  `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+const newId = (): string => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
 /** Descarta mensajes con más de 48h (privacidad / auto-limpieza). */
 const prune = (messages: ChatMessage[]): ChatMessage[] => {
@@ -35,7 +34,7 @@ interface ChatState {
 
 export const useChatStore = create<ChatState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       hydrated: false,
       messages: [],
       streamingId: null,
@@ -69,24 +68,20 @@ export const useChatStore = create<ChatState>()(
 
       appendChunk: (id, chunk) =>
         set((s) => ({
-          messages: s.messages.map((m) =>
-            m.id === id ? { ...m, content: m.content + chunk } : m
-          ),
+          messages: s.messages.map((m) => (m.id === id ? { ...m, content: m.content + chunk } : m)),
         })),
 
       finalizeAssistant: (id) =>
         set((s) => ({
           streamingId: null,
-          messages: s.messages.map((m) =>
-            m.id === id ? { ...m, streaming: false } : m
-          ),
+          messages: s.messages.map((m) => (m.id === id ? { ...m, streaming: false } : m)),
         })),
 
       markError: (id) =>
         set((s) => ({
           streamingId: null,
           messages: s.messages.map((m) =>
-            m.id === id ? { ...m, streaming: false, error: true } : m
+            m.id === id ? { ...m, streaming: false, error: true } : m,
           ),
         })),
 
@@ -105,6 +100,6 @@ export const useChatStore = create<ChatState>()(
           state.setHydrated(true);
         }
       },
-    }
-  )
+    },
+  ),
 );

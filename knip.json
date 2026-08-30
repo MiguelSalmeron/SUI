@@ -1,0 +1,26 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["index.ts", "scripts/*.mjs", "test/**/*.mjs"],
+  "project": ["src/**/*.{ts,tsx}", "scripts/*.mjs", "test/**/*.mjs"],
+  "ignore": [
+    "src/features/home/components/DailyProgress.tsx",
+    "src/features/home/components/HomeListSection.tsx",
+    "src/features/home/components/NightlyReportModal.tsx",
+    "src/features/home/components/StreakBadge.tsx"
+  ],
+  "ignoreDependencies": [
+    "@react-native/jest-preset",
+    "@testing-library/react-native",
+    "ci-audit",
+    "expo-secure-store",
+    "expo-system-ui",
+    "expo-updates",
+    "react-test-renderer"
+  ],
+  "workspaces": {
+    "functions": {
+      "entry": ["src/index.ts", "test/**/*.js"],
+      "project": ["src/**/*.ts", "test/**/*.js"]
+    }
+  }
+}

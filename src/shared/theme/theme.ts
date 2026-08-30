@@ -18,21 +18,12 @@
  *     Usa theme.elevation.levelN vía createSurface().
  */
 
-import React, {
-  createContext,
-  useContext,
-  useMemo,
-  useSyncExternalStore,
-} from 'react';
+import React, { createContext, useContext, useMemo, useSyncExternalStore } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSettingsStore } from '@/shared/preferences/useSettingsStore';
 import { SUI_BRAND } from './brand';
-import {
-  FONT_SCALE_MAP,
-  MD3_TYPE,
-  scaleTypography,
-  type TypographyScale,
-} from './typography';
+import { FONT_SCALE_MAP, MD3_TYPE, scaleTypography, type TypographyScale } from './typography';
 
 export {
   FONT_SCALE_MAP,
@@ -401,8 +392,6 @@ export const NAV_BAR_HEIGHT = 72;
 // Espacio final uniforme para listas; la barra de tabs vive fuera del scene.
 export const SCREEN_CONTENT_BOTTOM_PADDING = SPACING.xl + SPACING.lg;
 
-import { useSettingsStore } from '@/shared/preferences/useSettingsStore';
-
 // ──────────────────────────────────────────────────────────────────────────
 // THEME OBJECT (light/dark)
 // ──────────────────────────────────────────────────────────────────────────
@@ -474,9 +463,8 @@ export type ThemeProviderProps = {
 export const ThemeProvider = ({ mode: modeProp, children }: ThemeProviderProps) => {
   const systemScheme = useColorScheme();
 
-  const modeState = useSyncExternalStore(
-    subscribeThemeMode,
-    () => (modeProp !== undefined ? modeProp : getThemeMode()),
+  const modeState = useSyncExternalStore(subscribeThemeMode, () =>
+    modeProp !== undefined ? modeProp : getThemeMode(),
   );
 
   const resolvedMode: ThemeMode = modeProp ?? modeState;
