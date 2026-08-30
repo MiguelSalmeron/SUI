@@ -28,6 +28,7 @@ const rawTypographyPatterns = [
 ];
 
 const normalizePath = (path) => path.replaceAll('\\', '/');
+const productivityPrefix = 'shared/domain/productivity/';
 
 async function collectFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -163,6 +164,8 @@ for (const file of files) {
     }
     if (!targetFile) continue;
     const target = describeLocation(targetFile);
+    const sourceIsProductivity = source.path.startsWith(productivityPrefix);
+    const targetIsProductivity = target.path.startsWith(productivityPrefix);
 
     if (source.layer === 'shared' && ['application', 'features'].includes(target.layer)) {
       failures.push(`${projectPath}: shared cannot import ${target.layer}`);
@@ -181,6 +184,15 @@ for (const file of files) {
       }
       if (source.feature && source.feature !== target.feature) {
         featureGraph.get(source.feature)?.add(target.feature);
+      }
+    }
+    if (targetIsProductivity) {
+      const expectedPublicApi = '@/shared/domain/productivity/public';
+      if (!sourceIsProductivity && specifier !== expectedPublicApi) {
+        failures.push(`${projectPath}: import productivity through ${expectedPublicApi}`);
+      }
+      if (sourceIsProductivity && specifier.startsWith('@/shared/domain/productivity/')) {
+        failures.push(`${projectPath}: use relative imports inside productivity domain`);
       }
     }
   }

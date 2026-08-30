@@ -8,7 +8,7 @@ import {
   snapshotXp,
   upsertSnapshot,
   type DailySnapshot,
-} from '../gamification';
+} from '../model/gamification';
 
 const sample: DailySnapshot = {
   date: '2026-06-30',
@@ -35,9 +35,7 @@ describe('gamification', () => {
   });
 
   it('upsertSnapshot reemplaza el día existente', () => {
-    const history: DailySnapshot[] = [
-      { ...sample, goalsCompleted: 0 },
-    ];
+    const history: DailySnapshot[] = [{ ...sample, goalsCompleted: 0 }];
     const updated = upsertSnapshot(history, sample);
     expect(updated).toHaveLength(1);
     expect(updated[0].goalsCompleted).toBe(2);

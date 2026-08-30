@@ -10,7 +10,7 @@ Alcance: [PRD](product/PRD.md). UX/UI: [sistema de diseño](product/DESIGN_SYSTE
 - [x] Auth correo, Google, Apple iOS e invitado técnico.
 - [x] Recuperación de contraseña y verificación por correo.
 - [x] Fusión explícita de datos locales/cloud.
-- [x] Repositorio local-first v7, outbox, metadatos y tombstones.
+- [x] Repositorio local-first v8, outbox, conflictos deterministas y tombstones.
 - [x] Firestore por entidad y migración cloud legado.
 - [x] Centro de Conexiones y Google Calendar PKCE sólo lectura.
 - [x] Exportación, logout y eliminación completa.
@@ -26,7 +26,7 @@ Alcance: [PRD](product/PRD.md). UX/UI: [sistema de diseño](product/DESIGN_SYSTE
 - [ ] Configurar App Check web/Android/iOS.
 - [ ] Configurar DSN Sentry y revisar retención.
 - [ ] Cargar crisis config por país/idioma con revisión legal.
-- [ ] Desplegar reglas y Functions en staging.
+- [ ] Desplegar reglas v8 antes del cliente y luego Functions en staging.
 
 ## Validación release
 

@@ -8,12 +8,7 @@ export interface DailySnapshot {
   habitsTotal: number;
 }
 
-export type AchievementId =
-  | 'first_goal'
-  | 'streak_3'
-  | 'streak_7'
-  | 'perfect_day'
-  | 'week_active';
+export type AchievementId = 'first_goal' | 'streak_3' | 'streak_7' | 'perfect_day' | 'week_active';
 
 export interface Achievement {
   id: AchievementId;
@@ -27,8 +22,7 @@ export const XP_GOAL = 10;
 export const XP_HABIT = 5;
 
 export const snapshotXp = (s: DailySnapshot): number =>
-  s.goalsCompleted * XP_GOAL +
-  s.habitsCompleted * XP_HABIT;
+  s.goalsCompleted * XP_GOAL + s.habitsCompleted * XP_HABIT;
 
 export const computeTotalXp = (history: DailySnapshot[]): number =>
   history.reduce((sum, s) => sum + snapshotXp(s), 0);
@@ -93,9 +87,7 @@ export const upsertSnapshot = (
     return history;
   }
   const filtered = history.filter((s) => s.date !== snapshot.date);
-  return [...filtered, snapshot]
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-maxDays);
+  return [...filtered, snapshot].sort((a, b) => a.date.localeCompare(b.date)).slice(-maxDays);
 };
 
 export const buildWeeklyView = (
@@ -146,9 +138,7 @@ export interface AchievementContext {
 export const getAchievements = (ctx: AchievementContext): Achievement[] => {
   const allHistory = ctx.weeklyHistory;
   const totalGoalsEver = allHistory.reduce((s, d) => s + d.goalsCompleted, 0) + ctx.goalsCompleted;
-  const activeDays = allHistory.filter(
-    (d) => d.goalsCompleted + d.habitsCompleted > 0,
-  ).length;
+  const activeDays = allHistory.filter((d) => d.goalsCompleted + d.habitsCompleted > 0).length;
   const todayActive = ctx.goalsCompleted + ctx.habitsCompleted > 0;
   const activeDaysCount = activeDays + (todayActive ? 1 : 0);
 
@@ -183,7 +173,9 @@ export const getAchievements = (ctx: AchievementContext): Achievement[] => {
       title: 'Día perfecto',
       description: '100% de cumplimiento',
       icon: 'star',
-      unlocked: perfectDay || allHistory.some((d) => getCompletionRate(d) === 100 && d.goalsTotal + d.habitsTotal > 0),
+      unlocked:
+        perfectDay ||
+        allHistory.some((d) => getCompletionRate(d) === 100 && d.goalsTotal + d.habitsTotal > 0),
     },
 
     {
@@ -202,15 +194,10 @@ export type WeeklyInsight =
   | { kind: 'active'; days: number }
   | { kind: 'average'; rate: number };
 
-export const getWeeklyInsight = (
-  week: DailySnapshot[],
-  streak: number,
-): WeeklyInsight => {
+export const getWeeklyInsight = (week: DailySnapshot[], streak: number): WeeklyInsight => {
   const rates = week.map(getCompletionRate).filter((r) => r > 0);
   const avgRate = rates.length ? Math.round(rates.reduce((a, b) => a + b, 0) / rates.length) : 0;
-  const activeDays = week.filter(
-    (d) => d.goalsCompleted + d.habitsCompleted > 0,
-  ).length;
+  const activeDays = week.filter((d) => d.goalsCompleted + d.habitsCompleted > 0).length;
 
   if (activeDays === 0) {
     return { kind: 'empty' };

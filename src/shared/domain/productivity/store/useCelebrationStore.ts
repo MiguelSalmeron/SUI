@@ -1,9 +1,6 @@
 import { create } from 'zustand';
-import type { CelebrationKind } from './celebration';
-import {
-  getCelebrationXp,
-  playCelebrationHaptic,
-} from './celebration';
+import type { CelebrationKind } from '../model/celebration';
+import { getCelebrationXp, playCelebrationHaptic } from '../model/celebration';
 
 type CelebrationPayload = {
   kind: CelebrationKind;

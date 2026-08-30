@@ -17,7 +17,7 @@ import {
   type DayStats,
   type StreamController,
 } from '@/features/chat/public';
-import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
+import { useProductivityStore } from '@/shared/domain/productivity/public';
 import { useI18n } from '@/shared/i18n/i18n';
 import type { TranslationKey } from '@/shared/i18n/translations';
 
@@ -49,7 +49,7 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const goals = useHomeStore((state) => state.goals);
+  const goals = useProductivityStore((state) => state.goals);
   const { locale, t } = useI18n();
 
   const [text, setText] = useState('');

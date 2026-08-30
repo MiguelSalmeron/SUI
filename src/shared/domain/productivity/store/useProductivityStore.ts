@@ -1,22 +1,31 @@
 import { create } from 'zustand';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
-import { applyDailyReset, localDateKey, advanceStreak, normalizeStreak } from './homeStorage';
-import { type DailySnapshot, computeTotalXp, makeSnapshot, upsertSnapshot } from './gamification';
+import {
+  applyDailyReset,
+  localDateKey,
+  advanceStreak,
+  normalizeStreak,
+} from '../model/homeStorage';
+import {
+  type DailySnapshot,
+  computeTotalXp,
+  makeSnapshot,
+  upsertSnapshot,
+} from '../model/gamification';
 import type { Goal, Habit, GoalGravity, DayOfWeek, Milestone } from '@/shared/types/models';
 import { useIntroStore } from '@/shared/account/useIntroStore';
 import {
   clearLocalProductivity,
   combineProductivity,
-  flushProductivityOutbox,
   loadLocalProductivity,
   persistLocalProductivity,
-  pullCloudProductivity,
   replaceLocalProductivity,
-} from './productivityRepository';
-import type { ProductivityData, SyncStatus } from './syncTypes';
+} from '../persistence/productivityRepository';
+import { pullCloudProductivity, synchronizeProductivity } from '../sync/syncCoordinator';
+import type { ProductivityData, SyncStatus } from '../sync/syncTypes';
 import { recordTelemetry } from '@/shared/observability/telemetry';
 
-export type HomeState = {
+export type ProductivityState = {
   goals: Goal[];
   habits: Habit[];
   streak: number;
@@ -62,7 +71,7 @@ let saveQueued = false;
 let syncInFlight = false;
 let syncQueued = false;
 
-const toProductivityData = (state: HomeState): ProductivityData => ({
+const toProductivityData = (state: ProductivityState): ProductivityData => ({
   goals: state.goals,
   habits: state.habits,
   lastResetDate: state.lastResetDate,
@@ -107,7 +116,7 @@ const statePatch = (data: ProductivityData) => ({
   totalXp: data.totalXp,
 });
 
-export const useHomeStore = create<HomeState>((set, get) => ({
+export const useProductivityStore = create<ProductivityState>((set, get) => ({
   goals: [],
   habits: [],
   streak: 0,
@@ -352,26 +361,8 @@ export const useHomeStore = create<HomeState>((set, get) => ({
     syncInFlight = true;
     set({ syncStatus: 'syncing' });
     try {
-      let envelope = await persistLocalProductivity(toProductivityData(get()));
-      if (envelope.outbox.length > 0) {
-        envelope = await flushProductivityOutbox(user.uid, envelope);
-      }
-
-      const cloud = await pullCloudProductivity(user.uid);
-      if (!cloud) {
-        set({
-          syncStatus: 'synced',
-          lastSyncedAt: envelope.lastSyncedAt ?? new Date().toISOString(),
-        });
-        recordTelemetry(
-          'sync.completed',
-          { result: 'success', direction: 'empty' },
-          Date.now() - syncStartedAt,
-        );
-        return;
-      }
-
-      const normalized = normalizeLoadedData(cloud.data);
+      const result = await synchronizeProductivity(user.uid, toProductivityData(get()));
+      const normalized = normalizeLoadedData(result.data);
       const currentData = toProductivityData(get());
       const stateChanged =
         JSON.stringify(normalized.goals) !== JSON.stringify(currentData.goals) ||
@@ -381,21 +372,30 @@ export const useHomeStore = create<HomeState>((set, get) => ({
         normalized.streakCount !== currentData.streakCount ||
         normalized.lastCompletedDate !== currentData.lastCompletedDate ||
         normalized.totalXp !== currentData.totalXp;
-      await replaceLocalProductivity(normalized, cloud.metadata);
-      let lastSyncedAt = new Date().toISOString();
-      if (cloud.migratedLegacy) {
-        const migration = await persistLocalProductivity(normalized);
-        const migrated = await flushProductivityOutbox(user.uid, migration);
-        lastSyncedAt = migrated.lastSyncedAt ?? lastSyncedAt;
-      }
       set(
         stateChanged
-          ? { ...statePatch(normalized), syncStatus: 'synced', lastSyncedAt }
-          : { syncStatus: 'synced', lastSyncedAt },
+          ? {
+              ...statePatch(normalized),
+              syncStatus: result.pending ? 'pending' : 'synced',
+              lastSyncedAt: result.lastSyncedAt,
+            }
+          : {
+              syncStatus: result.pending ? 'pending' : 'synced',
+              lastSyncedAt: result.lastSyncedAt,
+            },
       );
       recordTelemetry(
         'sync.completed',
-        { result: 'success', direction: 'push-pull' },
+        {
+          result: 'success',
+          direction: 'push-pull',
+          accepted: result.accepted,
+          replayed: result.replayed,
+          conflicts: result.rejected,
+          collisions: result.collisions,
+          pending: result.pending,
+          migratedLegacy: result.migratedLegacy,
+        },
         Date.now() - syncStartedAt,
       );
     } catch (error) {
@@ -432,19 +432,28 @@ export const useHomeStore = create<HomeState>((set, get) => ({
           ? (cloud?.data ?? emptyCloud)
           : combineProductivity(local.data, cloud?.data ?? emptyCloud);
       const normalized = normalizeLoadedData(selected);
+      let lastSyncedAt = new Date().toISOString();
       if (strategy === 'cloud') {
-        await replaceLocalProductivity(normalized, cloud?.metadata ?? {});
+        await replaceLocalProductivity(
+          normalized,
+          cloud?.metadata ?? {},
+          cloud?.summaryMeta ?? null,
+        );
       } else {
-        await replaceLocalProductivity(normalized);
-        const pending = await persistLocalProductivity(normalized);
-        await flushProductivityOutbox(user.uid, pending);
+        await replaceLocalProductivity(
+          normalized,
+          cloud?.metadata ?? {},
+          cloud?.summaryMeta ?? null,
+        );
+        const result = await synchronizeProductivity(user.uid, normalized);
+        lastSyncedAt = result.lastSyncedAt;
       }
       useIntroStore.getState().registerAccount(true);
       set({
         ...statePatch(normalized),
         stateLoaded: true,
         syncStatus: 'synced',
-        lastSyncedAt: new Date().toISOString(),
+        lastSyncedAt,
       });
     } catch {
       set({ syncStatus: 'error' });

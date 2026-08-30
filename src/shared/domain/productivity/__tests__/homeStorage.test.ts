@@ -6,7 +6,7 @@ import {
   normalizeStreak,
   resetHabitsCompletion,
   yesterdayKey,
-} from '../homeStorage';
+} from '../model/homeStorage';
 import type { Goal, Habit } from '@/shared/types/models';
 
 const fixedDate = new Date(2026, 5, 30, 10, 0, 0);
@@ -82,8 +82,6 @@ describe('homeStorage date and streak helpers', () => {
   });
 
   it('resetHabitsCompletion conserva id y title', () => {
-    expect(resetHabitsCompletion(testHabits)).toEqual([
-      { ...testHabits[0], completed: false },
-    ]);
+    expect(resetHabitsCompletion(testHabits)).toEqual([{ ...testHabits[0], completed: false }]);
   });
 });

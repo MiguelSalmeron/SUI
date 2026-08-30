@@ -7,6 +7,8 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@react-native-async-storage/async-storage$': '<rootDir>/__mocks__/async-storage.js',
+    '^expo-crypto$': '<rootDir>/__mocks__/expo-crypto.js',
+    '^expo-haptics$': '<rootDir>/__mocks__/expo-haptics.js',
   },
   transform: {
     '^.+\\.tsx?$': [

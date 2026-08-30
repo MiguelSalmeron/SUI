@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import { SPACING, useAppTheme } from '@/shared/theme/theme';
-import { localDateKey } from '@/shared/domain/productivity/homeStorage';
+import { localDateKey } from '@/shared/domain/productivity/public';
 import type { GoalGravity } from '@/shared/types/models';
 import { useI18n } from '@/shared/i18n/i18n';
 

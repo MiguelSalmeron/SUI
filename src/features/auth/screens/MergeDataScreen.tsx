@@ -17,7 +17,7 @@ import { auth } from '@/shared/infrastructure/firebase/firebase';
 import { useI18n } from '@/shared/i18n/i18n';
 import { SPACING, type AppTheme, useAppTheme } from '@/shared/theme/theme';
 import { SuiDoodle } from '@/shared/ui/SuiDoodle';
-import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
+import { useProductivityStore } from '@/shared/domain/productivity/public';
 import { signInAnon } from '../services/onboardingAuth';
 import { useIntroStore } from '@/features/onboarding/public';
 
@@ -27,7 +27,7 @@ export const MergeDataScreen = ({ navigation }: Props) => {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { t } = useI18n();
-  const resolveCloudMerge = useHomeStore((state) => state.resolveCloudMerge);
+  const resolveCloudMerge = useProductivityStore((state) => state.resolveCloudMerge);
   const completeIntro = useIntroStore((state) => state.completeIntro);
   const setPendingCloudMerge = useIntroStore((state) => state.setPendingCloudMerge);
   const [busy, setBusy] = useState<'combine' | 'cloud' | 'cancel' | null>(null);

@@ -9,15 +9,15 @@ import {
   useAppTheme,
 } from '@/shared/theme/theme';
 import { ScreenIntro } from '@/shared/ui/ScreenIntro';
-import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
-import { WeeklyChart } from '../components/WeeklyChart';
-import { AchievementGrid } from '../components/AchievementGrid';
-import { LevelCard } from '../components/LevelCard';
 import {
   buildWeeklyView,
   getAchievements,
   getWeeklyInsight,
-} from '@/shared/domain/productivity/gamification';
+  useProductivityStore,
+} from '@/shared/domain/productivity/public';
+import { WeeklyChart } from '../components/WeeklyChart';
+import { AchievementGrid } from '../components/AchievementGrid';
+import { LevelCard } from '../components/LevelCard';
 import { useI18n } from '@/shared/i18n/i18n';
 
 export const SummaryScreen = () => {
@@ -27,11 +27,11 @@ export const SummaryScreen = () => {
   const statBoxStyles = useMemo(() => createStatStyles(theme), [theme]);
   const { t } = useI18n();
 
-  const goals = useHomeStore((s) => s.goals);
-  const habits = useHomeStore((s) => s.habits);
-  const streak = useHomeStore((s) => s.streak);
-  const totalXp = useHomeStore((s) => s.totalXp);
-  const weeklyHistory = useHomeStore((s) => s.weeklyHistory);
+  const goals = useProductivityStore((s) => s.goals);
+  const habits = useProductivityStore((s) => s.habits);
+  const streak = useProductivityStore((s) => s.streak);
+  const totalXp = useProductivityStore((s) => s.totalXp);
+  const weeklyHistory = useProductivityStore((s) => s.weeklyHistory);
 
   const completedGoals = useMemo(() => goals.filter((g) => g.completed).length, [goals]);
   const completedHabits = useMemo(() => habits.filter((h) => h.completed).length, [habits]);

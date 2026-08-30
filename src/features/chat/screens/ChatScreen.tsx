@@ -28,7 +28,7 @@ import { CrisisConfig, DEFAULT_CRISIS_CONFIG, fetchCrisisConfig } from '../servi
 import { detectCrisis } from '../services/crisisDetection';
 import { streamChat, StreamController } from '../services/chatStream';
 import type { ChatMessage as ChatMessageType } from '../types/chat';
-import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
+import { useProductivityStore } from '@/shared/domain/productivity/public';
 import { useI18n } from '@/shared/i18n/i18n';
 import { AuthContext } from '@/features/auth/public';
 import { PRODUCT_CONFIG } from '@/shared/config/product';
@@ -53,7 +53,7 @@ export const ChatScreen = ({ navigation }: Props) => {
   const pruneExpired = useChatStore((s) => s.pruneExpired);
   const clear = useChatStore((s) => s.clear);
 
-  const goals = useHomeStore((state) => state.goals);
+  const goals = useProductivityStore((state) => state.goals);
   const { locale, t } = useI18n();
   const { user } = useContext(AuthContext);
 

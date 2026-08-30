@@ -1,3 +1,8 @@
+jest.mock('@/shared/domain/productivity/public', () => ({
+  localDateKey: (value = new Date()) => value.toISOString().slice(0, 10),
+  isHabitDueToday: () => true,
+}));
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   buildUnifiedTimeline,

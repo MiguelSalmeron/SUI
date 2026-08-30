@@ -12,7 +12,7 @@ opcional y respaldo cloud.
 - Navegación: Inicio · Metas · Sui · Hábitos · Agenda.
 - Chat local con TTL de 48 horas y protocolo de crisis por mercado/idioma.
 - Cuenta por correo, Google y Apple iOS; verificación antes de sync.
-- Repositorio local-first v7, outbox, tombstones y fusión explícita.
+- Repositorio local-first v8, conflictos deterministas, outbox, tombstones y fusión explícita.
 - Google Calendar opcional, sólo lectura, OAuth Code + PKCE.
 - ES/EN, claro/oscuro, escala tipográfica y diseño móvil accesible.
 

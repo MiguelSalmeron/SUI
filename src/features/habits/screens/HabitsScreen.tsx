@@ -4,9 +4,12 @@ import { Ionicons } from '@/shared/ui/Ionicons';
 import { SCREEN_CONTENT_BOTTOM_PADDING, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { ScreenIntro } from '@/shared/ui/ScreenIntro';
 import { SuiDoodle } from '@/shared/ui/SuiDoodle';
-import { useHomeStore } from '@/shared/domain/productivity/useHomeStore';
-import { useCelebrationStore } from '@/shared/domain/productivity/useCelebrationStore';
-import { isHabitDueToday, localDateKey } from '@/shared/domain/productivity/homeStorage';
+import {
+  isHabitDueToday,
+  localDateKey,
+  useCelebrationStore,
+  useProductivityStore,
+} from '@/shared/domain/productivity/public';
 import type { Habit } from '@/shared/types/models';
 import { HabitFormModal } from '../components/HabitFormModal';
 import { useI18n } from '@/shared/i18n/i18n';
@@ -25,12 +28,12 @@ export const HabitsScreen = () => {
   const route = useRoute<RouteProp<MainTabParamList, 'Habits'>>();
   const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList, 'Habits'>>();
 
-  const habits = useHomeStore((s) => s.habits);
-  const goals = useHomeStore((s) => s.goals);
-  const addHabit = useHomeStore((s) => s.addHabit);
-  const toggleHabit = useHomeStore((s) => s.toggleHabit);
-  const freezeStreak = useHomeStore((s) => s.freezeStreak);
-  const removeHabit = useHomeStore((s) => s.removeHabit);
+  const habits = useProductivityStore((s) => s.habits);
+  const goals = useProductivityStore((s) => s.goals);
+  const addHabit = useProductivityStore((s) => s.addHabit);
+  const toggleHabit = useProductivityStore((s) => s.toggleHabit);
+  const freezeStreak = useProductivityStore((s) => s.freezeStreak);
+  const removeHabit = useProductivityStore((s) => s.removeHabit);
 
   const [filter, setFilter] = useState<Filter>('today');
   const [formVisible, setFormVisible] = useState(false);
