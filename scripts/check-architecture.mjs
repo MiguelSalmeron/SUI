@@ -6,7 +6,9 @@ import ts from 'typescript';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const configuredSourceRoot = process.env.SUI_ARCHITECTURE_SOURCE_ROOT?.trim();
-const sourceRoot = configuredSourceRoot ? resolve(root, configuredSourceRoot) : join(root, 'src');
+const sourceRoot = configuredSourceRoot
+  ? resolve(root, configuredSourceRoot)
+  : join(root, 'apps', 'mobile', 'src');
 const supportedExtensions = ['.ts', '.tsx'];
 const legacyRoots = new Set([
   'components',
@@ -144,7 +146,8 @@ const featureGraph = new Map(features.map((feature) => [feature, new Set()]));
 
 for (const feature of features) {
   const publicApi = join(sourceRoot, 'features', feature, 'public.ts');
-  if (!existsSync(publicApi)) failures.push(`src/features/${feature}: missing public.ts`);
+  if (!existsSync(publicApi))
+    failures.push(`apps/mobile/src/features/${feature}: missing public.ts`);
 }
 
 for (const file of files) {

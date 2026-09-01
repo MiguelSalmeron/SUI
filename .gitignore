@@ -1,8 +1,11 @@
 node_modules/
-functions/node_modules/
-functions/lib/
+.turbo/
+apps/functions/node_modules/
+apps/functions/lib/
+packages/contracts/dist/
 .expo/
-android/
+apps/mobile/.expo/
+apps/mobile/android/
 dist/
 web-build/
 coverage/
@@ -50,9 +53,10 @@ CLAUDE.md
 CLAUDE.local.md
 
 # --- Hardening secrets / cache (auditoría prioridad 2, 4) ---
-functions/.env
-functions/.env.*
-!functions/.env.example
+apps/functions/.env
+apps/functions/.env.*
+!apps/functions/.env.example
+!apps/functions/.env.xsui-nica
 *.azure-backup-*
 .firebase/
 google-service-account.json

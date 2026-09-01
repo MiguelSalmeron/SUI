@@ -1,6 +1,6 @@
-# ADR-0003: umbral para adoptar monorepo
+# ADR-0003: adoptar monorepo al cumplirse el umbral
 
-- Estado: propuesta diferida
+- Estado: aceptado
 - Fecha: 2026-08-26
 
 ## Contexto
@@ -9,9 +9,15 @@ El repositorio contiene aplicación móvil y Cloud Functions, pero todavía comp
 
 ## Decisión
 
-Mantener la aplicación móvil en la raíz y Functions en su carpeta actual.
+El contrato sync v9 compartido cumple el umbral de contratos versionados. Adoptar npm workspaces con Turborepo:
 
-Reevaluar un workspace con `apps/mobile`, `apps/functions` y paquetes compartidos cuando ocurra cualquiera de estos casos:
+```text
+apps/mobile
+apps/functions
+packages/contracts
+```
+
+Los criterios que activaron la decisión fueron:
 
 - Aparezca una tercera aplicación desplegable.
 - Existan contratos compartidos versionados entre cliente y backend.
@@ -20,6 +26,7 @@ Reevaluar un workspace con `apps/mobile`, `apps/functions` y paquetes compartido
 
 ## Consecuencias
 
-- Menor riesgo operativo inmediato.
-- Posible duplicación temporal de dependencias.
-- La estructura interna ya permite una migración posterior por etapas.
+- Cliente y backend comparten DTOs y parsers runtime.
+- Un lockfile raíz instala todos los workspaces.
+- Turborepo ordena build, typecheck y tests según dependencias.
+- Expo, EAS y Firebase conservan ciclos de despliegue independientes bajo `apps`.

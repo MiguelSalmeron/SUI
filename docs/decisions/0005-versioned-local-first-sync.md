@@ -47,3 +47,11 @@ Lectura y escritura local permanecen inmediatas sin red. Estado observable:
 `local`, `pending`, `syncing`, `synced`, `offline`, `error`. Firestore Rules niega
 escritura productiva cliente; owner verificado conserva lectura. Cambios futuros de
 esquema requieren migración idempotente y prueba de conservación.
+
+Migraciones locales son saltos puros consecutivos (`v6→v7→v8→v9`). Fixtures
+históricos prueban cada salto, cadena completa, fallback ante corrupción e
+idempotencia actual.
+
+Backend recibe `SyncProvider`. Engine conserva reglas CAS, epoch y paginación;
+adapter Firestore traduce transacciones y timestamps. Provider en memoria ejecuta
+suite principal sin emulador; Emulator Suite valida integración Firestore.

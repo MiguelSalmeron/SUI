@@ -15,7 +15,7 @@ eas init
 2. Activar Auth: Anonymous, Email/Password, Google; Apple para iOS.
 3. Registrar apps web, Android `com.sui.app` e iOS `com.sui.app`.
 4. Crear Firestore.
-5. Copiar variables públicas de `.env.example` al ambiente EAS correspondiente.
+5. Copiar variables públicas de `apps/mobile/.env.example` al ambiente EAS correspondiente.
 6. Publicar plantillas de verificación y recuperación ES/EN.
 
 Perfil EAS `staging` consume ambiente EAS `preview`; `EXPO_PUBLIC_APP_ENV`
@@ -25,7 +25,7 @@ Anonymous permite Chat técnico; `firestore.rules` niega productividad anónima.
 
 ## Backend
 
-Configurar parámetros desde `functions/.env.example`. Guardar secretos:
+Configurar parámetros desde `apps/functions/.env.example`. Guardar secretos:
 
 ```bash
 firebase functions:secrets:set AZURE_OPENAI_API_KEY

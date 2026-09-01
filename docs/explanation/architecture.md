@@ -91,6 +91,10 @@ administra AsyncStorage y migraciones; `sync` coordina endpoint batch y cursores
 
 Las pantallas de metas, hábitos, calendario y resumen consumen este dominio sin depender entre sí.
 
+Eventos tipados de finalización coordinan efectos transitorios — celebración,
+haptics y telemetry — mediante bus central. Zustand permanece fuente autoritativa
+de metas, hábitos, rachas y XP; eventos nunca mutan ese estado.
+
 ## Flujo local-first
 
 ```mermaid
@@ -130,7 +134,7 @@ El cliente detecta crisis antes del envío, obtiene un Firebase ID token y abre 
 El backend separa:
 
 ```text
-functions/src/
+apps/functions/src/
 ├── index.ts               # Wiring HTTP
 ├── account/               # Eliminación recursiva y Auth
 ├── connections/           # OAuth PKCE y Calendar

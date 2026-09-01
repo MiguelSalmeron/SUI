@@ -3,4 +3,9 @@ coverage/
 dist/
 functions/lib/
 node_modules/
+.turbo/
+.vscode/
+apps/mobile/android/
+apps/functions/lib/
+packages/contracts/dist/
 package-lock.json
