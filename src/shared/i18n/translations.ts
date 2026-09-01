@@ -87,6 +87,9 @@ export const translations = {
     'settings.export': 'Exportar mis datos',
     'settings.exportDescription': 'Comparte una copia JSON de tus datos locales',
     'settings.logout': 'Cerrar sesión',
+    'settings.logoutConfirm':
+      'Cerrarás sesión en este dispositivo. Los datos de tu cuenta se conservan en la nube.',
+    'settings.logoutError': 'No se pudo cerrar sesión. Inténtalo de nuevo.',
     'settings.delete': 'Eliminar cuenta y datos',
     'settings.deleteConfirm': 'Esta acción elimina cuenta, datos cloud y copia local. No se puede deshacer.',
     'settings.deleteAction': 'Eliminar definitivamente',
@@ -421,6 +424,9 @@ export const translations = {
     'settings.export': 'Export my data',
     'settings.exportDescription': 'Share a JSON copy of local data',
     'settings.logout': 'Sign out',
+    'settings.logoutConfirm':
+      'You will sign out on this device. Your account data stays in the cloud.',
+    'settings.logoutError': 'Could not sign out. Try again.',
     'settings.delete': 'Delete account and data',
     'settings.deleteConfirm': 'This removes your account, cloud data, and local copy. It cannot be undone.',
     'settings.deleteAction': 'Delete permanently',

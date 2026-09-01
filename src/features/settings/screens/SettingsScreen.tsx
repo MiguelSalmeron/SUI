@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@/shared/ui/Ionicons';
+import { ConfirmModal } from '@/shared/ui/ConfirmModal';
 import { deleteUser, sendEmailVerification, sendPasswordResetEmail, signOut } from 'firebase/auth';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthContext, deleteRegisteredAccount } from '@/features/auth/public';
@@ -110,6 +111,9 @@ export const SettingsScreen = ({ navigation }: Props) => {
   const setPendingCloudMerge = useIntroStore((state) => state.setPendingCloudMerge);
   const resetIntro = useIntroStore((state) => state.resetIntro);
   const home = useProductivityStore();
+  const [logoutVisible, setLogoutVisible] = useState(false);
+  const [logoutBusy, setLogoutBusy] = useState(false);
+  const [logoutError, setLogoutError] = useState('');
   const passwordAccount = Boolean(
     user?.providerData.some((item) => item.providerId === 'password'),
   );
@@ -178,22 +182,24 @@ export const SettingsScreen = ({ navigation }: Props) => {
   };
 
   const performLogout = async () => {
-    await signOut(auth);
-    await clearGoogleEventsCache();
-    await home.clearState();
-    resetIntro();
-    navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
+    setLogoutError('');
+    setLogoutBusy(true);
+    try {
+      await signOut(auth);
+      await clearGoogleEventsCache();
+      await home.clearState();
+      resetIntro();
+      setLogoutVisible(false);
+      navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
+    } catch {
+      setLogoutBusy(false);
+      setLogoutError(t('settings.logoutError'));
+    }
   };
 
   const confirmLogout = () => {
-    Alert.alert(
-      t('settings.logout'),
-      cloudActive ? t('settings.cloudDataDescription') : t('settings.localDataDescription'),
-      [
-        { text: t('settings.cancel'), style: 'cancel' },
-        { text: t('settings.logout'), style: 'destructive', onPress: () => void performLogout() },
-      ],
-    );
+    setLogoutError('');
+    setLogoutVisible(true);
   };
 
   const performDelete = async () => {
@@ -257,6 +263,7 @@ export const SettingsScreen = ({ navigation }: Props) => {
   };
 
   return (
+    <>
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Section title={t('settings.appearance')}>
         <SettingsRow
@@ -366,7 +373,20 @@ export const SettingsScreen = ({ navigation }: Props) => {
           destructive
         />
       </Section>
-    </ScrollView>
+      </ScrollView>
+      <ConfirmModal
+        visible={logoutVisible}
+        title={t('settings.logout')}
+        message={t('settings.logoutConfirm')}
+        confirmLabel={t('settings.logout')}
+        cancelLabel={t('settings.cancel')}
+        destructive
+        busy={logoutBusy}
+        error={logoutError}
+        onConfirm={() => void performLogout()}
+        onCancel={() => { setLogoutVisible(false); setLogoutError(''); }}
+      />
+    </>
   );
 };
 
