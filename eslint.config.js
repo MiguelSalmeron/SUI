@@ -5,7 +5,16 @@ const globals = require('globals');
 
 module.exports = defineConfig([
   {
-    ignores: ['android/**', 'coverage/**', 'dist/**', 'functions/lib/**', 'node_modules/**'],
+    ignores: [
+      'apps/mobile/android/**',
+      'coverage/**',
+      'dist/**',
+      'apps/**/dist/**',
+      'apps/functions/lib/**',
+      'packages/contracts/dist/**',
+      'node_modules/**',
+      'functions/**',
+    ],
   },
   expoConfig,
   {

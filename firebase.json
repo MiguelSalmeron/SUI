@@ -1,11 +1,8 @@
 {
   "hosting": {
     "site": "xsui",
-    "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*"
-    ],
+    "public": "apps/mobile/dist",
+    "ignore": ["firebase.json", "**/.*"],
     "headers": [
       {
         "source": "**/*.@(ttf|otf)",
@@ -46,19 +43,11 @@
   },
   "functions": [
     {
-      "source": "functions",
+      "source": "apps/functions",
       "codebase": "default",
       "runtime": "nodejs20",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ],
-      "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run build"
-      ]
+      "ignore": ["node_modules", ".git", "firebase-debug.log", "firebase-debug.*.log", "*.local"],
+      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
     }
   ]
 }

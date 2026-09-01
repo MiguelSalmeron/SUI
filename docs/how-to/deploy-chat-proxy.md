@@ -28,7 +28,7 @@ Pega la clave únicamente cuando Firebase CLI la solicite. No la guardes en `.en
 
 ## 3. Configurar parámetros
 
-Crea un archivo local de entorno de Functions, usando `functions/.env.example` como plantilla:
+Crea un archivo local de entorno de Functions, usando `apps/functions/.env.example` como plantilla:
 
 ```env
 AZURE_MODEL=gpt-5-mini
@@ -41,7 +41,7 @@ CHAT_MIN_INSTANCES=0
 
 ```bash
 npm install
-npm --prefix functions install
+npm install
 npm run functions:build
 ```
 

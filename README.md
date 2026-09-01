@@ -1,6 +1,6 @@
 <div align="center">
 
-![SUI Brand](assets/brand/sui-isologo.svg)
+![SUI Brand](apps/mobile/assets/brand/sui-isologo.svg)
 
 # SUI
 
@@ -55,6 +55,7 @@ SUI está diseñada con una arquitectura **mobile-first** y un modelo de datos *
 ### Bloques principales de la app
 
 #### 1. Datos híbridos
+
 SUI guarda datos en el dispositivo y los sincroniza con la nube cuando el usuario lo decide.
 
 Esto significa:
@@ -64,6 +65,7 @@ Esto significa:
 - el usuario conserva control sobre sus datos.
 
 #### 2. Productividad
+
 SUI separa con claridad:
 
 - **Metas**, que son resultados finitos,
@@ -82,6 +84,7 @@ Además, ofrece un circuito de **progreso** con:
 La gamificación está pensada para reconocer avance, **no para castigar**.
 
 #### 3. Acompañamiento conversacional
+
 SUI incluye un chat orientativo:
 
 - respuestas breves,
@@ -92,6 +95,7 @@ SUI incluye un chat orientativo:
 El chat **no reemplaza atención profesional ni servicio de emergencia**, pero sirve como acompañamiento de uso general.
 
 #### 4. Sincronización
+
 Cuando el usuario lo activa, SUI sincroniza datos con la nube mediante:
 
 - outbox local,
@@ -101,6 +105,7 @@ Cuando el usuario lo activa, SUI sincroniza datos con la nube mediante:
 - estado autoritativo del servidor.
 
 #### 5. Seguridad y operación
+
 El backend y la app están pensados para:
 
 - authentication,
@@ -166,15 +171,19 @@ SUI combina un stack moderno de apps móviles con servicios cloud para sincroniz
 ## Características
 
 ### Productividad real sin ruido
+
 SUI está pensada para mostrar siguiente acción y carga del día sin saturar.
 
 ### Metas y hábitos separados
+
 No es lo mismo una meta finita que un hábito recurrente. SUI mantiene ambos dominios con claridad.
 
 ### Agenda unificada
+
 Puedes ver metas, hábitos y eventos externos en una sola vista de calendario.
 
 ### Chat con límites claros
+
 Acompañamiento conversacional breve, con:
 
 - streaming en tiempo real,
@@ -182,9 +191,11 @@ Acompañamiento conversacional breve, con:
 - protocolo de crisis por país o idioma.
 
 ### Conexiones externas opcionales
+
 Google Calendar es un ejemplo de integración pensada como complemento, no como requisito.
 
 ### Progreso visible
+
 SUI muestra:
 
 - nivel y XP,
@@ -194,9 +205,11 @@ SUI muestra:
 - reporte nocturno con IA.
 
 ### Modelo híbrido de datos
+
 Los datos viven tanto en el dispositivo como en la nube. El usuario controla cuándo sincronizar.
 
 ### Fusión de datos
+
 Cuando se conecta una cuenta, SUI permite:
 
 - combinar datos locales y de la cuenta,
@@ -206,6 +219,7 @@ Cuando se conecta una cuenta, SUI permite:
 Nada se elimina automáticamente.
 
 ### Privacidad y seguridad
+
 SUI aplica:
 
 - autenticación por usuario,
@@ -220,7 +234,7 @@ SUI aplica:
 
 <div align="center">
 
-> *[Insertar aquí captura real de la app: inicio, metas, hábitos, agenda o chat]*
+> _[Insertar aquí captura real de la app: inicio, metas, hábitos, agenda o chat]_
 
 </div>
 

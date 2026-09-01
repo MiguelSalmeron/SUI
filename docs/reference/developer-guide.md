@@ -40,7 +40,8 @@
 - Composición global y navegación: `src/application`.
 - Código específico de producto: `src/features/<feature>`.
 - Código usado por varias funcionalidades: `src/shared`.
-- Código exclusivo del backend: `functions/src`.
+- Código exclusivo del backend: `apps/functions/src`.
+- Contratos wire compartidos: `packages/contracts/src`.
 
 ### Imports
 
@@ -92,7 +93,7 @@ Consulta [API, persistencia y tema](api-and-theme.md) para claves y estructuras.
 
 ## Cloud Functions
 
-`functions/src/index.ts` registra Chat, sync productividad, conexiones Calendar y eliminación de cuenta. App Check inicia en monitor; producción migra a enforcement tras verificar clientes.
+`apps/functions/src/index.ts` registra Chat, sync productividad, conexiones Calendar y eliminación de cuenta. App Check inicia en monitor; producción migra a enforcement tras verificar clientes.
 
 Cliente y CI usan Node 22. Functions conserva runtime Node 20; cambiar runtime de
 deploy queda fuera de este hardening.

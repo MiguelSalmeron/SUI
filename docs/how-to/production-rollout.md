@@ -21,7 +21,7 @@ eas env:create --environment production
 Perfil `staging` de `eas.json` usa ambiente EAS `preview`; aplicación recibe
 `EXPO_PUBLIC_APP_ENV=staging`.
 
-Copiar variables descritas en `.env.example`. Para producción, `npm run check:production` exige Firebase, OAuth, URL de conexiones, legales HTTPS, mercado y DSN Sentry.
+Copiar variables descritas en `apps/mobile/.env.example`. Para producción, `npm run check:production` exige Firebase, OAuth, URL de conexiones, legales HTTPS, mercado y DSN Sentry.
 
 ## 2. Configurar identidad
 
@@ -46,7 +46,7 @@ Desplegar y validar Function v9; después reglas que bloquean escritura directa 
 índices. Sólo entonces distribuir cliente v9 en staging. No desplegar cliente v9
 sin endpoint configurado mediante `EXPO_PUBLIC_SYNC_API_URL`.
 
-Configurar secretos y allowlists de `functions/.env.example`. Calendar requiere OAuth web secret sólo en backend. `ALLOWED_ORIGINS` debe enumerar dominios web reales.
+Configurar secretos y allowlists de `apps/functions/.env.example`. Calendar requiere OAuth web secret sólo en backend. `ALLOWED_ORIGINS` debe enumerar dominios web reales.
 
 Ejecutar Emulator Suite antes de cada cambio de reglas. Casos mínimos: propietario, usuario cruzado, invitado, campos inválidos y límites.
 

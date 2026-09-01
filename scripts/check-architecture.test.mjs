@@ -31,7 +31,11 @@ const runFixture = async (overrides, expectedMessage) => {
     });
     if (expectedMessage) {
       assert.notEqual(result.status, 0);
-      assert.match(result.stderr, expectedMessage);
+      assert.match(
+        `${result.stderr}${result.stdout}`,
+        expectedMessage,
+        JSON.stringify({ status: result.status, signal: result.signal, error: result.error }),
+      );
     } else {
       assert.equal(result.status, 0, result.stderr);
     }

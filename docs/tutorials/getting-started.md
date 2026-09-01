@@ -8,13 +8,12 @@ Este tutorial deja Sui ejecutándose localmente y explica dónde modificar códi
 git clone https://github.com/MiguelSalmeron/SUI.git
 cd SUI
 npm install
-npm --prefix functions install
 ```
 
 ## 2. Configurar entorno móvil
 
 ```bash
-cp .env.example .env
+cp apps/mobile/.env.example apps/mobile/.env
 ```
 
 Completa las variables públicas de Firebase. Para probar el chat también necesitas `EXPO_PUBLIC_CHAT_PROXY_URL`.
@@ -67,10 +66,11 @@ Expo Go no reproduce todas las capacidades nativas. Para notificaciones, splash 
 ## 7. Localizar código
 
 ```text
-src/application         bootstrap y navegación
-src/features            funcionalidades de producto
-src/shared              UI, infraestructura y dominio compartido
-functions/src           backend Firebase
+apps/mobile/src/application   bootstrap y navegación
+apps/mobile/src/features      funcionalidades de producto
+apps/mobile/src/shared        UI, infraestructura y dominio compartido
+apps/functions/src            backend Firebase
+packages/contracts/src        contratos cliente/backend
 docs                    documentación
 ```
 
@@ -80,7 +80,7 @@ Ejemplos:
 - Cambio de chat: `src/features/chat`.
 - Regla de XP o persistencia: `src/shared/domain/productivity`.
 - Componente reutilizable: `src/shared/ui`.
-- Proxy de IA: `functions/src/chat`.
+- Proxy de IA: `apps/functions/src/chat`.
 
 ## 8. Realizar primer cambio seguro
 
