@@ -17,6 +17,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  TextInput,
 } from 'react-native';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { ChatMessage } from '../components/ChatMessage';
@@ -59,11 +60,22 @@ export const ChatScreen = ({ navigation }: Props) => {
 
   const [crisisConfig, setCrisisConfig] = useState<CrisisConfig>(DEFAULT_CRISIS_CONFIG);
   const [overlayVisible, setOverlayVisible] = useState(false);
+  const [draft, setDraft] = useState('');
 
   const listRef = useRef<FlatList<ChatMessageType>>(null);
   const controllerRef = useRef<StreamController | null>(null);
+  const inputRef = useRef<TextInput>(null);
 
   const busy = streamingId !== null;
+  const suggestions = useMemo(
+    () => [
+      t('chat.suggestionPrioritize'),
+      t('chat.suggestionSplitGoal'),
+      t('chat.suggestionResumeHabit'),
+      t('chat.suggestionFirstStep'),
+    ],
+    [t],
+  );
 
   const confirmClear = useCallback(() => {
     Alert.alert(t('chat.clearTitle'), t('chat.clearBody'), [
@@ -171,6 +183,21 @@ export const ChatScreen = ({ navigation }: Props) => {
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>{t('chat.hello')}</Text>
             <Text style={styles.emptyText}>{t('chat.empty')}</Text>
+            <View style={styles.suggestions}>
+              {suggestions.map((suggestion) => (
+                <TouchableOpacity
+                  key={suggestion}
+                  style={styles.suggestion}
+                  onPress={() => {
+                    setDraft(suggestion);
+                    requestAnimationFrame(() => inputRef.current?.focus());
+                  }}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.suggestionText}>{suggestion}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
             <Text style={styles.emptyNote}>{t('chat.localTtl')}</Text>
           </View>
         ) : (
@@ -185,7 +212,13 @@ export const ChatScreen = ({ navigation }: Props) => {
           />
         )}
 
-        <ChatInput busy={busy} onSend={handleSend} />
+        <ChatInput
+          busy={busy}
+          text={draft}
+          onChangeText={setDraft}
+          onSend={handleSend}
+          inputRef={inputRef}
+        />
       </KeyboardAvoidingView>
 
       <EmergencyOverlay
@@ -241,4 +274,21 @@ const createStyles = ({ colors, type }: AppTheme) =>
       textAlign: 'center',
       opacity: 0.8,
     },
+    suggestions: {
+      width: '100%',
+      maxWidth: 480,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: SPACING.sm,
+      marginBottom: SPACING.lg,
+    },
+    suggestion: {
+      minHeight: 44,
+      justifyContent: 'center',
+      paddingHorizontal: SPACING.md,
+      borderRadius: 22,
+      backgroundColor: colors.primaryContainer,
+    },
+    suggestionText: { ...type.labelMd, color: colors.onPrimaryContainer },
   });

@@ -1,7 +1,6 @@
 /** @type {import('jest').Config} */
 module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
+  preset: '@react-native/jest-preset',
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
   moduleNameMapper: {
@@ -11,7 +10,13 @@ module.exports = {
     '^expo-haptics$': '<rootDir>/__mocks__/expo-haptics.js',
   },
   transform: {
-    '^.+\\.tsx?$': [
+    '^.+\\.(js|jsx|tsx)$': [
+      'babel-jest',
+      {
+        presets: ['babel-preset-expo'],
+      },
+    ],
+    '^.+\\.ts$': [
       'ts-jest',
       {
         tsconfig: {
@@ -21,4 +26,7 @@ module.exports = {
       },
     ],
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo|@expo)/)',
+  ],
 };

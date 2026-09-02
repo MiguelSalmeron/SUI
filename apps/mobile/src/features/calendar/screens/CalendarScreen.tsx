@@ -1,7 +1,12 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@/shared/ui/Ionicons';
-import { SCREEN_CONTENT_BOTTOM_PADDING, SPACING, useAppTheme } from '@/shared/theme/theme';
+import {
+  SCREEN_CONTENT_BOTTOM_PADDING,
+  SCREEN_MAX_CONTENT_WIDTH,
+  SPACING,
+  useAppTheme,
+} from '@/shared/theme/theme';
 import { ScreenIntro } from '@/shared/ui/ScreenIntro';
 import { SuiDoodle } from '@/shared/ui/SuiDoodle';
 import { PromptModal } from '@/shared/ui/PromptModal';
@@ -12,15 +17,23 @@ import {
 } from '@/shared/domain/productivity/public';
 import type { GoalGravity } from '@/shared/types/models';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
-import { useNavigation } from '@react-navigation/native';
-import type { RootStackNavigationProp } from '@/shared/navigation/types';
+import { useNavigation, type CompositeNavigationProp } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { MainTabParamList, RootStackParamList } from '@/shared/navigation/types';
 import { useI18n } from '@/shared/i18n/i18n';
 
 export const CalendarScreen = () => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const navigation = useNavigation<RootStackNavigationProp>();
+  const navigation =
+    useNavigation<
+      CompositeNavigationProp<
+        BottomTabNavigationProp<MainTabParamList, 'Calendar'>,
+        NativeStackNavigationProp<RootStackParamList>
+      >
+    >();
   const { locale, t, formatDate } = useI18n();
   const daysHeader =
     locale === 'es' ? ['L', 'M', 'X', 'J', 'V', 'S', 'D'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -94,205 +107,219 @@ export const CalendarScreen = () => {
     selectedDayInfo.goals.length +
     selectedDayInfo.habits.length +
     selectedDayInfo.googleEvents.length;
+  const agendaItems = useMemo(
+    () => [
+      ...selectedDayInfo.googleEvents.map((item) => ({ kind: 'google' as const, item })),
+      ...selectedDayInfo.goals.map((item) => ({ kind: 'goal' as const, item })),
+      ...selectedDayInfo.habits.map((item) => ({ kind: 'habit' as const, item })),
+    ],
+    [selectedDayInfo],
+  );
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <ScreenIntro title={t('calendar.title')} subtitle={t('calendar.subtitle')} />
+    <View style={styles.screen}>
+      <FlatList
+        data={agendaItems}
+        keyExtractor={({ kind, item }) => `${kind}-${item.id}`}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <>
+            <ScreenIntro title={t('calendar.title')} subtitle={t('calendar.subtitle')} />
 
-      {!calendarConnected ? (
-        <TouchableOpacity
-          style={styles.connectionCta}
-          onPress={() => navigation.navigate('Connections')}
-          accessibilityRole="button"
-        >
-          <View style={styles.connectionIcon}>
-            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-          </View>
-          <View style={styles.connectionCopy}>
-            <Text style={styles.connectionTitle}>{t('calendar.connectTitle')}</Text>
-            <Text style={styles.connectionStatus}>{t('calendar.connectBody')}</Text>
-          </View>
-          <Text style={styles.connectionAction}>{t('calendar.connectAction')}</Text>
-        </TouchableOpacity>
-      ) : null}
-
-      <View style={styles.calendarCard}>
-        <View style={styles.monthHeader}>
-          <TouchableOpacity
-            style={styles.monthButton}
-            onPress={() => moveMonth(-1)}
-            accessibilityRole="button"
-            accessibilityLabel={t('calendar.previousMonth')}
-          >
-            <Ionicons name="chevron-back" size={20} color={colors.onSurfaceVariant} />
-          </TouchableOpacity>
-          <View style={styles.monthCopy}>
-            <Text style={styles.monthTitle}>
-              {formatDate(visibleMonth, { month: 'long', year: 'numeric' })}
-            </Text>
-            {visibleMonth.getMonth() !== new Date().getMonth() ||
-            visibleMonth.getFullYear() !== new Date().getFullYear() ? (
+            {!calendarConnected ? (
               <TouchableOpacity
-                onPress={() => {
-                  const today = new Date();
-                  setVisibleMonth(new Date(today.getFullYear(), today.getMonth(), 1));
-                  setSelectedDate(todayKey);
-                }}
+                style={styles.connectionCta}
+                onPress={() => navigation.navigate('Connections')}
+                accessibilityRole="button"
               >
-                <Text style={styles.todayLink}>{t('calendar.backToday')}</Text>
+                <View style={styles.connectionIcon}>
+                  <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                </View>
+                <View style={styles.connectionCopy}>
+                  <Text style={styles.connectionTitle}>{t('calendar.connectTitle')}</Text>
+                  <Text style={styles.connectionStatus}>{t('calendar.connectBody')}</Text>
+                </View>
+                <Text style={styles.connectionAction}>{t('calendar.connectAction')}</Text>
               </TouchableOpacity>
             ) : null}
-          </View>
-          <TouchableOpacity
-            style={styles.monthButton}
-            onPress={() => moveMonth(1)}
-            accessibilityRole="button"
-            accessibilityLabel={t('calendar.nextMonth')}
-          >
-            <Ionicons name="chevron-forward" size={20} color={colors.onSurfaceVariant} />
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.daysHeader}>
-          {daysHeader.map((day, index) => (
-            <Text key={`${day}-${index}`} style={styles.dayHeaderCell}>
-              {day}
-            </Text>
-          ))}
-        </View>
-
-        <View style={styles.grid}>
-          {calendarDays.map((day) => {
-            const selected = day.key === selectedDate;
-            return (
-              <TouchableOpacity
-                key={day.key}
-                style={[styles.dayCell, selected && styles.dayCellSelected]}
-                onPress={() => selectDay(day.date, day.key)}
-                activeOpacity={0.72}
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                accessibilityLabel={formatDate(day.date, {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                })}
-              >
-                <Text
-                  style={[
-                    styles.dayNumber,
-                    !day.inMonth && styles.dayNumberOutside,
-                    day.isToday && !selected && styles.dayNumberToday,
-                    selected && styles.dayNumberSelected,
-                  ]}
+            <View style={styles.calendarCard}>
+              <View style={styles.monthHeader}>
+                <TouchableOpacity
+                  style={styles.monthButton}
+                  onPress={() => moveMonth(-1)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('calendar.previousMonth')}
                 >
-                  {day.number}
-                </Text>
-                <View style={styles.indicatorRow}>
-                  {day.hasGoogleEvent ? (
-                    <View
-                      style={[
-                        styles.indicator,
-                        { backgroundColor: selected ? colors.onPrimary : colors.primary },
-                      ]}
-                    />
-                  ) : null}
-                  {day.hasGoal ? (
-                    <View
-                      style={[
-                        styles.indicator,
-                        {
-                          backgroundColor: selected
-                            ? colors.onPrimary
-                            : day.hasImportantGoal
-                              ? colors.flame
-                              : colors.secondary,
-                        },
-                      ]}
-                    />
+                  <Ionicons name="chevron-back" size={20} color={colors.onSurfaceVariant} />
+                </TouchableOpacity>
+                <View style={styles.monthCopy}>
+                  <Text style={styles.monthTitle}>
+                    {formatDate(visibleMonth, { month: 'long', year: 'numeric' })}
+                  </Text>
+                  {visibleMonth.getMonth() !== new Date().getMonth() ||
+                  visibleMonth.getFullYear() !== new Date().getFullYear() ? (
+                    <TouchableOpacity
+                      style={styles.todayButton}
+                      onPress={() => {
+                        const today = new Date();
+                        setVisibleMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+                        setSelectedDate(todayKey);
+                      }}
+                    >
+                      <Text style={styles.todayLink}>{t('calendar.backToday')}</Text>
+                    </TouchableOpacity>
                   ) : null}
                 </View>
+                <TouchableOpacity
+                  style={styles.monthButton}
+                  onPress={() => moveMonth(1)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('calendar.nextMonth')}
+                >
+                  <Ionicons name="chevron-forward" size={20} color={colors.onSurfaceVariant} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.daysHeader}>
+                {daysHeader.map((day, index) => (
+                  <Text key={`${day}-${index}`} style={styles.dayHeaderCell}>
+                    {day}
+                  </Text>
+                ))}
+              </View>
+
+              <View style={styles.grid}>
+                {calendarDays.map((day) => {
+                  const selected = day.key === selectedDate;
+                  return (
+                    <TouchableOpacity
+                      key={day.key}
+                      style={[styles.dayCell, selected && styles.dayCellSelected]}
+                      onPress={() => selectDay(day.date, day.key)}
+                      activeOpacity={0.72}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={formatDate(day.date, {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'long',
+                      })}
+                    >
+                      <Text
+                        style={[
+                          styles.dayNumber,
+                          !day.inMonth && styles.dayNumberOutside,
+                          day.isToday && !selected && styles.dayNumberToday,
+                          selected && styles.dayNumberSelected,
+                        ]}
+                      >
+                        {day.number}
+                      </Text>
+                      <View style={styles.indicatorRow}>
+                        {day.hasGoogleEvent ? (
+                          <View
+                            style={[
+                              styles.indicator,
+                              { backgroundColor: selected ? colors.onPrimary : colors.primary },
+                            ]}
+                          />
+                        ) : null}
+                        {day.hasGoal ? (
+                          <View
+                            style={[
+                              styles.indicator,
+                              {
+                                backgroundColor: selected
+                                  ? colors.onPrimary
+                                  : day.hasImportantGoal
+                                    ? colors.flame
+                                    : colors.secondary,
+                              },
+                            ]}
+                          />
+                        ) : null}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.detailHeader}>
+              <View style={styles.detailHeaderCopy}>
+                <Text style={styles.detailTitle}>
+                  {formatDate(new Date(`${selectedDate}T00:00:00`), {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                  })}
+                </Text>
+                <Text style={styles.detailMeta}>
+                  {totalForSelectedDay}{' '}
+                  {totalForSelectedDay === 1 ? t('calendar.activity') : t('calendar.activities')}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setAddGoalModalVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t('calendar.addDate')}
+              >
+                <Ionicons name="add" size={20} color={colors.onPrimary} />
               </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
-      <View style={styles.detailHeader}>
-        <View style={styles.detailHeaderCopy}>
-          <Text style={styles.detailTitle}>
-            {formatDate(new Date(`${selectedDate}T00:00:00`), {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-            })}
-          </Text>
-          <Text style={styles.detailMeta}>
-            {totalForSelectedDay}{' '}
-            {totalForSelectedDay === 1 ? t('calendar.activity') : t('calendar.activities')}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setAddGoalModalVisible(true)}
-          accessibilityRole="button"
-          accessibilityLabel={t('calendar.addDate')}
-        >
-          <Ionicons name="add" size={20} color={colors.onPrimary} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.dayList}>
-        {totalForSelectedDay === 0 ? (
+            </View>
+          </>
+        }
+        ListEmptyComponent={
           <View style={styles.emptyDay}>
             <SuiDoodle variant="calendar" size={58} color={colors.secondary} />
             <Text style={styles.emptyText}>{t('calendar.freeDay')}</Text>
           </View>
-        ) : (
-          <>
-            {selectedDayInfo.googleEvents.map((event) => (
+        }
+        renderItem={({ item: entry }) => {
+          if (entry.kind === 'google') {
+            return (
               <DayRow
-                key={`google-${event.id}`}
                 icon="calendar-outline"
-                title={event.title || t('calendar.untitledEvent')}
+                title={entry.item.title || t('calendar.untitledEvent')}
                 meta={
-                  event.allDay
+                  entry.item.allDay
                     ? `${t('calendar.allDay')} · Google Calendar`
-                    : `${event.time ?? ''} · Google Calendar`
+                    : `${entry.item.time ?? ''} · Google Calendar`
                 }
                 color={colors.primary}
                 backgroundColor={colors.primaryContainer}
               />
-            ))}
-            {selectedDayInfo.goals.map((goal) => (
+            );
+          }
+          if (entry.kind === 'goal') {
+            return (
               <DayRow
-                key={goal.id}
                 icon="flag-outline"
-                title={goal.title}
+                title={entry.item.title}
                 meta={t('calendar.goalDeadline')}
-                color={goal.gravity === 'high' ? colors.flame : colors.primary}
+                color={entry.item.gravity === 'high' ? colors.flame : colors.primary}
                 backgroundColor={
-                  goal.gravity === 'high' ? colors.flameContainer : colors.primaryContainer
+                  entry.item.gravity === 'high' ? colors.flameContainer : colors.primaryContainer
                 }
+                onPress={() => navigation.navigate('Goals', { editId: entry.item.id })}
               />
-            ))}
-            {selectedDayInfo.habits.map((habit) => (
-              <DayRow
-                key={habit.id}
-                icon="repeat"
-                title={habit.title}
-                meta={t('calendar.habitRepeat')}
-                color={colors.secondary}
-                backgroundColor={colors.secondaryContainer}
-              />
-            ))}
-          </>
-        )}
-      </View>
+            );
+          }
+          return (
+            <DayRow
+              icon="repeat"
+              title={entry.item.title}
+              meta={t('calendar.habitRepeat')}
+              color={colors.secondary}
+              backgroundColor={colors.secondaryContainer}
+              onPress={() => navigation.navigate('Habits', { editId: entry.item.id })}
+            />
+          );
+        }}
+      />
 
       <PromptModal
         visible={addGoalModalVisible}
@@ -309,7 +336,7 @@ export const CalendarScreen = () => {
         }}
         onCancel={() => setAddGoalModalVisible(false)}
       />
-    </ScrollView>
+    </View>
   );
 };
 
@@ -319,13 +346,19 @@ type DayRowProps = {
   meta: string;
   color: string;
   backgroundColor: string;
+  onPress?: () => void;
 };
 
-const DayRow = ({ icon, title, meta, color, backgroundColor }: DayRowProps) => {
+const DayRow = ({ icon, title, meta, color, backgroundColor, onPress }: DayRowProps) => {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   return (
-    <View style={styles.dayRow}>
+    <TouchableOpacity
+      style={styles.dayRow}
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+    >
       <View style={[styles.dayRowIcon, { backgroundColor }]}>
         <Ionicons name={icon} size={17} color={color} />
       </View>
@@ -335,15 +368,19 @@ const DayRow = ({ icon, title, meta, color, backgroundColor }: DayRowProps) => {
         </Text>
         <Text style={styles.dayRowMeta}>{meta}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
   const { colors, radius, type } = theme;
   return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.background },
     content: {
-      paddingHorizontal: SPACING.lg,
+      width: '100%',
+      maxWidth: SCREEN_MAX_CONTENT_WIDTH,
+      alignSelf: 'center',
+      paddingHorizontal: SPACING.sm,
       paddingTop: SPACING.sm,
       paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING,
     },
@@ -416,7 +453,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       borderWidth: 1,
       borderColor: colors.outlineVariant,
       borderRadius: radius.xl,
-      padding: SPACING.md,
+      padding: SPACING.sm,
       marginTop: SPACING.sm,
       marginBottom: SPACING.xl,
     },
@@ -427,9 +464,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       marginBottom: SPACING.md,
     },
     monthButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       backgroundColor: colors.surfaceContainerLow,
       alignItems: 'center',
       justifyContent: 'center',
@@ -437,6 +474,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     monthCopy: { alignItems: 'center' },
     monthTitle: { ...type.titleMd, color: colors.onSurface, textTransform: 'capitalize' },
     todayLink: { ...type.labelSm, color: colors.primary, marginTop: 1 },
+    todayButton: { minHeight: 44, justifyContent: 'center' },
     daysHeader: { flexDirection: 'row', marginBottom: SPACING.xs },
     dayHeaderCell: {
       width: '14.285%',
@@ -448,6 +486,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     dayCell: {
       width: '14.285%',
       aspectRatio: 0.9,
+      minHeight: 40,
       borderRadius: radius.md,
       alignItems: 'center',
       justifyContent: 'center',
@@ -470,14 +509,13 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     detailTitle: { ...type.titleLg, color: colors.onSurface, textTransform: 'capitalize' },
     detailMeta: { ...type.bodySm, color: colors.onSurfaceVariant, marginTop: 1 },
     addButton: {
-      width: 42,
-      height: 42,
-      borderRadius: 21,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    dayList: { gap: SPACING.sm },
     emptyDay: {
       minHeight: 108,
       borderRadius: radius.lg,
@@ -496,6 +534,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       borderColor: colors.outlineVariant,
       borderRadius: radius.lg,
       padding: SPACING.md,
+      marginBottom: SPACING.sm,
     },
     dayRowIcon: {
       width: 38,
