@@ -392,6 +392,8 @@ export const NAV_BAR_HEIGHT = 72;
 // Espacio final uniforme para listas; la barra de tabs vive fuera del scene.
 export const SCREEN_CONTENT_BOTTOM_PADDING = SPACING.xl + SPACING.lg;
 
+export const SCREEN_MAX_CONTENT_WIDTH = 560;
+
 // ──────────────────────────────────────────────────────────────────────────
 // THEME OBJECT (light/dark)
 // ──────────────────────────────────────────────────────────────────────────

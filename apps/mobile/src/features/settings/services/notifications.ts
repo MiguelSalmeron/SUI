@@ -51,17 +51,20 @@ const ensureAndroidChannel = async (): Promise<void> => {
   });
 };
 
-/**
- * Solicita permiso de notificaciones (idempotente).
- * Devuelve true si el usuario concedió el permiso.
- */
-export const requestNotificationPermission = async (): Promise<boolean> => {
-  const settings = await Notifications.getPermissionsAsync();
-  if (settings.granted) return true;
-  if (!settings.canAskAgain) return false;
+export type NotificationEnableResult = 'scheduled' | 'denied' | 'blocked' | 'error';
 
-  const request = await Notifications.requestPermissionsAsync();
-  return request.granted;
+const permissionResult = (permission: { granted: boolean; canAskAgain: boolean }) => {
+  if (permission.granted) return 'granted' as const;
+  return permission.canAskAgain ? ('denied' as const) : ('blocked' as const);
+};
+
+export const requestNotificationPermission = async (): Promise<
+  'granted' | 'denied' | 'blocked'
+> => {
+  const current = await Notifications.getPermissionsAsync();
+  const currentResult = permissionResult(current);
+  if (currentResult !== 'denied') return currentResult;
+  return permissionResult(await Notifications.requestPermissionsAsync());
 };
 
 /** Cancela el recordatorio nocturno. */
@@ -74,21 +77,9 @@ export const cancelNightlyReport = async (): Promise<void> => {
  * Solicita permisos si hace falta. No-op silencioso si se deniegan o desactivan.
  * Devuelve true si quedó programada.
  */
-export const scheduleNightlyReport = async (): Promise<boolean> => {
-  const enabled = useSettingsStore.getState().notificationsEnabled;
-  if (!enabled) {
-    await cancelNightlyReport();
-    return false;
-  }
-
-  const granted = await requestNotificationPermission();
-  if (!granted) return false;
-
+const programNightlyReport = async (): Promise<void> => {
   await ensureAndroidChannel();
-
-  // Cancelar la previa para evitar duplicados al re-programar.
   await cancelNightlyReport();
-
   await Notifications.scheduleNotificationAsync({
     identifier: NIGHTLY_REPORT_ID,
     content: {
@@ -103,8 +94,46 @@ export const scheduleNightlyReport = async (): Promise<boolean> => {
       ...(Platform.OS === 'android' ? { channelId: ANDROID_CHANNEL_ID } : {}),
     },
   });
+};
 
-  return true;
+export const scheduleNightlyReport = async (): Promise<NotificationEnableResult> => {
+  try {
+    const permission = await requestNotificationPermission();
+    if (permission !== 'granted') {
+      useSettingsStore.getState().setNotificationsEnabled(false);
+      return permission;
+    }
+    await programNightlyReport();
+    useSettingsStore.getState().setNotificationsEnabled(true);
+    return 'scheduled';
+  } catch {
+    useSettingsStore.getState().setNotificationsEnabled(false);
+    return 'error';
+  }
+};
+
+export const disableNightlyReport = async (): Promise<void> => {
+  useSettingsStore.getState().setNotificationsEnabled(false);
+  await cancelNightlyReport();
+};
+
+export const reconcileNightlyReport = async (): Promise<NotificationEnableResult | 'disabled'> => {
+  if (!useSettingsStore.getState().notificationsEnabled) {
+    await cancelNightlyReport();
+    return 'disabled';
+  }
+  try {
+    const current = permissionResult(await Notifications.getPermissionsAsync());
+    if (current !== 'granted') {
+      await disableNightlyReport();
+      return current;
+    }
+    await programNightlyReport();
+    return 'scheduled';
+  } catch {
+    useSettingsStore.getState().setNotificationsEnabled(false);
+    return 'error';
+  }
 };
 
 /** true si la respuesta a una notificación corresponde al reporte nocturno. */

@@ -1,5 +1,6 @@
 import React, { useContext, useMemo, useState } from 'react';
 import {
+  Linking,
   Alert,
   ScrollView,
   Share,
@@ -11,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import { ConfirmModal } from '@/shared/ui/ConfirmModal';
+import { SelectionModal } from '@/shared/ui/SelectionModal';
 import { deleteUser, sendEmailVerification, sendPasswordResetEmail, signOut } from 'firebase/auth';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthContext, deleteRegisteredAccount } from '@/features/auth/public';
@@ -22,6 +24,7 @@ import type { RootStackParamList } from '@/shared/navigation/types';
 import { useI18n } from '@/shared/i18n/i18n';
 import {
   SCREEN_CONTENT_BOTTOM_PADDING,
+  SCREEN_MAX_CONTENT_WIDTH,
   SPACING,
   type AppTheme,
   type ThemeMode,
@@ -33,7 +36,11 @@ import {
   type FontSize,
   type LanguagePreference,
 } from '@/shared/preferences/useSettingsStore';
-import { cancelNightlyReport, scheduleNightlyReport } from '../services/notifications';
+import {
+  disableNightlyReport,
+  scheduleNightlyReport,
+  type NotificationEnableResult,
+} from '../services/notifications';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -114,6 +121,10 @@ export const SettingsScreen = ({ navigation }: Props) => {
   const [logoutVisible, setLogoutVisible] = useState(false);
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [logoutError, setLogoutError] = useState('');
+  const [selection, setSelection] = useState<'theme' | 'font' | 'language' | null>(null);
+  const [notificationConfirmVisible, setNotificationConfirmVisible] = useState(false);
+  const [notificationBusy, setNotificationBusy] = useState(false);
+  const [notificationNotice, setNotificationNotice] = useState('');
   const passwordAccount = Boolean(
     user?.providerData.some((item) => item.providerId === 'password'),
   );
@@ -125,17 +136,27 @@ export const SettingsScreen = ({ navigation }: Props) => {
     (!passwordAccount || user.emailVerified),
   );
 
-  const cycleTheme = () => {
-    const values: ThemeMode[] = ['system', 'light', 'dark'];
-    void setMode(values[(values.indexOf(mode) + 1) % values.length]);
-  };
-  const cycleFont = () => {
-    const values: FontSize[] = ['small', 'medium', 'large'];
-    settings.setFontSize(values[(values.indexOf(settings.fontSize) + 1) % values.length]);
-  };
-  const cycleLanguage = () => {
-    const values: LanguagePreference[] = ['system', 'es', 'en'];
-    settings.setLanguage(values[(values.indexOf(settings.language) + 1) % values.length]);
+  const notificationMessage = (result: NotificationEnableResult) =>
+    result === 'scheduled'
+      ? t('settings.notificationsEnabled')
+      : result === 'blocked'
+        ? t('settings.notificationsBlocked')
+        : result === 'denied'
+          ? t('settings.notificationsDenied')
+          : t('settings.notificationsError');
+
+  const enableNotifications = async () => {
+    setNotificationBusy(true);
+    const result = await scheduleNightlyReport();
+    setNotificationBusy(false);
+    setNotificationConfirmVisible(false);
+    setNotificationNotice(notificationMessage(result));
+    if (result === 'blocked') {
+      Alert.alert(t('settings.notifications'), t('settings.notificationsBlocked'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('settings.openSettings'), onPress: () => void Linking.openSettings() },
+      ]);
+    }
   };
 
   const syncLabel =
@@ -270,20 +291,20 @@ export const SettingsScreen = ({ navigation }: Props) => {
             icon="contrast-outline"
             label={t('settings.theme')}
             value={themeLabel}
-            onPress={cycleTheme}
+            onPress={() => setSelection('theme')}
           />
           <SettingsRow
             icon="text-outline"
             label={t('settings.textSize')}
             value={fontLabel}
-            onPress={cycleFont}
+            onPress={() => setSelection('font')}
           />
           <SettingsRow
             icon="language-outline"
             label={t('settings.language')}
             description={t('settings.languageDescription')}
             value={languageLabel}
-            onPress={cycleLanguage}
+            onPress={() => setSelection('language')}
           />
         </Section>
 
@@ -296,12 +317,19 @@ export const SettingsScreen = ({ navigation }: Props) => {
               <Switch
                 value={settings.notificationsEnabled}
                 onValueChange={(enabled) => {
-                  settings.setNotificationsEnabled(enabled);
-                  void (enabled ? scheduleNightlyReport() : cancelNightlyReport());
+                  setNotificationNotice('');
+                  if (enabled) setNotificationConfirmVisible(true);
+                  else void disableNightlyReport();
                 }}
+                accessibilityLabel={t('settings.notifications')}
               />
             }
           />
+          {notificationNotice ? (
+            <Text style={styles.notice} accessibilityLiveRegion="polite">
+              {notificationNotice}
+            </Text>
+          ) : null}
           <SettingsRow
             icon="extension-puzzle-outline"
             label={t('settings.connections')}
@@ -389,6 +417,55 @@ export const SettingsScreen = ({ navigation }: Props) => {
           setLogoutError('');
         }}
       />
+      <ConfirmModal
+        visible={notificationConfirmVisible}
+        title={t('settings.notificationsConfirmTitle')}
+        message={t('settings.notificationsConfirmBody')}
+        confirmLabel={t('settings.notificationsConfirmAction')}
+        cancelLabel={t('common.cancel')}
+        busy={notificationBusy}
+        onConfirm={() => void enableNotifications()}
+        onCancel={() => setNotificationConfirmVisible(false)}
+      />
+      <SelectionModal<ThemeMode>
+        visible={selection === 'theme'}
+        title={t('settings.theme')}
+        value={mode}
+        closeLabel={t('common.close')}
+        options={[
+          { value: 'system', label: t('common.system') },
+          { value: 'light', label: t('common.light') },
+          { value: 'dark', label: t('common.dark') },
+        ]}
+        onSelect={(value) => void setMode(value)}
+        onClose={() => setSelection(null)}
+      />
+      <SelectionModal<FontSize>
+        visible={selection === 'font'}
+        title={t('settings.textSize')}
+        value={settings.fontSize}
+        closeLabel={t('common.close')}
+        options={[
+          { value: 'small', label: t('common.small') },
+          { value: 'medium', label: t('common.medium') },
+          { value: 'large', label: t('common.large') },
+        ]}
+        onSelect={settings.setFontSize}
+        onClose={() => setSelection(null)}
+      />
+      <SelectionModal<LanguagePreference>
+        visible={selection === 'language'}
+        title={t('settings.language')}
+        value={settings.language}
+        closeLabel={t('common.close')}
+        options={[
+          { value: 'system', label: t('common.system') },
+          { value: 'es', label: t('common.spanish') },
+          { value: 'en', label: t('common.english') },
+        ]}
+        onSelect={settings.setLanguage}
+        onClose={() => setSelection(null)}
+      />
     </>
   );
 };
@@ -396,8 +473,13 @@ export const SettingsScreen = ({ navigation }: Props) => {
 const createStyles = ({ colors, radius, type }: AppTheme) =>
   StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
-    content: { paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING },
-    section: { paddingHorizontal: SPACING.lg, marginTop: SPACING.lg },
+    content: { paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING, alignItems: 'center' },
+    section: {
+      width: '100%',
+      maxWidth: SCREEN_MAX_CONTENT_WIDTH,
+      paddingHorizontal: SPACING.lg,
+      marginTop: SPACING.lg,
+    },
     sectionTitle: {
       ...type.labelMd,
       color: colors.primary,
@@ -438,5 +520,11 @@ const createStyles = ({ colors, radius, type }: AppTheme) =>
       color: colors.onSurfaceVariant,
       marginHorizontal: SPACING.sm,
       textTransform: 'capitalize',
+    },
+    notice: {
+      ...type.bodySm,
+      color: colors.onSurfaceVariant,
+      paddingHorizontal: SPACING.md,
+      paddingBottom: SPACING.sm,
     },
   });

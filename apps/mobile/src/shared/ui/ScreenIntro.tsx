@@ -36,7 +36,8 @@ export const ScreenIntro = ({
           accessibilityRole="button"
           accessibilityLabel={actionLabel}
         >
-          <Ionicons name={actionIcon} size={21} color={theme.colors.onPrimary} />
+          <Ionicons name={actionIcon} size={19} color={theme.colors.onPrimary} />
+          <Text style={styles.actionText}>{actionLabel}</Text>
         </TouchableOpacity>
       ) : null}
     </View>
@@ -47,6 +48,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
   StyleSheet.create({
     root: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       alignItems: 'flex-start',
       gap: SPACING.md,
       marginBottom: SPACING.lg,
@@ -65,12 +67,16 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
       maxWidth: 310,
     },
     action: {
-      width: 44,
-      height: 44,
+      minHeight: 44,
+      maxWidth: '100%',
       borderRadius: theme.radius.full,
       backgroundColor: theme.colors.primary,
+      flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
+      gap: SPACING.xs,
+      paddingHorizontal: SPACING.md,
       marginTop: 2,
     },
+    actionText: { ...theme.type.labelMd, color: theme.colors.onPrimary, flexShrink: 1 },
   });

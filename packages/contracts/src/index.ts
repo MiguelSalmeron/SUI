@@ -369,3 +369,135 @@ export const parseSyncResponse = (value: unknown): SyncResponseV9 | null => {
     return null;
   return value as unknown as SyncResponseV9;
 };
+
+// ---------------------------------------------------------------------------
+// Subscriptions & Monetization Contracts
+// ---------------------------------------------------------------------------
+export type SubscriptionTier = 'free' | 'plus' | 'pro';
+export type SubscriptionStatus =
+  | 'active'
+  | 'trialing'
+  | 'canceled'
+  | 'expired'
+  | 'grace_period'
+  | 'none';
+
+export interface SubscriptionPlan {
+  id: string;
+  tier: SubscriptionTier;
+  name: string;
+  priceString: string;
+  currency: string;
+  interval: 'monthly' | 'yearly';
+  features: string[];
+}
+
+export interface UserEntitlements {
+  tier: SubscriptionTier;
+  status: SubscriptionStatus;
+  expiresAt?: string;
+  hasUnlimitedAI: boolean;
+  hasMultiDeviceSync: boolean;
+  hasAdvancedCalendar: boolean;
+}
+
+export const DEFAULT_ENTITLEMENTS: UserEntitlements = {
+  tier: 'free',
+  status: 'none',
+  hasUnlimitedAI: false,
+  hasMultiDeviceSync: false,
+  hasAdvancedCalendar: false,
+};
+
+export const parseUserEntitlements = (value: unknown): UserEntitlements => {
+  if (!isRecord(value)) return DEFAULT_ENTITLEMENTS;
+  const tier: SubscriptionTier = ['free', 'plus', 'pro'].includes(String(value.tier))
+    ? (value.tier as SubscriptionTier)
+    : 'free';
+  const status: SubscriptionStatus = [
+    'active',
+    'trialing',
+    'canceled',
+    'expired',
+    'grace_period',
+    'none',
+  ].includes(String(value.status))
+    ? (value.status as SubscriptionStatus)
+    : 'none';
+
+  return {
+    tier,
+    status,
+    expiresAt: typeof value.expiresAt === 'string' ? value.expiresAt : undefined,
+    hasUnlimitedAI: typeof value.hasUnlimitedAI === 'boolean' ? value.hasUnlimitedAI : tier !== 'free',
+    hasMultiDeviceSync:
+      typeof value.hasMultiDeviceSync === 'boolean' ? value.hasMultiDeviceSync : tier !== 'free',
+    hasAdvancedCalendar:
+      typeof value.hasAdvancedCalendar === 'boolean' ? value.hasAdvancedCalendar : tier === 'pro',
+  };
+};
+
+// ---------------------------------------------------------------------------
+// Widget Contracts
+// ---------------------------------------------------------------------------
+export interface WidgetHabitItem {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
+export interface WidgetSnapshot {
+  date: string;
+  streakCount: number;
+  nextActionTitle?: string;
+  pendingHabits: WidgetHabitItem[];
+  totalXp: number;
+  level: number;
+  lastUpdated: string;
+}
+
+export const parseWidgetSnapshot = (value: unknown): WidgetSnapshot | null => {
+  if (!isRecord(value)) return null;
+  if (
+    typeof value.date !== 'string' ||
+    !nonNegativeInteger(value.streakCount) ||
+    !nonNegativeInteger(value.totalXp) ||
+    !nonNegativeInteger(value.level) ||
+    typeof value.lastUpdated !== 'string' ||
+    !Array.isArray(value.pendingHabits)
+  ) {
+    return null;
+  }
+  const habitsValid = value.pendingHabits.every(
+    (h) =>
+      isRecord(h) &&
+      typeof h.id === 'string' &&
+      typeof h.title === 'string' &&
+      typeof h.completed === 'boolean',
+  );
+  if (!habitsValid) return null;
+
+  return {
+    date: value.date,
+    streakCount: value.streakCount,
+    nextActionTitle: typeof value.nextActionTitle === 'string' ? value.nextActionTitle : undefined,
+    pendingHabits: value.pendingHabits as WidgetHabitItem[],
+    totalXp: value.totalXp,
+    level: value.level,
+    lastUpdated: value.lastUpdated,
+  };
+};
+
+// ---------------------------------------------------------------------------
+// Actionable Notifications Contracts
+// ---------------------------------------------------------------------------
+export type ActionableNotificationType = 'nightly_report' | 'habit_reminder' | 'morning_briefing';
+export type ActionableActionId = 'COMPLETE_HABIT' | 'POSTPONE_15M' | 'OPEN_CHAT';
+
+export interface ActionableNotificationPayload {
+  type: ActionableNotificationType;
+  habitId?: string;
+  goalId?: string;
+  scheduledTime?: string;
+}
+

@@ -6,7 +6,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, signInAnon } from '@/features/auth/public';
 import { useIntroStore } from '@/features/onboarding/public';
-import { configureNotificationHandler } from '@/features/settings/public';
+import { configureNotificationHandler, reconcileNightlyReport } from '@/features/settings/public';
 import { ThemeProvider, useAppTheme } from '@/shared/theme/theme';
 import { AppNavigator } from './navigation/AppNavigator';
 import { recordTelemetry, wrapApplication } from '@/shared/observability/telemetry';
@@ -104,6 +104,10 @@ function App() {
     'Poppins-Bold': require('../../assets/fonts/Poppins-Bold.ttf'),
     'FredokaOne-Regular': require('../../assets/fonts/FredokaOne-Regular.ttf'),
   });
+
+  useEffect(() => {
+    void reconcileNightlyReport();
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {

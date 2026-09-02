@@ -6,7 +6,7 @@ export type FontSize = 'small' | 'medium' | 'large';
 export type LanguagePreference = 'system' | 'es' | 'en';
 
 export interface SettingsState {
-  /** Notificaciones push habilitadas (UI stub — la lógica real se integra después) */
+  /** Recordatorio nocturno local habilitado. */
   notificationsEnabled: boolean;
   /** Tamaño de fuente aplicado a la escala tipográfica global */
   fontSize: FontSize;
@@ -24,7 +24,7 @@ const SETTINGS_STORAGE_KEY = '@sui/settings-v1';
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      notificationsEnabled: true,
+      notificationsEnabled: false,
       fontSize: 'medium',
       language: 'system',
 

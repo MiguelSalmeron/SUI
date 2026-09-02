@@ -10,10 +10,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import { SPACING, useAppTheme } from '@/shared/theme/theme';
 import { localDateKey } from '@/shared/domain/productivity/public';
-import type { GoalGravity } from '@/shared/types/models';
+import type { Goal, GoalGravity } from '@/shared/types/models';
 import { useI18n } from '@/shared/i18n/i18n';
 
 type GoalDraft = {
@@ -24,6 +25,7 @@ type GoalDraft = {
 
 type Props = {
   visible: boolean;
+  initialGoal?: Goal | null;
   onSubmit: (draft: GoalDraft) => void;
   onCancel: () => void;
 };
@@ -34,24 +36,24 @@ const deadlineFromToday = (days: number) => {
   return localDateKey(date);
 };
 
-export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
+export const GoalFormModal = ({ visible, initialGoal, onSubmit, onCancel }: Props) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { t, formatDate } = useI18n();
   const [title, setTitle] = useState('');
-  const [deadlineDays, setDeadlineDays] = useState(7);
+  const [deadline, setDeadline] = useState(deadlineFromToday(7));
   const [gravity, setGravity] = useState<GoalGravity>('low');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
-      setTitle('');
-      setDeadlineDays(7);
-      setGravity('low');
+      setTitle(initialGoal?.title ?? '');
+      setDeadline(initialGoal?.deadline ?? deadlineFromToday(7));
+      setGravity(initialGoal?.gravity ?? 'low');
       setError(null);
     }
-  }, [visible]);
+  }, [initialGoal, visible]);
 
   const submit = () => {
     const value = title.trim();
@@ -59,7 +61,16 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
       setError(t('goalForm.required'));
       return;
     }
-    onSubmit({ title: value, deadline: deadlineFromToday(deadlineDays), gravity });
+    const parsed = new Date(`${deadline}T12:00:00`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(deadline) || Number.isNaN(parsed.getTime())) {
+      setError(t('goalForm.invalidDate'));
+      return;
+    }
+    if (!initialGoal && deadline < localDateKey()) {
+      setError(t('goalForm.pastDate'));
+      return;
+    }
+    onSubmit({ title: value, deadline, gravity });
   };
 
   return (
@@ -74,12 +85,16 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
         style={styles.backdrop}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.sheet}>
+        <View style={styles.sheet} accessibilityViewIsModal>
           <View style={styles.handle} />
           <View style={styles.header}>
             <View style={styles.headerCopy}>
-              <Text style={styles.title}>{t('goalForm.title')}</Text>
-              <Text style={styles.subtitle}>{t('goalForm.subtitle')}</Text>
+              <Text style={styles.title} accessibilityRole="header">
+                {t(initialGoal ? 'goalForm.editTitle' : 'goalForm.title')}
+              </Text>
+              <Text style={styles.subtitle}>
+                {t(initialGoal ? 'goalForm.editSubtitle' : 'goalForm.subtitle')}
+              </Text>
             </View>
             <TouchableOpacity
               style={styles.closeButton}
@@ -107,17 +122,24 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
               onSubmitEditing={submit}
               accessibilityLabel={t('goalForm.nameLabel')}
             />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? (
+              <Text style={styles.error} accessibilityLiveRegion="assertive">
+                {error}
+              </Text>
+            ) : null}
 
             <Text style={styles.fieldLabel}>{t('goalForm.deadline')}</Text>
             <View style={styles.optionsRow}>
-              {[7, 14, 30].map((days) => {
-                const selected = deadlineDays === days;
+              {[7, 14, 28].map((days) => {
+                const selected = deadline === deadlineFromToday(days);
                 return (
                   <TouchableOpacity
                     key={days}
                     style={[styles.option, selected && styles.optionSelected]}
-                    onPress={() => setDeadlineDays(days)}
+                    onPress={() => {
+                      setDeadline(deadlineFromToday(days));
+                      setError(null);
+                    }}
                     accessibilityRole="radio"
                     accessibilityState={{ selected }}
                   >
@@ -126,7 +148,7 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
                         ? t('goalForm.oneWeek')
                         : days === 14
                           ? t('goalForm.twoWeeks')
-                          : t('goalForm.oneMonth')}
+                          : t('goalForm.fourWeeks')}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -134,12 +156,37 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
             </View>
             <Text style={styles.selectionHint}>
               {t('goalForm.due', {
-                date: formatDate(new Date(`${deadlineFromToday(deadlineDays)}T00:00:00`), {
+                date: formatDate(new Date(`${deadline}T00:00:00`), {
                   day: 'numeric',
                   month: 'long',
                 }),
               })}
             </Text>
+            {Platform.OS === 'web' ? (
+              <TextInput
+                style={styles.dateInput}
+                value={deadline}
+                onChangeText={(value) => {
+                  setDeadline(value);
+                  setError(null);
+                }}
+                placeholder="YYYY-MM-DD"
+                accessibilityLabel={t('goalForm.exactDate')}
+              />
+            ) : (
+              <View style={styles.datePicker}>
+                <DateTimePicker
+                  value={new Date(`${deadline}T12:00:00`)}
+                  mode="date"
+                  minimumDate={new Date(`${localDateKey()}T00:00:00`)}
+                  onChange={(_, value) => {
+                    if (!value) return;
+                    setDeadline(localDateKey(value));
+                    setError(null);
+                  }}
+                />
+              </View>
+            )}
 
             <Text style={styles.fieldLabel}>{t('goalForm.priority')}</Text>
             <View style={styles.priorityRow}>
@@ -189,9 +236,11 @@ export const GoalFormModal = ({ visible, onSubmit, onCancel }: Props) => {
             onPress={submit}
             activeOpacity={0.82}
             accessibilityRole="button"
-            accessibilityLabel={t('goalForm.submit')}
+            accessibilityLabel={t(initialGoal ? 'goalForm.save' : 'goalForm.submit')}
           >
-            <Text style={styles.submitText}>{t('goalForm.submit')}</Text>
+            <Text style={styles.submitText}>
+              {t(initialGoal ? 'goalForm.save' : 'goalForm.submit')}
+            </Text>
             <Ionicons name="arrow-forward" size={18} color={colors.onPrimary} />
           </TouchableOpacity>
         </View>
@@ -276,6 +325,17 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     optionText: { ...type.labelMd, color: colors.onSurfaceVariant, textAlign: 'center' },
     optionTextSelected: { color: colors.onPrimaryContainer },
     selectionHint: { ...type.bodySm, color: colors.onSurfaceVariant, marginTop: SPACING.xs },
+    dateInput: {
+      ...type.bodyMd,
+      minHeight: 48,
+      color: colors.onSurface,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: radius.md,
+      paddingHorizontal: SPACING.md,
+      marginTop: SPACING.sm,
+    },
+    datePicker: { minHeight: 48, justifyContent: 'center', marginTop: SPACING.xs },
     priorityRow: { gap: SPACING.sm, marginBottom: SPACING.md },
     priorityOption: {
       minHeight: 64,

@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "520f347d-57ea-4b1d-b3bc-adfc5c0d499d"
+      }
+    },
+    "owner": "xsui",
+    "slug": "sui",
+    "android": {
+      "package": "com.xsui.sui"
+    },
+    "ios": {
+      "bundleIdentifier": "com.xsui.sui",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}

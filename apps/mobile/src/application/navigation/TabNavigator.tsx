@@ -26,7 +26,6 @@ import { CalendarScreen } from '@/features/calendar/public';
 import { GoalsScreen } from '@/features/goals/public';
 import { HabitsScreen } from '@/features/habits/public';
 import { CelebrationToast, OverviewScreen } from '@/features/home/public';
-import { requestNotificationPermission } from '@/features/settings/public';
 import { useI18n } from '@/shared/i18n/i18n';
 
 export { MAIN_TAB_ITEMS } from './mainTabs';
@@ -196,10 +195,6 @@ export const TabNavigator = () => {
   const habits = useProductivityStore((state) => state.habits);
   const streak = useProductivityStore((state) => state.streak);
   const bumpStreak = useProductivityStore((state) => state.bumpStreak);
-
-  useEffect(() => {
-    requestNotificationPermission().catch(() => undefined);
-  }, []);
 
   const profileName = user?.displayName?.trim() || user?.email?.split('@')[0] || 'Sui';
 

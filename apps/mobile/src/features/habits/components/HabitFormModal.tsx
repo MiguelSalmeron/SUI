@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import { SPACING, useAppTheme } from '@/shared/theme/theme';
-import type { DayOfWeek, Goal } from '@/shared/types/models';
+import type { DayOfWeek, Goal, Habit } from '@/shared/types/models';
 import { useI18n } from '@/shared/i18n/i18n';
 
 type HabitDraft = {
@@ -23,31 +23,38 @@ type HabitDraft = {
 
 type Props = {
   visible: boolean;
+  initialHabit?: Habit | null;
   goals: Goal[];
   onSubmit: (draft: HabitDraft) => void;
   onCancel: () => void;
 };
 
-const WEEKDAYS: DayOfWeek[] = ['mon', 'tue', 'wed', 'thu', 'fri'];
+const DAYS: DayOfWeek[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
-export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) => {
+export const HabitFormModal = ({ visible, initialHabit, goals, onSubmit, onCancel }: Props) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { t } = useI18n();
   const [title, setTitle] = useState('');
-  const [frequency, setFrequency] = useState<'daily' | 'weekdays'>('daily');
+  const [daily, setDaily] = useState(true);
+  const [days, setDays] = useState<DayOfWeek[]>(DAYS.slice(0, 5));
   const [linkedGoalId, setLinkedGoalId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
-      setTitle('');
-      setFrequency('daily');
-      setLinkedGoalId(null);
+      setTitle(initialHabit?.title ?? '');
+      setDaily(initialHabit?.frequency === 'daily' || !initialHabit);
+      setDays(
+        initialHabit?.frequency === 'daily' || !initialHabit
+          ? DAYS.slice(0, 5)
+          : initialHabit.frequency,
+      );
+      setLinkedGoalId(initialHabit?.linkedGoalId ?? null);
       setError(null);
     }
-  }, [visible]);
+  }, [initialHabit, visible]);
 
   const submit = () => {
     const value = title.trim();
@@ -55,9 +62,13 @@ export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) =>
       setError(t('habitForm.required'));
       return;
     }
+    if (!daily && days.length === 0) {
+      setError(t('habitForm.dayRequired'));
+      return;
+    }
     onSubmit({
       title: value,
-      frequency: frequency === 'daily' ? 'daily' : WEEKDAYS,
+      frequency: daily ? 'daily' : days,
       linkedGoalId,
     });
   };
@@ -74,12 +85,16 @@ export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) =>
         style={styles.backdrop}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.sheet}>
+        <View style={styles.sheet} accessibilityViewIsModal>
           <View style={styles.handle} />
           <View style={styles.header}>
             <View style={styles.headerCopy}>
-              <Text style={styles.title}>{t('habitForm.title')}</Text>
-              <Text style={styles.subtitle}>{t('habitForm.subtitle')}</Text>
+              <Text style={styles.title} accessibilityRole="header">
+                {t(initialHabit ? 'habitForm.editTitle' : 'habitForm.title')}
+              </Text>
+              <Text style={styles.subtitle}>
+                {t(initialHabit ? 'habitForm.editSubtitle' : 'habitForm.subtitle')}
+              </Text>
             </View>
             <TouchableOpacity
               style={styles.closeButton}
@@ -107,45 +122,77 @@ export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) =>
               onSubmitEditing={submit}
               accessibilityLabel={t('habitForm.nameLabel')}
             />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? (
+              <Text style={styles.error} accessibilityLiveRegion="assertive">
+                {error}
+              </Text>
+            ) : null}
 
             <Text style={styles.fieldLabel}>{t('habitForm.frequency')}</Text>
             <View style={styles.frequencyRow}>
               <TouchableOpacity
-                style={[styles.frequencyOption, frequency === 'daily' && styles.optionSelected]}
-                onPress={() => setFrequency('daily')}
+                style={[styles.frequencyOption, daily && styles.optionSelected]}
+                onPress={() => setDaily(true)}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: frequency === 'daily' }}
+                accessibilityState={{ selected: daily }}
               >
                 <Ionicons
                   name="sunny-outline"
                   size={18}
-                  color={frequency === 'daily' ? colors.primary : colors.onSurfaceVariant}
+                  color={daily ? colors.primary : colors.onSurfaceVariant}
                 />
                 <Text
-                  style={[styles.optionText, frequency === 'daily' && styles.optionTextSelected]}
+                  style={[styles.optionText, daily && styles.optionTextSelected]}
                 >
                   {t('habits.everyDay')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.frequencyOption, frequency === 'weekdays' && styles.optionSelected]}
-                onPress={() => setFrequency('weekdays')}
+                style={[styles.frequencyOption, !daily && styles.optionSelected]}
+                onPress={() => setDaily(false)}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: frequency === 'weekdays' }}
+                accessibilityState={{ selected: !daily }}
               >
                 <Ionicons
                   name="briefcase-outline"
                   size={18}
-                  color={frequency === 'weekdays' ? colors.primary : colors.onSurfaceVariant}
+                  color={!daily ? colors.primary : colors.onSurfaceVariant}
                 />
                 <Text
-                  style={[styles.optionText, frequency === 'weekdays' && styles.optionTextSelected]}
+                  style={[styles.optionText, !daily && styles.optionTextSelected]}
                 >
-                  {t('habitForm.weekdays')}
+                  {t('habitForm.specificDays')}
                 </Text>
               </TouchableOpacity>
             </View>
+            {!daily ? (
+              <View style={styles.daysRow} accessibilityRole="radiogroup">
+                {DAYS.map((day) => {
+                  const selected = days.includes(day);
+                  return (
+                    <TouchableOpacity
+                      key={day}
+                      style={[styles.dayOption, selected && styles.optionSelected]}
+                      onPress={() => {
+                        setDays((current) =>
+                          current.includes(day)
+                            ? current.filter((value) => value !== day)
+                            : DAYS.filter((value) => [...current, day].includes(value)),
+                        );
+                        setError(null);
+                      }}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: selected }}
+                      accessibilityLabel={t(`habitForm.day.${day}`)}
+                    >
+                      <Text style={[styles.dayText, selected && styles.optionTextSelected]}>
+                        {t(`habitForm.dayShort.${day}`)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : null}
 
             <View style={styles.linkHeading}>
               <Text style={styles.fieldLabel}>{t('habitForm.linkGoal')}</Text>
@@ -212,9 +259,11 @@ export const HabitFormModal = ({ visible, goals, onSubmit, onCancel }: Props) =>
             onPress={submit}
             activeOpacity={0.82}
             accessibilityRole="button"
-            accessibilityLabel={t('habitForm.submit')}
+            accessibilityLabel={t(initialHabit ? 'habitForm.save' : 'habitForm.submit')}
           >
-            <Text style={styles.submitText}>{t('habitForm.submit')}</Text>
+            <Text style={styles.submitText}>
+              {t(initialHabit ? 'habitForm.save' : 'habitForm.submit')}
+            </Text>
             <Ionicons name="arrow-forward" size={18} color={colors.onPrimary} />
           </TouchableOpacity>
         </View>
@@ -292,6 +341,22 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       gap: SPACING.xs,
       paddingHorizontal: SPACING.sm,
     },
+    daysRow: {
+      flexDirection: 'row',
+      gap: SPACING.xs,
+      marginTop: SPACING.sm,
+    },
+    dayOption: {
+      flex: 1,
+      minHeight: 44,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      backgroundColor: colors.surfaceContainerLow,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dayText: { ...type.labelSm, color: colors.onSurfaceVariant },
     optionSelected: { borderColor: colors.primary, backgroundColor: colors.primaryContainer },
     optionText: { ...type.labelMd, color: colors.onSurfaceVariant, textAlign: 'center' },
     optionTextSelected: { color: colors.onPrimaryContainer },

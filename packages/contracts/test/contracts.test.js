@@ -33,3 +33,33 @@ test('shared parser accepts valid response and rejects entity drift', () => {
   assert.deepEqual(parseSyncResponse(response), response);
   assert.equal(parseSyncResponse({ ...response, changes: [{ entityType: 'unknown' }] }), null);
 });
+
+test('parseUserEntitlements validates tiers and falls back safely', () => {
+  const { parseUserEntitlements, DEFAULT_ENTITLEMENTS } = require('../dist/index.js');
+  assert.deepEqual(parseUserEntitlements(null), DEFAULT_ENTITLEMENTS);
+  assert.deepEqual(parseUserEntitlements({ tier: 'plus', status: 'active' }), {
+    tier: 'plus',
+    status: 'active',
+    expiresAt: undefined,
+    hasUnlimitedAI: true,
+    hasMultiDeviceSync: true,
+    hasAdvancedCalendar: false,
+  });
+});
+
+test('parseWidgetSnapshot validates complete structure', () => {
+  const { parseWidgetSnapshot } = require('../dist/index.js');
+  const valid = {
+    date: '2026-09-02',
+    streakCount: 5,
+    nextActionTitle: 'Meditar 10m',
+    pendingHabits: [{ id: 'h-1', title: 'Leer', completed: false }],
+    totalXp: 120,
+    level: 2,
+    lastUpdated: '2026-09-02T10:00:00.000Z',
+  };
+  assert.deepEqual(parseWidgetSnapshot(valid), valid);
+  assert.equal(parseWidgetSnapshot({ ...valid, streakCount: -1 }), null);
+  assert.equal(parseWidgetSnapshot({ ...valid, pendingHabits: [{ id: 123 }] }), null);
+});
+
