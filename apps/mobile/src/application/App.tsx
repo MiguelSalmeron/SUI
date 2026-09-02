@@ -11,6 +11,7 @@ import { ThemeProvider, useAppTheme } from '@/shared/theme/theme';
 import { AppNavigator } from './navigation/AppNavigator';
 import { recordTelemetry, wrapApplication } from '@/shared/observability/telemetry';
 import { useProductivityEventEffects } from '@/shared/events/useProductivityEventEffects';
+import { useSettingsStore } from '@/shared/preferences/useSettingsStore';
 
 /**
  * PWA: html/body/#root default white → raya blanca bajo UI dark.
@@ -89,9 +90,21 @@ const useRetryPendingAuth = () => {
   }, [accountMode, hydrated, introComplete, syncPending, setTechnicalAuthPending]);
 };
 
+const useReconcileNotifications = () => {
+  useEffect(() => {
+    const reconcile = () => void reconcileNightlyReport();
+    if (useSettingsStore.persist.hasHydrated()) {
+      reconcile();
+      return;
+    }
+    return useSettingsStore.persist.onFinishHydration(reconcile);
+  }, []);
+};
+
 function App() {
   useRetryPendingAuth();
   useProductivityEventEffects();
+  useReconcileNotifications();
 
   // Preload desde assets/ (no node_modules). En PWA, Firebase ignoraba
   // **/node_modules/** → .ttf 404 → rewrite devolvía index.html → OTS fail
@@ -104,10 +117,6 @@ function App() {
     'Poppins-Bold': require('../../assets/fonts/Poppins-Bold.ttf'),
     'FredokaOne-Regular': require('../../assets/fonts/FredokaOne-Regular.ttf'),
   });
-
-  useEffect(() => {
-    void reconcileNightlyReport();
-  }, []);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {

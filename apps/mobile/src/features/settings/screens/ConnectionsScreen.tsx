@@ -106,7 +106,7 @@ const createStyles = ({ colors, radius, type }: AppTheme) =>
     detail: { ...type.labelXs, color: colors.onSurfaceVariant, marginTop: 2 },
     error: { ...type.bodySm, color: colors.error, marginTop: SPACING.xs },
     action: {
-      minHeight: 40,
+      minHeight: 44,
       paddingHorizontal: SPACING.md,
       borderRadius: radius.full,
       backgroundColor: colors.primaryContainer,

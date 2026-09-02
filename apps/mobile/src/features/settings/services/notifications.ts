@@ -64,7 +64,8 @@ export const requestNotificationPermission = async (): Promise<
   const current = await Notifications.getPermissionsAsync();
   const currentResult = permissionResult(current);
   if (currentResult !== 'denied') return currentResult;
-  return permissionResult(await Notifications.requestPermissionsAsync());
+  const requested = await Notifications.requestPermissionsAsync();
+  return requested.granted ? 'granted' : 'denied';
 };
 
 /** Cancela el recordatorio nocturno. */

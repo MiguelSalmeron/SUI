@@ -175,7 +175,9 @@ export const OverviewScreen = () => {
                     <TouchableOpacity
                       onPress={() => openItem(nextItem)}
                       disabled={nextItem.origin === 'google_calendar'}
-                      accessibilityRole={nextItem.origin === 'google_calendar' ? undefined : 'button'}
+                      accessibilityRole={
+                        nextItem.origin === 'google_calendar' ? undefined : 'button'
+                      }
                     >
                       <Text style={styles.focusTitle} numberOfLines={2}>
                         {nextItem.title || t('calendar.untitledEvent')}
@@ -183,15 +185,23 @@ export const OverviewScreen = () => {
                     </TouchableOpacity>
                     <View style={styles.focusFooter}>
                       <View style={styles.originRow}>
-                        <Ionicons name={originPresentation(nextItem).icon} size={15} color={colors.onPrimaryContainer} />
-                        <Text style={styles.focusOrigin}>{t(originPresentation(nextItem).labelKey)}</Text>
+                        <Ionicons
+                          name={originPresentation(nextItem).icon}
+                          size={15}
+                          color={colors.onPrimaryContainer}
+                        />
+                        <Text style={styles.focusOrigin}>
+                          {t(originPresentation(nextItem).labelKey)}
+                        </Text>
                       </View>
                       {nextItem.origin !== 'google_calendar' ? (
                         <TouchableOpacity
                           style={styles.focusAction}
                           onPress={() => handleToggleItem(nextItem)}
                           accessibilityRole="button"
-                          accessibilityLabel={t('home.markDone', { title: nextItem.title || t('calendar.untitledEvent') })}
+                          accessibilityLabel={t('home.markDone', {
+                            title: nextItem.title || t('calendar.untitledEvent'),
+                          })}
                         >
                           <Ionicons name="checkmark" size={17} color={colors.onFlame} />
                           <Text style={styles.focusActionText}>{t('home.done')}</Text>
@@ -201,7 +211,9 @@ export const OverviewScreen = () => {
                   </>
                 ) : (
                   <View style={styles.clearDay}>
-                    <View style={styles.clearIcon}><Ionicons name="checkmark" size={24} color={colors.onSecondaryContainer} /></View>
+                    <View style={styles.clearIcon}>
+                      <Ionicons name="checkmark" size={24} color={colors.onSecondaryContainer} />
+                    </View>
                     <View style={styles.clearCopy}>
                       <Text style={styles.clearTitle}>{t('home.clearTitle')}</Text>
                       <Text style={styles.clearText}>{t('home.clearBody')}</Text>
@@ -209,48 +221,117 @@ export const OverviewScreen = () => {
                   </View>
                 )}
               </View>
-              <TouchableOpacity style={styles.progressCard} onPress={() => navigation.navigate('Progress')} accessibilityRole="button" accessibilityLabel={t('home.progressAccessibility', { progress })} accessibilityHint={t('home.progressHint')}>
+              <TouchableOpacity
+                style={styles.progressCard}
+                onPress={() => navigation.navigate('Progress')}
+                accessibilityRole="button"
+                accessibilityLabel={t('home.progressAccessibility', { progress })}
+                accessibilityHint={t('home.progressHint')}
+              >
                 <View style={styles.progressHeader}>
                   <View>
                     <Text style={styles.progressLabel}>{t('home.dailyProgress')}</Text>
-                    <Text style={styles.progressCount}>{actionableItems.length ? t('home.completedCount', { done: completedCount, total: actionableItems.length }) : t('home.noPending')}</Text>
+                    <Text style={styles.progressCount}>
+                      {actionableItems.length
+                        ? t('home.completedCount', {
+                            done: completedCount,
+                            total: actionableItems.length,
+                          })
+                        : t('home.noPending')}
+                    </Text>
                   </View>
                   <Text style={styles.progressPercent}>{progress}%</Text>
                 </View>
-                <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${progress}%` }]} /></View>
-                <View style={styles.statsRow}>
-                  <View style={styles.statItem}><Ionicons name="flame" size={16} color={colors.flame} /><Text style={styles.statValue}>{streak}</Text><Text style={styles.statLabel}>{t('home.streakDays')}</Text></View>
-                  <View style={styles.statDivider} />
-                  <View style={styles.statItem}><Ionicons name="sparkles" size={15} color={colors.primary} /><Text style={styles.statValue}>{totalXp}</Text><Text style={styles.statLabel}>{t('home.totalXp')}</Text></View>
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: `${progress}%` }]} />
                 </View>
-                <View style={styles.progressLink}><Text style={styles.progressLinkText}>{t('home.viewProgress')}</Text><Ionicons name="chevron-forward" size={17} color={colors.primary} /></View>
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <Ionicons name="flame" size={16} color={colors.flame} />
+                    <Text style={styles.statValue}>{streak}</Text>
+                    <Text style={styles.statLabel}>{t('home.streakDays')}</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Ionicons name="sparkles" size={15} color={colors.primary} />
+                    <Text style={styles.statValue}>{totalXp}</Text>
+                    <Text style={styles.statLabel}>{t('home.totalXp')}</Text>
+                  </View>
+                </View>
+                <View style={styles.progressLink}>
+                  <Text style={styles.progressLinkText}>{t('home.viewProgress')}</Text>
+                  <Ionicons name="chevron-forward" size={17} color={colors.primary} />
+                </View>
               </TouchableOpacity>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>{t('home.agenda')}</Text>
-                <Text style={styles.sectionMeta}>{timelineItems.length} {timelineItems.length === 1 ? t('calendar.activity') : t('calendar.activities')}</Text>
+                <Text style={styles.sectionMeta}>
+                  {timelineItems.length}{' '}
+                  {timelineItems.length === 1 ? t('calendar.activity') : t('calendar.activities')}
+                </Text>
               </View>
             </>
           )}
         </>
       }
-      ListEmptyComponent={emptyState ? null : <View style={styles.emptyDayBox}><SuiDoodle variant="sprout" size={62} color={colors.secondary} /><Text style={styles.emptyDayText}>{t('home.emptyAgenda')}</Text></View>}
+      ListEmptyComponent={
+        emptyState ? null : (
+          <View style={styles.emptyDayBox}>
+            <SuiDoodle variant="sprout" size={62} color={colors.secondary} />
+            <Text style={styles.emptyDayText}>{t('home.emptyAgenda')}</Text>
+          </View>
+        )
+      }
       renderItem={({ item }) => {
         const presentation = originPresentation(item);
         const isGoogle = item.origin === 'google_calendar';
         const accent = item.origin === 'habit' ? colors.flame : colors.primary;
         return (
           <View style={styles.timelineRow}>
-            <View style={[styles.itemIcon, { backgroundColor: item.origin === 'habit' ? colors.flameContainer : colors.primaryContainer }]}>
+            <View
+              style={[
+                styles.itemIcon,
+                {
+                  backgroundColor:
+                    item.origin === 'habit' ? colors.flameContainer : colors.primaryContainer,
+                },
+              ]}
+            >
               <Ionicons name={presentation.icon} size={17} color={accent} />
             </View>
-            <TouchableOpacity style={styles.itemCopy} onPress={() => openItem(item)} disabled={isGoogle} accessibilityRole={isGoogle ? undefined : 'button'}>
-              <View style={styles.itemMetaRow}><Text style={styles.itemTime}>{item.time ?? t('home.allDay')}</Text><Text style={styles.itemOrigin}>{t(presentation.labelKey)}</Text></View>
-              <Text style={[styles.itemTitle, item.completed && !isGoogle && styles.itemDone]} numberOfLines={2}>{item.title || t('calendar.untitledEvent')}</Text>
-              {item.linkedGoalTitle ? <Text style={styles.itemLink} numberOfLines={1}>{t('home.linkedGoal', { title: item.linkedGoalTitle })}</Text> : null}
+            <TouchableOpacity
+              style={styles.itemCopy}
+              onPress={() => openItem(item)}
+              disabled={isGoogle}
+              accessibilityRole={isGoogle ? undefined : 'button'}
+            >
+              <View style={styles.itemMetaRow}>
+                <Text style={styles.itemTime}>{item.time ?? t('home.allDay')}</Text>
+                <Text style={styles.itemOrigin}>{t(presentation.labelKey)}</Text>
+              </View>
+              <Text
+                style={[styles.itemTitle, item.completed && !isGoogle && styles.itemDone]}
+                numberOfLines={2}
+              >
+                {item.title || t('calendar.untitledEvent')}
+              </Text>
+              {item.linkedGoalTitle ? (
+                <Text style={styles.itemLink} numberOfLines={1}>
+                  {t('home.linkedGoal', { title: item.linkedGoalTitle })}
+                </Text>
+              ) : null}
             </TouchableOpacity>
             {!isGoogle ? (
-              <TouchableOpacity style={[styles.checkButton, item.completed && styles.checkButtonDone]} onPress={() => handleToggleItem(item)} accessibilityRole="checkbox" accessibilityState={{ checked: item.completed }} accessibilityLabel={item.title || t('calendar.untitledEvent')}>
-                {item.completed ? <Ionicons name="checkmark" size={16} color={colors.onSuccess} /> : null}
+              <TouchableOpacity
+                style={[styles.checkButton, item.completed && styles.checkButtonDone]}
+                onPress={() => handleToggleItem(item)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: item.completed }}
+                accessibilityLabel={item.title || t('calendar.untitledEvent')}
+              >
+                {item.completed ? (
+                  <Ionicons name="checkmark" size={16} color={colors.onSuccess} />
+                ) : null}
               </TouchableOpacity>
             ) : null}
           </View>
@@ -364,7 +445,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       backgroundColor: colors.flame,
       borderRadius: radius.full,
       paddingHorizontal: SPACING.md,
-      minHeight: 40,
+      minHeight: 44,
     },
     focusActionText: { ...type.labelLg, color: colors.onFlame },
     clearDay: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
@@ -461,6 +542,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       borderWidth: 1,
       borderColor: colors.outlineVariant,
       gap: SPACING.sm,
+      marginBottom: SPACING.sm,
     },
     itemIcon: {
       width: 38,
@@ -482,9 +564,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     itemDone: { color: colors.onSurfaceVariant, textDecorationLine: 'line-through' },
     itemLink: { ...type.bodySm, color: colors.onSurfaceVariant, marginTop: 2 },
     checkButton: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       borderWidth: 1.5,
       borderColor: colors.outline,
       alignItems: 'center',
