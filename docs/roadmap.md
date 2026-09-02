@@ -16,6 +16,10 @@ Alcance: [PRD](product/PRD.md). UX/UI: [sistema de diseño](product/DESIGN_SYSTE
 - [x] Exportación, logout y eliminación completa.
 - [x] Reglas Firestore con pruebas Emulator Suite.
 - [x] Perfiles EAS, CORS, App Check web/monitor y telemetría privada en código.
+- [x] Edición contextual de Metas/Hábitos con fecha exacta y frecuencia semanal.
+- [x] Permiso de notificaciones contextual, recordatorio local y reconciliación sin prompt.
+- [x] Preferencias con radios, contenido responsive y targets accesibles.
+- [x] Sugerencias de Chat controladas y listas principales virtualizadas.
 
 ## Bloqueos externos antes de staging
 
