@@ -150,7 +150,7 @@ export const GoalsScreen = () => {
         ListHeaderComponent={header}
         ListEmptyComponent={
           <View style={styles.emptyCard}>
-            <SuiDoodle variant="path" size={76} />
+            <SuiDoodle variant="sprout" size={76} />
             <Text style={styles.emptyTitle}>
               {filter === 'active' ? t('goals.emptyActive') : t('goals.emptyCompleted')}
             </Text>
