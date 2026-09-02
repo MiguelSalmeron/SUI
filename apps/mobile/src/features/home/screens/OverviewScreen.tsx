@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import {
   useFocusEffect,
@@ -9,7 +9,12 @@ import {
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
-import { SCREEN_CONTENT_BOTTOM_PADDING, SPACING, useAppTheme } from '@/shared/theme/theme';
+import {
+  SCREEN_CONTENT_BOTTOM_PADDING,
+  SCREEN_MAX_CONTENT_WIDTH,
+  SPACING,
+  useAppTheme,
+} from '@/shared/theme/theme';
 import { Skeleton } from '@/shared/ui/Skeleton';
 import { buildUnifiedTimeline, loadCachedGoogleEvents } from '@/features/calendar/public';
 import type { GoogleEvent, TimelineItem } from '@/shared/types/models';
@@ -110,205 +115,148 @@ export const OverviewScreen = () => {
     day: 'numeric',
     month: 'long',
   });
+  const emptyState = goals.length === 0 && habits.length === 0;
+
+  const openItem = (item: TimelineItem) => {
+    if (item.origin === 'goal') navigation.navigate('Goals', { editId: item.originalId });
+    if (item.origin === 'habit') navigation.navigate('Habits', { editId: item.originalId });
+  };
 
   return (
-    <ScrollView
+    <FlatList
       style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.intro}>
-        <Text style={styles.eyebrow}>{t('home.today')}</Text>
-        <Text style={styles.title}>{formattedToday}</Text>
-        <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
-      </View>
-
-      {goals.length === 0 && habits.length === 0 ? (
-        <View style={styles.firstRunCard}>
-          <SuiDoodle variant="sprout" size={72} color={colors.primary} />
-          <Text style={styles.firstRunTitle}>{t('home.emptyTitle')}</Text>
-          <Text style={styles.firstRunBody}>{t('home.emptyBody')}</Text>
-          <View style={styles.firstRunActions}>
-            <TouchableOpacity
-              style={styles.firstRunPrimary}
-              onPress={() => navigation.navigate('Goals', { create: true })}
-            >
-              <Ionicons name="flag-outline" size={18} color={colors.onPrimary} />
-              <Text style={styles.firstRunPrimaryText}>{t('home.firstGoal')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.firstRunSecondary}
-              onPress={() => navigation.navigate('Habits', { create: true })}
-            >
-              <Ionicons name="repeat" size={18} color={colors.secondary} />
-              <Text style={styles.firstRunSecondaryText}>{t('home.firstHabit')}</Text>
-            </TouchableOpacity>
+      data={emptyState ? [] : timelineItems}
+      keyExtractor={(item) => item.id}
+      ListHeaderComponent={
+        <>
+          <View style={styles.intro}>
+            <Text style={styles.eyebrow}>{t('home.today')}</Text>
+            <Text style={styles.title}>{formattedToday}</Text>
+            <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
           </View>
-        </View>
-      ) : null}
-
-      <View style={styles.focusCard}>
-        {nextItem ? (
-          <>
-            <View style={styles.focusTopRow}>
-              <View style={styles.focusLabel}>
-                <View style={styles.pulseDot} />
-                <Text style={styles.focusEyebrow}>{t('home.next')}</Text>
-              </View>
-              <Text style={styles.focusTime}>{nextItem.time ?? t('home.allDay')}</Text>
-            </View>
-            <Text style={styles.focusTitle} numberOfLines={2}>
-              {nextItem.title || t('calendar.untitledEvent')}
-            </Text>
-            <View style={styles.focusFooter}>
-              <View style={styles.originRow}>
-                <Ionicons
-                  name={originPresentation(nextItem).icon}
-                  size={15}
-                  color={colors.onPrimaryContainer}
-                />
-                <Text style={styles.focusOrigin}>{t(originPresentation(nextItem).labelKey)}</Text>
-              </View>
-              {nextItem.origin !== 'google_calendar' ? (
+          {emptyState ? (
+            <View style={styles.firstRunCard}>
+              <SuiDoodle variant="sprout" size={72} color={colors.primary} />
+              <Text style={styles.firstRunTitle}>{t('home.emptyTitle')}</Text>
+              <Text style={styles.firstRunBody}>{t('home.emptyBody')}</Text>
+              <View style={styles.firstRunActions}>
                 <TouchableOpacity
-                  style={styles.focusAction}
-                  onPress={() => handleToggleItem(nextItem)}
-                  activeOpacity={0.8}
+                  style={styles.firstRunPrimary}
+                  onPress={() => navigation.navigate('Goals', { create: true })}
                   accessibilityRole="button"
-                  accessibilityLabel={t('home.markDone', {
-                    title: nextItem.title || t('calendar.untitledEvent'),
-                  })}
                 >
-                  <Ionicons name="checkmark" size={17} color={colors.onFlame} />
-                  <Text style={styles.focusActionText}>{t('home.done')}</Text>
+                  <Ionicons name="flag-outline" size={18} color={colors.onPrimary} />
+                  <Text style={styles.firstRunPrimaryText}>{t('home.firstGoal')}</Text>
                 </TouchableOpacity>
-              ) : null}
-            </View>
-          </>
-        ) : (
-          <View style={styles.clearDay}>
-            <View style={styles.clearIcon}>
-              <Ionicons name="checkmark" size={24} color={colors.onSecondaryContainer} />
-            </View>
-            <View style={styles.clearCopy}>
-              <Text style={styles.clearTitle}>{t('home.clearTitle')}</Text>
-              <Text style={styles.clearText}>{t('home.clearBody')}</Text>
-            </View>
-          </View>
-        )}
-      </View>
-
-      <TouchableOpacity
-        style={styles.progressCard}
-        onPress={() => navigation.navigate('Progress')}
-        activeOpacity={0.82}
-        accessibilityRole="button"
-        accessibilityLabel={t('home.progressAccessibility', { progress })}
-        accessibilityHint={t('home.progressHint')}
-      >
-        <View style={styles.progressHeader}>
-          <View>
-            <Text style={styles.progressLabel}>{t('home.dailyProgress')}</Text>
-            <Text style={styles.progressCount}>
-              {actionableItems.length
-                ? t('home.completedCount', { done: completedCount, total: actionableItems.length })
-                : t('home.noPending')}
-            </Text>
-          </View>
-          <Text style={styles.progressPercent}>{progress}%</Text>
-        </View>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${progress}%` }]} />
-        </View>
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Ionicons name="flame" size={16} color={colors.flame} />
-            <Text style={styles.statValue}>{streak}</Text>
-            <Text style={styles.statLabel}>{t('home.streakDays')}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name="sparkles" size={15} color={colors.primary} />
-            <Text style={styles.statValue}>{totalXp}</Text>
-            <Text style={styles.statLabel}>{t('home.totalXp')}</Text>
-          </View>
-        </View>
-        <View style={styles.progressLink}>
-          <Text style={styles.progressLinkText}>{t('home.viewProgress')}</Text>
-          <Ionicons name="chevron-forward" size={17} color={colors.primary} />
-        </View>
-      </TouchableOpacity>
-
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{t('home.agenda')}</Text>
-        <Text style={styles.sectionMeta}>
-          {timelineItems.length}{' '}
-          {timelineItems.length === 1 ? t('calendar.activity') : t('calendar.activities')}
-        </Text>
-      </View>
-
-      <View style={styles.timelineList}>
-        {timelineItems.length === 0 ? (
-          <View style={styles.emptyDayBox}>
-            <SuiDoodle variant="sprout" size={62} color={colors.secondary} />
-            <Text style={styles.emptyDayText}>{t('home.emptyAgenda')}</Text>
-          </View>
-        ) : (
-          timelineItems.map((item) => {
-            const presentation = originPresentation(item);
-            const isGoogle = item.origin === 'google_calendar';
-            const accent = item.origin === 'habit' ? colors.flame : colors.primary;
-
-            return (
-              <View key={item.id} style={styles.timelineRow}>
-                <View
-                  style={[
-                    styles.itemIcon,
-                    {
-                      backgroundColor:
-                        item.origin === 'habit' ? colors.flameContainer : colors.primaryContainer,
-                    },
-                  ]}
+                <TouchableOpacity
+                  style={styles.firstRunSecondary}
+                  onPress={() => navigation.navigate('Habits', { create: true })}
+                  accessibilityRole="button"
                 >
-                  <Ionicons name={presentation.icon} size={17} color={accent} />
-                </View>
-                <View style={styles.itemCopy}>
-                  <View style={styles.itemMetaRow}>
-                    <Text style={styles.itemTime}>{item.time ?? t('home.allDay')}</Text>
-                    <Text style={styles.itemOrigin}>{t(presentation.labelKey)}</Text>
-                  </View>
-                  <Text
-                    style={[styles.itemTitle, item.completed && !isGoogle && styles.itemDone]}
-                    numberOfLines={2}
-                  >
-                    {item.title || t('calendar.untitledEvent')}
-                  </Text>
-                  {item.linkedGoalTitle ? (
-                    <Text style={styles.itemLink} numberOfLines={1}>
-                      {t('home.linkedGoal', { title: item.linkedGoalTitle })}
-                    </Text>
-                  ) : null}
-                </View>
-                {!isGoogle ? (
-                  <TouchableOpacity
-                    style={[styles.checkButton, item.completed && styles.checkButtonDone]}
-                    onPress={() => handleToggleItem(item)}
-                    activeOpacity={0.75}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: item.completed }}
-                    accessibilityLabel={item.title || t('calendar.untitledEvent')}
-                  >
-                    {item.completed ? (
-                      <Ionicons name="checkmark" size={16} color={colors.onSuccess} />
-                    ) : null}
-                  </TouchableOpacity>
-                ) : null}
+                  <Ionicons name="repeat" size={18} color={colors.secondary} />
+                  <Text style={styles.firstRunSecondaryText}>{t('home.firstHabit')}</Text>
+                </TouchableOpacity>
               </View>
-            );
-          })
-        )}
-      </View>
-    </ScrollView>
+            </View>
+          ) : (
+            <>
+              <View style={styles.focusCard}>
+                {nextItem ? (
+                  <>
+                    <View style={styles.focusTopRow}>
+                      <View style={styles.focusLabel}>
+                        <View style={styles.pulseDot} />
+                        <Text style={styles.focusEyebrow}>{t('home.next')}</Text>
+                      </View>
+                      <Text style={styles.focusTime}>{nextItem.time ?? t('home.allDay')}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => openItem(nextItem)}
+                      disabled={nextItem.origin === 'google_calendar'}
+                      accessibilityRole={nextItem.origin === 'google_calendar' ? undefined : 'button'}
+                    >
+                      <Text style={styles.focusTitle} numberOfLines={2}>
+                        {nextItem.title || t('calendar.untitledEvent')}
+                      </Text>
+                    </TouchableOpacity>
+                    <View style={styles.focusFooter}>
+                      <View style={styles.originRow}>
+                        <Ionicons name={originPresentation(nextItem).icon} size={15} color={colors.onPrimaryContainer} />
+                        <Text style={styles.focusOrigin}>{t(originPresentation(nextItem).labelKey)}</Text>
+                      </View>
+                      {nextItem.origin !== 'google_calendar' ? (
+                        <TouchableOpacity
+                          style={styles.focusAction}
+                          onPress={() => handleToggleItem(nextItem)}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('home.markDone', { title: nextItem.title || t('calendar.untitledEvent') })}
+                        >
+                          <Ionicons name="checkmark" size={17} color={colors.onFlame} />
+                          <Text style={styles.focusActionText}>{t('home.done')}</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  </>
+                ) : (
+                  <View style={styles.clearDay}>
+                    <View style={styles.clearIcon}><Ionicons name="checkmark" size={24} color={colors.onSecondaryContainer} /></View>
+                    <View style={styles.clearCopy}>
+                      <Text style={styles.clearTitle}>{t('home.clearTitle')}</Text>
+                      <Text style={styles.clearText}>{t('home.clearBody')}</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+              <TouchableOpacity style={styles.progressCard} onPress={() => navigation.navigate('Progress')} accessibilityRole="button" accessibilityLabel={t('home.progressAccessibility', { progress })} accessibilityHint={t('home.progressHint')}>
+                <View style={styles.progressHeader}>
+                  <View>
+                    <Text style={styles.progressLabel}>{t('home.dailyProgress')}</Text>
+                    <Text style={styles.progressCount}>{actionableItems.length ? t('home.completedCount', { done: completedCount, total: actionableItems.length }) : t('home.noPending')}</Text>
+                  </View>
+                  <Text style={styles.progressPercent}>{progress}%</Text>
+                </View>
+                <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${progress}%` }]} /></View>
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}><Ionicons name="flame" size={16} color={colors.flame} /><Text style={styles.statValue}>{streak}</Text><Text style={styles.statLabel}>{t('home.streakDays')}</Text></View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}><Ionicons name="sparkles" size={15} color={colors.primary} /><Text style={styles.statValue}>{totalXp}</Text><Text style={styles.statLabel}>{t('home.totalXp')}</Text></View>
+                </View>
+                <View style={styles.progressLink}><Text style={styles.progressLinkText}>{t('home.viewProgress')}</Text><Ionicons name="chevron-forward" size={17} color={colors.primary} /></View>
+              </TouchableOpacity>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>{t('home.agenda')}</Text>
+                <Text style={styles.sectionMeta}>{timelineItems.length} {timelineItems.length === 1 ? t('calendar.activity') : t('calendar.activities')}</Text>
+              </View>
+            </>
+          )}
+        </>
+      }
+      ListEmptyComponent={emptyState ? null : <View style={styles.emptyDayBox}><SuiDoodle variant="sprout" size={62} color={colors.secondary} /><Text style={styles.emptyDayText}>{t('home.emptyAgenda')}</Text></View>}
+      renderItem={({ item }) => {
+        const presentation = originPresentation(item);
+        const isGoogle = item.origin === 'google_calendar';
+        const accent = item.origin === 'habit' ? colors.flame : colors.primary;
+        return (
+          <View style={styles.timelineRow}>
+            <View style={[styles.itemIcon, { backgroundColor: item.origin === 'habit' ? colors.flameContainer : colors.primaryContainer }]}>
+              <Ionicons name={presentation.icon} size={17} color={accent} />
+            </View>
+            <TouchableOpacity style={styles.itemCopy} onPress={() => openItem(item)} disabled={isGoogle} accessibilityRole={isGoogle ? undefined : 'button'}>
+              <View style={styles.itemMetaRow}><Text style={styles.itemTime}>{item.time ?? t('home.allDay')}</Text><Text style={styles.itemOrigin}>{t(presentation.labelKey)}</Text></View>
+              <Text style={[styles.itemTitle, item.completed && !isGoogle && styles.itemDone]} numberOfLines={2}>{item.title || t('calendar.untitledEvent')}</Text>
+              {item.linkedGoalTitle ? <Text style={styles.itemLink} numberOfLines={1}>{t('home.linkedGoal', { title: item.linkedGoalTitle })}</Text> : null}
+            </TouchableOpacity>
+            {!isGoogle ? (
+              <TouchableOpacity style={[styles.checkButton, item.completed && styles.checkButtonDone]} onPress={() => handleToggleItem(item)} accessibilityRole="checkbox" accessibilityState={{ checked: item.completed }} accessibilityLabel={item.title || t('calendar.untitledEvent')}>
+                {item.completed ? <Ionicons name="checkmark" size={16} color={colors.onSuccess} /> : null}
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        );
+      }}
+    />
   );
 };
 
@@ -316,6 +264,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
   const { colors, radius, type } = theme;
   return StyleSheet.create({
     content: {
+      width: '100%',
+      maxWidth: SCREEN_MAX_CONTENT_WIDTH,
+      alignSelf: 'center',
       paddingHorizontal: SPACING.lg,
       paddingTop: SPACING.sm,
       paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING,

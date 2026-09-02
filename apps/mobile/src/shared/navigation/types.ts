@@ -2,8 +2,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 export type MainTabParamList = {
   Overview: undefined;
-  Goals: { create?: boolean } | undefined;
-  Habits: { create?: boolean } | undefined;
+  Goals: { create?: boolean; editId?: string } | undefined;
+  Habits: { create?: boolean; editId?: string } | undefined;
   Calendar: undefined;
 };
 

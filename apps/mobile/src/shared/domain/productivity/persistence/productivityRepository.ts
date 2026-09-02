@@ -169,7 +169,7 @@ const emptyEnvelope = (
   lastSyncedAt: null,
 });
 
-const parseV9 = (raw: string): ProductivityEnvelopeV9 | null => {
+export const parseProductivityEnvelopeV9 = (raw: string): ProductivityEnvelopeV9 | null => {
   try {
     const value = JSON.parse(raw) as Partial<ProductivityEnvelopeV9>;
     if (
@@ -348,7 +348,9 @@ export const migrateToLatest = (
   sourceVersion: 6 | 7 | 8 | 9,
 ): ProductivityEnvelopeV9 | null => {
   if (sourceVersion === 9) {
-    return typeof value === 'string' ? parseV9(value) : parseV9(JSON.stringify(value));
+    return typeof value === 'string'
+      ? parseProductivityEnvelopeV9(value)
+      : parseProductivityEnvelopeV9(JSON.stringify(value));
   }
   const v7 = sourceVersion === 6 ? migrateV6ToV7(value) : value;
   if (!v7) return null;
@@ -388,7 +390,7 @@ export const writeLocalProductivity = async (envelope: ProductivityEnvelopeV9): 
 export const loadLocalProductivity = async (): Promise<ProductivityEnvelopeV9> => {
   const current = await AsyncStorage.getItem(PRODUCTIVITY_STORAGE_KEY);
   if (current) {
-    const parsed = parseV9(current);
+    const parsed = parseProductivityEnvelopeV9(current);
     if (parsed) return parsed;
     await AsyncStorage.removeItem(PRODUCTIVITY_STORAGE_KEY);
   }

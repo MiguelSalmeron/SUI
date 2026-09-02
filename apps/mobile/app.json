@@ -51,6 +51,12 @@
       "expo-secure-store",
       "@sentry/react-native",
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "520f347d-57ea-4b1d-b3bc-adfc5c0d499d"
+      }
+    },
+    "owner": "xsui"
   }
 }

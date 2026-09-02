@@ -44,6 +44,10 @@ export type ProductivityState = {
     gravity?: GoalGravity;
     milestones?: string[];
   }) => boolean;
+  updateGoal: (
+    id: string,
+    payload: { title: string; deadline: string; gravity: GoalGravity },
+  ) => boolean;
   toggleGoal: (id: string) => void;
   addMilestone: (goalId: string, title: string) => void;
   toggleMilestone: (goalId: string, milestoneId: string) => void;
@@ -54,6 +58,10 @@ export type ProductivityState = {
     frequency?: 'daily' | DayOfWeek[];
     linkedGoalId?: string | null;
   }) => boolean;
+  updateHabit: (
+    id: string,
+    payload: { title: string; frequency: 'daily' | DayOfWeek[]; linkedGoalId: string | null },
+  ) => boolean;
   toggleHabit: (id: string) => void;
   freezeStreak: (habitId: string) => void;
   removeHabit: (id: string) => void;
@@ -153,6 +161,26 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
     return true;
   },
 
+  updateGoal: (id, { title, deadline, gravity }) => {
+    const trimmed = title.trim();
+    const current = get().goals.find((goal) => goal.id === id);
+    if (!trimmed || !current) return false;
+    const impactDays = Array.from(
+      new Set(
+        (current.impactDays ?? [current.deadline]).map((day) =>
+          day === current.deadline ? deadline : day,
+        ),
+      ),
+    );
+    if (!impactDays.includes(deadline)) impactDays.push(deadline);
+    set((state) => ({
+      goals: state.goals.map((goal) =>
+        goal.id === id ? { ...goal, title: trimmed, deadline, gravity, impactDays } : goal,
+      ),
+    }));
+    return true;
+  },
+
   toggleGoal: (id) => {
     const goal = get().goals.find((item) => item.id === id);
     if (!goal) return;
@@ -221,7 +249,13 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
     }
   },
 
-  removeGoal: (id) => set((s) => ({ goals: s.goals.filter((g) => g.id !== id) })),
+  removeGoal: (id) =>
+    set((state) => ({
+      goals: state.goals.filter((goal) => goal.id !== id),
+      habits: state.habits.map((habit) =>
+        habit.linkedGoalId === id ? { ...habit, linkedGoalId: null } : habit,
+      ),
+    })),
 
   addHabit: ({ title, frequency = 'daily', linkedGoalId = null }) => {
     const trimmed = title.trim();
@@ -238,6 +272,18 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
     };
 
     set((s) => ({ habits: [newHabit, ...s.habits] }));
+    return true;
+  },
+
+  updateHabit: (id, { title, frequency, linkedGoalId }) => {
+    const trimmed = title.trim();
+    const current = get().habits.find((habit) => habit.id === id);
+    if (!trimmed || !current || (frequency !== 'daily' && frequency.length === 0)) return false;
+    set((state) => ({
+      habits: state.habits.map((habit) =>
+        habit.id === id ? { ...habit, title: trimmed, frequency, linkedGoalId } : habit,
+      ),
+    }));
     return true;
   },
 
