@@ -7,7 +7,7 @@
 ### Cultiva tu vida
 
 Organiza metas, hábitos, agenda y acompañamiento en una sola app.
-Modelo híbrido de datos. Sin presión innecesaria.
+Funciona incluso sin conexión. Tú decides cuándo sincronizar.
 
 [![Version](https://img.shields.io/badge/version-1.0.0-0B132B?style=for-the-badge&labelColor=0B132B&color=218ECE)](#)
 [![Platform](https://img.shields.io/badge/Android%20%7C%20iOS%20%7C%20Web-0B132B?style=for-the-badge&labelColor=0B132B&color=55796F)](#)
@@ -19,214 +19,102 @@ Modelo híbrido de datos. Sin presión innecesaria.
 
 ## ¿Qué es SUI?
 
-SUI es una app móvil de productividad y acompañamiento personal. Su propuesta es clara: ayudar a transformar intención en acción diaria sin convertir la productividad en presión.
+SUI es una app de productividad y acompañamiento personal. Ayuda a convertir intención en acciones cotidianas sin transformar productividad en presión.
 
-> **Organiza lo importante, construye constancia y decide tu siguiente paso con calma.**
+> **Organiza lo importante, construye constancia y elige tu siguiente paso con calma.**
 
-SUI está pensada para personas de **18 años o más** que quieren organizar metas, hábitos y agenda en un solo lugar, con una experiencia **hibrida** donde los datos viven tanto en el dispositivo como en la nube de forma coordinada.
+Está pensada para personas de **18 años o más** que quieren reunir metas, hábitos y agenda en un espacio claro. Puedes empezar sin cuenta, trabajar sin conexión y activar sincronización cuando quieras.
 
-Lo más importante:
-
-- **No es solo una lista de tareas.**
-- **No es un coach genérico.**
-- **No depende de que estés conectado todo el tiempo.**
-
-SUI funciona como un espacio propio: datos locales disponibles al instante y sincronización con la nube cuando el usuario lo activa.
+SUI no busca llenar tu día de pendientes. Busca ayudarte a reconocer qué importa, avanzar a tu ritmo y mantener control sobre tus datos.
 
 ---
 
-## ¿Cómo está construida su arquitectura?
+## ¿Cómo te ayuda SUI?
 
-SUI está diseñada con una arquitectura **mobile-first** y un modelo de datos **híbrido**, pensada para que la experiencia sea útil desde el primer segundo, sin importar el estado de la conexión.
+### Metas con dirección
 
-### Principios que guían la app
+Define resultados concretos, fechas e importancia. Divide objetivos grandes en hitos, revisa avance y ajusta planes cuando cambien tus prioridades.
 
-1. **Modelo híbrido.**
-   Datos locales y nube en pie de igualdad. El usuario decide cuándo sincronizar.
-2. **Cuenta opcional.**
-   Se puede empezar sin registro y activar sincronización después.
-3. **Experiencia continua.**
-   Lecturas, escrituras y navegación deben sentirse inmediatas.
-4. **Dominios claros.**
-   Metas, hábitos, agenda y chat conviven, pero no se mezclan de forma confusa.
-5. **Seguridad y confianza.**
-   La app está pensada para manejar datos personales con cuidado y transparencia.
+### Hábitos sostenibles
 
-### Bloques principales de la app
+Crea rutinas diarias o para días específicos. Puedes vincular cada hábito con una meta para recordar por qué esa acción importa.
 
-#### 1. Datos híbridos
+### Agenda unificada
 
-SUI guarda datos en el dispositivo y los sincroniza con la nube cuando el usuario lo decide.
+Consulta metas, hábitos y eventos en una sola vista. Si lo deseas, conecta Google Calendar para ver compromisos externos sin dejar SUI.
 
-Esto significa:
+### Progreso visible
 
-- las pantallas funcionan sin red,
-- la sincronización mantiene todo al día en múltiples dispositivos,
-- el usuario conserva control sobre sus datos.
+Observa constancia, racha, nivel y logros. SUI reconoce avance sin castigar pausas ni convertir cada día difícil en fracaso.
 
-#### 2. Productividad
+### Acompañamiento conversacional
 
-SUI separa con claridad:
-
-- **Metas**, que son resultados finitos,
-- **Hábitos**, que son acciones recurrentes,
-- **Agenda**, que representa el tiempo y los eventos.
-
-Además, ofrece un circuito de **progreso** con:
-
-- nivel,
-- XP,
-- racha,
-- gráfica semanal,
-- logros,
-- reporte nocturno.
-
-La gamificación está pensada para reconocer avance, **no para castigar**.
-
-#### 3. Acompañamiento conversacional
-
-SUI incluye un chat orientativo:
-
-- respuestas breves,
-- streaming,
-- historial local con expiración,
-- protocolo de crisis por país o idioma.
-
-El chat **no reemplaza atención profesional ni servicio de emergencia**, pero sirve como acompañamiento de uso general.
-
-#### 4. Sincronización
-
-Cuando el usuario lo activa, SUI sincroniza datos con la nube mediante:
-
-- outbox local,
-- pull incremental,
-- reconciliación de conflictos,
-- compactación por epoch,
-- estado autoritativo del servidor.
-
-#### 5. Seguridad y operación
-
-El backend y la app están pensados para:
-
-- authentication,
-- validación,
-- límites de uso,
-- eliminación de cuenta,
-- conexiones externas controladas.
+Recibe orientación breve para priorizar el día, dividir una meta, retomar un hábito o elegir primer paso. El chat sirve como apoyo general; no reemplaza atención profesional ni servicios de emergencia.
 
 ---
 
-## ¿Qué tecnologías usa SUI?
+## Una experiencia a tu ritmo
 
-SUI combina un stack moderno de apps móviles con servicios cloud para sincronización, autenticación, conexiones y asistencia conversacional.
+SUI parte de cinco principios:
 
-### Stack móvil
+1. **Empieza sin barreras.** La cuenta es opcional.
+2. **Sigue disponible.** Tus datos principales funcionan sin conexión.
+3. **Tú decides.** Sincronización, recordatorios y conexiones se activan cuando los necesitas.
+4. **Cada cosa tiene su lugar.** Metas, hábitos, agenda y chat se mantienen claros.
+5. **Avance sin presión.** Progreso informa y motiva; nunca busca castigarte.
 
-- **React Native** + **Expo** — base mobile-first multiplataforma
-- **TypeScript** — fiabilidad y mantenibilidad
-- **React 19** — interfaz declarativa moderna
-- **React Navigation** — navegación móvil madura
-- **Zustand** — estado ligero y predecible
-- **AsyncStorage** — persistencia local
-- **Firebase JS SDK** — auth, storage y reglas
-- **expo-notifications** — notificaciones push
-- **expo-font** — tipografía personalizada
-- **expo-localization** — i18n ES/EN
-- **expo-secure-store** — almacenamiento seguro
-- **react-native-svg** — gráficos e iconografía
-- **react-native-sse** — streaming en tiempo real
-- **Sentry** — observabilidad y monitoreo de errores
+Al conectar una cuenta puedes sincronizar entre dispositivos y elegir cómo combinar información local. Nada se elimina automáticamente durante ese proceso.
 
-### Plataformas objetivo
+---
 
-- **Android** — adaptive icon, splash screen, status bar configurada
-- **iOS** — Apple Sign-In, tablet soportado
-- **Web** — superficie adaptada para escritorio
+## Disponible en tus dispositivos
 
-### Backend y servicios
+SUI está diseñada para **Android, iOS y web**. La interfaz se adapta a distintos tamaños de pantalla e incluye:
 
-- **Firebase Auth** — correo, Google, Apple iOS, invitado
-- **Firestore** — base de datos con reglas por propietario
-- **Firebase App Check** — protección de endpoints
-- **Cloud Functions v2** — backend en Node.js 20
-- **Google Calendar API** — solo lectura, OAuth PKCE
-- **Azure OpenAI** — chat vía proxy backend con SSE
-- **CORS controlado** — allowlist de orígenes
-- **Rate limiting** — protección por usuario
-- **Secret Manager** — credenciales fuera del cliente
+- modo claro y oscuro,
+- español e inglés,
+- tamaños de texto ajustables,
+- navegación accesible,
+- uso local sin cuenta,
+- sincronización opcional.
 
-### Herramientas de calidad y distribución
-
-- **EAS** — builds y distribución para Android/iOS
-- **Jest** — testing unitario
-- **Firebase Emulator Suite** — desarrollo local
-- **ESLint** + **Prettier** — código consistente
-- **Knip** — detección de código muerto
-- **GitHub Actions** — CI automático
-
-> React Native + Expo + TypeScript en cliente. Firebase en servicios. Cloud Functions para sincronización, calendarización, seguridad y chat.
+La experiencia mantiene misma intención en cada plataforma: ofrecer una vista tranquila, directa y útil de tu día.
 
 ---
 
 ## Características
 
-### Productividad real sin ruido
+### Productividad sin ruido
 
-SUI está pensada para mostrar siguiente acción y carga del día sin saturar.
+Inicio muestra fecha, siguiente paso y carga del día cuando ya tienes contenido. Si estás comenzando, explica diferencia entre Meta y Hábito y te ayuda a crear primero.
 
-### Metas y hábitos separados
+### Metas editables
 
-No es lo mismo una meta finita que un hábito recurrente. SUI mantiene ambos dominios con claridad.
+Crea y actualiza título, fecha e importancia. Añade hitos para convertir resultados grandes en pasos manejables.
 
-### Agenda unificada
+### Hábitos flexibles
 
-Puedes ver metas, hábitos y eventos externos en una sola vista de calendario.
+Elige frecuencia diaria o días específicos. Vincula hábitos con metas y registra cumplimiento desde Inicio, Hábitos o Agenda.
+
+### Agenda integrada
+
+Reúne actividades propias y eventos externos. Google Calendar permanece como fuente de consulta para evitar cambios accidentales.
+
+### Recordatorios opcionales
+
+SUI explica para qué necesita permisos antes de solicitarlos. Puedes activar recordatorio local y desactivarlo cuando quieras.
 
 ### Chat con límites claros
 
-Acompañamiento conversacional breve, con:
+Sugerencias iniciales ayudan a comenzar una conversación sin enviar mensajes automáticamente. Historial local tiene duración limitada.
 
-- streaming en tiempo real,
-- historial local expirable,
-- protocolo de crisis por país o idioma.
+### Progreso amable
 
-### Conexiones externas opcionales
+Nivel, XP, racha, vista semanal y logros permiten reconocer avance sin convertir gamificación en obligación.
 
-Google Calendar es un ejemplo de integración pensada como complemento, no como requisito.
+### Datos bajo tu control
 
-### Progreso visible
-
-SUI muestra:
-
-- nivel y XP,
-- racha diaria,
-- gráfica de los últimos 7 días,
-- logros desbloqueables,
-- reporte nocturno con IA.
-
-### Modelo híbrido de datos
-
-Los datos viven tanto en el dispositivo como en la nube. El usuario controla cuándo sincronizar.
-
-### Fusión de datos
-
-Cuando se conecta una cuenta, SUI permite:
-
-- combinar datos locales y de la cuenta,
-- usar solo los datos de la cuenta,
-- o cancelar el proceso.
-
-Nada se elimina automáticamente.
-
-### Privacidad y seguridad
-
-SUI aplica:
-
-- autenticación por usuario,
-- reglas de acceso en backend,
-- validación de datos,
-- eliminación completa de cuenta,
-- conexiones con secrets solo en servidor.
+Trabaja desde dispositivo, sincroniza si lo eliges y decide cómo combinar datos al conectar cuenta.
 
 ---
 
@@ -234,143 +122,80 @@ SUI aplica:
 
 <div align="center">
 
-> _[Insertar aquí captura real de la app: inicio, metas, hábitos, agenda o chat]_
+> _[Insertar aquí captura real de Inicio, Metas, Hábitos, Agenda o Chat]_
 
 </div>
 
 ---
 
-## Configuración automática de Android
+## Primeros pasos
 
-SUI incluye configuración nativa para Android enfocada en que la app se vea y se sienta lista desde la primera instalación.
+1. Abre SUI y elige una Meta o un Hábito para comenzar.
+2. Añade fecha o frecuencia según corresponda.
+3. Revisa Agenda para ver cómo se organiza tu día.
+4. Activa recordatorios, cuenta o conexiones solo si aportan valor.
+5. Usa Progreso para observar constancia, no para juzgarla.
 
-- **Adaptive icon** con primer plano, fondo y versión monocromática
-- **Status bar** configurada con color y estilo coherentes
-- **Splash screen** con imagen y color de marca
-- **Package** `com.sui.app`
-- **Portrait** como orientación por defecto
-- **Expo autolinking** para dependencias nativas
-
-> SUI no solo es funcionalmente una app; también llega con la capa de configuración nativa necesaria para comportarse como app real en Android.
+Puedes cambiar tema, idioma, tamaño de texto y preferencias desde Ajustes.
 
 ---
 
 ## Contribuciones
 
-SUI tiene una estructura orientada a producto y calidad. Acepta contribuciones responsables.
+SUI acepta contribuciones responsables y enfocadas. Antes de proponer un cambio:
 
-### Recomendaciones
+- explica problema que resuelve,
+- mantén experiencia simple,
+- protege datos personales,
+- prueba comportamiento en móvil,
+- evita mezclar cambios sin relación.
 
-- mantener la separación entre dominios de producto,
-- no mezclar UI con lógica de sincronización,
-- respetar la arquitectura feature-first,
-- proponer cambios pequeños y enfocados,
-- probar en móvil antes de proponer cambios visuales amplios,
-- describir claramente el problema que se resuelve.
-
-### Buenas prácticas
-
-- una tarea por PR,
-- descripción clara del cambio,
-- evidencia de prueba cuando aplique,
-- respeto por el modelo híbrido de datos,
-- cuidado con datos sensibles y permisos.
+Objetivo compartido: mejorar producto sin perder claridad, calma ni confianza.
 
 ---
 
 ## Recopilación de datos y privacidad
 
-SUI está pensada con un enfoque de **privacidad por diseño**.
+SUI busca ser útil antes de pedir cuenta o permisos. Datos principales permanecen disponibles localmente y servicios opcionales se activan por decisión del usuario.
 
-### Principio central
+### Compromisos principales
 
-> El producto debe ser útil antes de pedir cuenta, y la nube solo debe aportar valor cuando el usuario lo elige.
-
-### Esto implica en la práctica
-
-- modo local sin cuenta obligatoria,
-- chat con historial local expirable,
-- eliminación completa de cuenta,
+- sin rastreo oculto,
+- sin recopilación innecesaria,
 - conexiones externas opcionales,
-- secretos y credenciales fuera del cliente,
-- reglas y validación en backend.
+- historial del chat limitado,
+- control sobre sincronización y eliminación,
+- permisos solicitados al activar función relacionada.
 
-### Lo que SUI no incluye
+Puedes eliminar cuenta y datos asociados. Credenciales de servicios permanecen fuera de la app.
 
-- rastreo oculto,
-- telemetría con contenido sensible,
-- sincronización automática del chat como contenido persistente,
-- recopilación innecesaria para funcionar.
-
-> SUI no es un servicio de emergencia ni un reemplazo de atención profesional.
-
-El protocolo de crisis está pensado para orientación y derivación, no para diagnóstico ni intervención automatizada.
-
-Si se publica en tiendas, la política de privacidad y los términos deben estar disponibles y claros.
+> SUI no es servicio de emergencia ni reemplazo de atención profesional.
 
 ---
 
 ## Descargo de responsabilidad
 
-SUI es una herramienta de productividad y acompañamiento de uso general.
+SUI es una herramienta de productividad y acompañamiento de uso general. No está diseñada para diagnosticar, tratar, curar o prevenir condiciones médicas o psicológicas.
 
-**No está diseñada para:**
+Funciones de chat son orientativas. Pueden no cubrir todos los casos, y disponibilidad puede verse afectada por conexión o mantenimiento.
 
-- diagnosticar,
-- tratar,
-- curar,
-- prevenir ninguna condición médica o psicológica,
-- sustituir atención profesional,
-- actuar como sistema de emergencia.
+Usa información según tu contexto y busca ayuda profesional cuando la necesites.
 
-Las funciones de chat son **orientativas** y están limitadas por un protocolo de crisis por país o idioma.
-
-El usuario es responsable de:
-
-- su uso de la app,
-- sus decisiones personales,
-- buscar atención profesional cuando la necesite,
-- interpretar la información de forma adecuada.
-
-SUI puede fallar, quedar offline, requerir mantenimiento o no cubrir todos los casos posibles.
-
-> **Ante situaciones de riesgo, contacta servicios de emergencia o profesionales competentes.**
+> **Ante riesgo inmediato, contacta servicios de emergencia o profesionales competentes.**
 
 ---
 
 ## Licencia y directrices
 
-### Licencia
+Consulta [LICENSE](LICENSE) para conocer licencia del proyecto.
 
-Consulta el archivo [LICENSE](LICENSE) del proyecto.
-
-### Directrices de uso
-
-SUI es una app real con responsabilidad sobre:
-
-- privacidad,
-- datos personales,
-- integridad del usuario,
-- uso responsable de IA,
-- publicación en tiendas.
-
-Usa la app de forma legal y responsable. No la depender como único recurso en emergencias. Respeta los límites del chat, los términos y la privacidad de otros usuarios.
+Usa SUI de forma legal y responsable. Respeta privacidad de otras personas, límites del chat y condiciones de servicios conectados. No dependas de la app como único recurso ante una emergencia.
 
 ---
 
 ## Agradecimiento
 
-SUI se apoya en un ecosistema técnico sólido y en herramientas que hacen posible una app moderna, estable y mantenible.
-
-- **React Native / Expo** — base mobile-first multiplataforma
-- **Firebase** — autenticación, storage, reglas y Cloud Functions
-- **TypeScript** — fiabilidad y mantenibilidad
-- **Zustand** — simplicidad de estado
-- **React Navigation** — navegación móvil madura
-- **Sentry** — observabilidad
-- **Google Calendar API** — conexión externa opcional
-- **Azure OpenAI** — asistencia conversacional vía backend
-- Toda la comunidad open-source que sostiene herramientas fundamentales para apps actuales
+Gracias a comunidad de software libre y herramientas que hacen posible una experiencia multiplataforma, estable y accesible.
 
 ---
 
