@@ -169,9 +169,11 @@ const emptyEnvelope = (
   lastSyncedAt: null,
 });
 
-export const parseProductivityEnvelopeV9 = (raw: string): ProductivityEnvelopeV9 | null => {
+export const parseProductivityEnvelopeV9 = (raw: unknown): ProductivityEnvelopeV9 | null => {
   try {
-    const value = JSON.parse(raw) as Partial<ProductivityEnvelopeV9>;
+    const value = (
+      typeof raw === 'string' ? JSON.parse(raw) : raw
+    ) as Partial<ProductivityEnvelopeV9>;
     if (
       value.schemaVersion !== 9 ||
       !isValidData(value.data) ||
@@ -348,9 +350,7 @@ export const migrateToLatest = (
   sourceVersion: 6 | 7 | 8 | 9,
 ): ProductivityEnvelopeV9 | null => {
   if (sourceVersion === 9) {
-    return typeof value === 'string'
-      ? parseProductivityEnvelopeV9(value)
-      : parseProductivityEnvelopeV9(JSON.stringify(value));
+    return parseProductivityEnvelopeV9(value);
   }
   const v7 = sourceVersion === 6 ? migrateV6ToV7(value) : value;
   if (!v7) return null;

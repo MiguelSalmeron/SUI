@@ -10,9 +10,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import DateTimePicker from '@expo/ui/community/datetime-picker';
+import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import { Ionicons } from '@/shared/ui/Ionicons';
-import { SPACING, useAppTheme } from '@/shared/theme/theme';
+import { SCREEN_MAX_CONTENT_WIDTH, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { localDateKey } from '@/shared/domain/productivity/public';
 import type { Goal, GoalGravity } from '@/shared/types/models';
 import { useI18n } from '@/shared/i18n/i18n';
@@ -43,6 +43,7 @@ export const GoalFormModal = ({ visible, initialGoal, onSubmit, onCancel }: Prop
   const { t, formatDate } = useI18n();
   const [title, setTitle] = useState('');
   const [deadline, setDeadline] = useState(deadlineFromToday(7));
+  const [deadlineTouched, setDeadlineTouched] = useState(false);
   const [gravity, setGravity] = useState<GoalGravity>('low');
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +51,7 @@ export const GoalFormModal = ({ visible, initialGoal, onSubmit, onCancel }: Prop
     if (visible) {
       setTitle(initialGoal?.title ?? '');
       setDeadline(initialGoal?.deadline ?? deadlineFromToday(7));
+      setDeadlineTouched(false);
       setGravity(initialGoal?.gravity ?? 'low');
       setError(null);
     }
@@ -62,11 +64,15 @@ export const GoalFormModal = ({ visible, initialGoal, onSubmit, onCancel }: Prop
       return;
     }
     const parsed = new Date(`${deadline}T12:00:00`);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(deadline) || Number.isNaN(parsed.getTime())) {
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(deadline) ||
+      Number.isNaN(parsed.getTime()) ||
+      localDateKey(parsed) !== deadline
+    ) {
       setError(t('goalForm.invalidDate'));
       return;
     }
-    if (!initialGoal && deadline < localDateKey()) {
+    if ((!initialGoal || deadlineTouched) && deadline < localDateKey()) {
       setError(t('goalForm.pastDate'));
       return;
     }
@@ -138,6 +144,7 @@ export const GoalFormModal = ({ visible, initialGoal, onSubmit, onCancel }: Prop
                     style={[styles.option, selected && styles.optionSelected]}
                     onPress={() => {
                       setDeadline(deadlineFromToday(days));
+                      setDeadlineTouched(true);
                       setError(null);
                     }}
                     accessibilityRole="radio"
@@ -168,6 +175,7 @@ export const GoalFormModal = ({ visible, initialGoal, onSubmit, onCancel }: Prop
                 value={deadline}
                 onChangeText={(value) => {
                   setDeadline(value);
+                  setDeadlineTouched(true);
                   setError(null);
                 }}
                 placeholder="YYYY-MM-DD"
@@ -182,6 +190,7 @@ export const GoalFormModal = ({ visible, initialGoal, onSubmit, onCancel }: Prop
                   onChange={(_, value) => {
                     if (!value) return;
                     setDeadline(localDateKey(value));
+                    setDeadlineTouched(true);
                     setError(null);
                   }}
                 />
@@ -258,6 +267,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       backgroundColor: colors.scrim,
     },
     sheet: {
+      width: '100%',
+      maxWidth: SCREEN_MAX_CONTENT_WIDTH,
+      alignSelf: 'center',
       maxHeight: '92%',
       backgroundColor: colors.surface,
       borderTopLeftRadius: radius.xl,
@@ -284,9 +296,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     title: { ...type.headlineSm, color: colors.onSurface },
     subtitle: { ...type.bodyMd, color: colors.onSurfaceVariant, marginTop: 2 },
     closeButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.surfaceContainerLow,
