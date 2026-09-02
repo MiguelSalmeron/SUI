@@ -11,9 +11,10 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@/shared/ui/Ionicons';
-import { SPACING, useAppTheme } from '@/shared/theme/theme';
+import { SCREEN_MAX_CONTENT_WIDTH, SPACING, useAppTheme } from '@/shared/theme/theme';
 import type { DayOfWeek, Goal, Habit } from '@/shared/types/models';
 import { useI18n } from '@/shared/i18n/i18n';
+import type { TranslationKey } from '@/shared/i18n/translations';
 
 type HabitDraft = {
   title: string;
@@ -30,6 +31,8 @@ type Props = {
 };
 
 const DAYS: DayOfWeek[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const dayKey = (day: DayOfWeek, short = false): TranslationKey =>
+  `habitForm.${short ? 'dayShort' : 'day'}.${day}` as TranslationKey;
 
 export const HabitFormModal = ({ visible, initialHabit, goals, onSubmit, onCancel }: Props) => {
   const theme = useAppTheme();
@@ -141,9 +144,7 @@ export const HabitFormModal = ({ visible, initialHabit, goals, onSubmit, onCance
                   size={18}
                   color={daily ? colors.primary : colors.onSurfaceVariant}
                 />
-                <Text
-                  style={[styles.optionText, daily && styles.optionTextSelected]}
-                >
+                <Text style={[styles.optionText, daily && styles.optionTextSelected]}>
                   {t('habits.everyDay')}
                 </Text>
               </TouchableOpacity>
@@ -158,9 +159,7 @@ export const HabitFormModal = ({ visible, initialHabit, goals, onSubmit, onCance
                   size={18}
                   color={!daily ? colors.primary : colors.onSurfaceVariant}
                 />
-                <Text
-                  style={[styles.optionText, !daily && styles.optionTextSelected]}
-                >
+                <Text style={[styles.optionText, !daily && styles.optionTextSelected]}>
                   {t('habitForm.specificDays')}
                 </Text>
               </TouchableOpacity>
@@ -183,10 +182,10 @@ export const HabitFormModal = ({ visible, initialHabit, goals, onSubmit, onCance
                       }}
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: selected }}
-                      accessibilityLabel={t(`habitForm.day.${day}`)}
+                      accessibilityLabel={t(dayKey(day))}
                     >
                       <Text style={[styles.dayText, selected && styles.optionTextSelected]}>
-                        {t(`habitForm.dayShort.${day}`)}
+                        {t(dayKey(day, true))}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -277,6 +276,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
   return StyleSheet.create({
     backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.scrim },
     sheet: {
+      width: '100%',
+      maxWidth: SCREEN_MAX_CONTENT_WIDTH,
+      alignSelf: 'center',
       maxHeight: '92%',
       backgroundColor: colors.surface,
       borderTopLeftRadius: radius.xl,
@@ -303,9 +305,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     title: { ...type.headlineSm, color: colors.onSurface },
     subtitle: { ...type.bodyMd, color: colors.onSurfaceVariant, marginTop: 2 },
     closeButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.surfaceContainerLow,
