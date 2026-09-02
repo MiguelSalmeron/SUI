@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
     "deps:check": "expo install --check",
-    "eas-build-pre-install": "node ../../scripts/check-production-config.mjs"
+    "eas-build-pre-install": "node ../../scripts/check-production-config.mjs",
+    "eas-build-post-install": "cd ../../packages/contracts && npm run build"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.14",
