@@ -1,8 +1,8 @@
 # PRD — Sui
 
 - **Estado:** fuente canónica de producto
-- **Versión:** 1.0
-- **Actualizado:** 28 de agosto de 2026
+- **Versión:** 1.1
+- **Actualizado:** 1 de septiembre de 2026
 
 ## 1. Visión
 
@@ -102,6 +102,7 @@ desde Inicio.
 - Explicar Meta = resultado finito; Hábito = acción recurrente.
 - Mostrar CTA independientes: `Crear primera meta` y `Añadir primer hábito`.
 - No crear datos antes de confirmación.
+- Ocultar próxima acción, progreso y agenda hasta crear primera Meta o Hábito.
 
 ### 6.3 Metas
 
@@ -109,6 +110,8 @@ desde Inicio.
 - Fecha, progreso, importancia e hitos.
 - Separar activas/completadas.
 - Vínculo opcional desde Hábito sin mezclar modelos.
+- Edición conserva ID, creación, progreso, hitos y completado. Cambio de fecha
+  reemplaza fecha previa en agenda sin duplicarla.
 
 ### 6.4 Hábitos
 
@@ -116,6 +119,8 @@ desde Inicio.
 - Frecuencia semanal y racha.
 - Contextos `Hoy` y `Mis hábitos`.
 - Vínculo opcional con Meta.
+- Selector semanal lunes–domingo; frecuencia específica requiere mínimo un día.
+- Eliminar Meta desvincula Hábitos relacionados sin eliminarlos.
 
 ### 6.5 Agenda
 
@@ -136,6 +141,16 @@ desde Inicio.
 - Historial local con TTL de 48 horas; nunca sincronizado.
 - Protocolo de crisis por país/idioma.
 - Sin contenido conversacional en logs o telemetría.
+- Estado vacío ofrece sugerencias ES/EN. Tap rellena y enfoca input; nunca envía.
+
+### 6.11 Notificaciones y preferencias
+
+- Recordatorio nocturno local a las 21:30, desactivado por defecto.
+- Permiso se solicita sólo después de explicación y acción explícita.
+- Preferencia se activa sólo tras programación exitosa; estado bloqueado ofrece
+  abrir ajustes del sistema.
+- Reconciliación de inicio consulta permiso existente, nunca solicita uno nuevo.
+- Tema, texto e idioma usan selección explícita con radios.
 
 ### 6.8 Cuenta y auth
 
@@ -196,6 +211,8 @@ users/{uid}/connections/{provider}  # backend-only
 - UI local útil ≤1.5 s.
 - Tabs con carga diferida.
 - Listas/calendario memoizados donde aporte valor.
+- Inicio, Metas, Hábitos y agenda diaria virtualizan listas.
+- Contenido centrado con ancho máximo 560 dp en tablet/web.
 - Ninguna espera artificial.
 
 ### Accesibilidad

@@ -1,8 +1,8 @@
 # Sistema de diseño de producto — Sui
 
 - **Estado:** fuente canónica de UX/UI
-- **Versión:** 2.0
-- **Actualizado:** 28 de agosto de 2026
+- **Versión:** 2.1
+- **Actualizado:** 1 de septiembre de 2026
 
 ## 1. Dirección
 
@@ -84,6 +84,9 @@ Una tarjeta educativa contiene brote, diferencia Meta/Hábito y dos CTA
 independientes. Después de crear primer elemento desaparece; no se reemplaza por
 contenido simulado.
 
+Mientras no exista Meta ni Hábito, ocultar Próxima acción, Progreso y Agenda.
+Fecha, explicación y dos CTA constituyen estado completo.
+
 ## 5. Plantillas de pantalla
 
 ### Inicio
@@ -105,6 +108,9 @@ pasado nunca aparece como próxima acción.
 - Tarjeta: importancia, título, fecha, progreso, resumen de hitos.
 - Crear: nombre, horizonte, importancia, hitos opcionales.
 - Completar/reabrir y eliminar viven en menú secundario; eliminar confirma.
+- Tap en contenido principal abre edición. Hitos y menú mantienen acciones propias.
+- Edición conserva identidad, progreso, hitos y estado. Fecha admite selección exacta;
+  atajos 1/2/4 semanas sólo aceleran selección.
 
 ### Hábitos
 
@@ -112,6 +118,8 @@ pasado nunca aparece como próxima acción.
 - Tarjeta: acción, frecuencia, estado diario, racha, vínculo opcional.
 - Completar es acción primaria de un toque.
 - Proteger racha/eliminar viven en menú secundario.
+- Tap en contenido principal abre edición; checkbox y menú no la disparan.
+- Frecuencia específica usa selector lunes–domingo con mínimo un día.
 
 ### Agenda
 
@@ -141,6 +149,10 @@ Privacidad/Datos. Estado cuenta usa uno de:
 - `Sin conexión`;
 - `Error de sincronización`.
 
+Tema, tamaño de texto e idioma usan modal con radios y selección actual visible.
+Notificaciones inician desactivadas. Activación explica recordatorio local de 21:30,
+después solicita permiso; denegación mantiene switch apagado. Inicio nunca abre prompt.
+
 ## 6. Marca
 
 Nombre visible: **Sui**. `SUI` sólo para IDs técnicos o nombres históricos.
@@ -167,14 +179,14 @@ degradado, recorte, halo o placa blanca accidental.
 
 ## 7. Color
 
-| Rol | Valor | Uso |
-| --- | --- | --- |
-| Azul Sui | `#218ECE` | marca e ilustración |
-| Marino | `#0B132B` | fondo oscuro y texto |
-| Blanco | `#FFFFFF` | superficies y marca inversa |
-| Azul acción | `#1677A6` | botones/selección con blanco |
-| Salvia | `#55796F` | hábitos, constancia, éxito |
-| Naranja | `#E87536` | racha, prioridad, celebración |
+| Rol         | Valor     | Uso                           |
+| ----------- | --------- | ----------------------------- |
+| Azul Sui    | `#218ECE` | marca e ilustración           |
+| Marino      | `#0B132B` | fondo oscuro y texto          |
+| Blanco      | `#FFFFFF` | superficies y marca inversa   |
+| Azul acción | `#1677A6` | botones/selección con blanco  |
+| Salvia      | `#55796F` | hábitos, constancia, éxito    |
+| Naranja     | `#E87536` | racha, prioridad, celebración |
 
 Claro: fondo `#F6FAFC`, superficies blancas/azuladas. Oscuro: fondo `#0B132B`,
 superficies `#111C32`, `#16233D`, `#1C2C49`.
@@ -254,8 +266,9 @@ Errores explican impacto y siguiente acción.
 
 - Referencias: 320, 375, 430 dp; tablet; web.
 - Contenido mantiene ancho legible en superficies grandes.
+- Contenido principal usa máximo `SCREEN_MAX_CONTENT_WIDTH = 560` y se centra.
 - Acciones envuelven texto; no dependen de altura fija.
-- Objetivo táctil 44 dp recomendado, 40 dp mínimo excepcional.
+- Objetivo táctil 44 dp; calendario puede usar 40 dp sólo a 320 dp.
 - Texto normal `4.5:1`; texto grande/controles `3:1`.
 - Roles/labels/states accesibles.
 - Decoración fuera del árbol accesible.
@@ -278,6 +291,8 @@ Mantener:
 - barra inferior personalizada;
 - tokens semánticos y tipográficos;
 - formularios de Meta/Hábito dentro de cada feature;
+- `SelectionModal` para preferencias de opción única;
+- `FlatList` para Inicio, Metas, Hábitos y lista diaria de Agenda;
 - estados vacíos guiados;
 - CTA Calendar contextual.
 
