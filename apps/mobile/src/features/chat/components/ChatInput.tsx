@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, type RefObject } from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
@@ -8,21 +8,22 @@ import { useI18n } from '@/shared/i18n/i18n';
 interface Props {
   /** true mientras el asistente responde: bloquea el envío. */
   busy: boolean;
+  text: string;
+  onChangeText: (text: string) => void;
   onSend: (text: string) => void;
+  inputRef?: RefObject<TextInput | null>;
 }
 
-export const ChatInput = ({ busy, onSend }: Props) => {
+export const ChatInput = ({ busy, text, onChangeText, onSend, inputRef }: Props) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { t } = useI18n();
-  const [text, setText] = useState('');
-
   const submit = () => {
     const trimmed = text.trim();
     if (!trimmed || busy) return;
     onSend(trimmed);
-    setText('');
+    onChangeText('');
   };
 
   const disabled = busy || text.trim().length === 0;
@@ -30,11 +31,12 @@ export const ChatInput = ({ busy, onSend }: Props) => {
   return (
     <View style={styles.wrapper}>
       <TextInput
+        ref={inputRef}
         style={styles.input}
         placeholder={t('chat.inputPlaceholder')}
         placeholderTextColor={colors.onSurfaceVariant}
         value={text}
-        onChangeText={setText}
+        onChangeText={onChangeText}
         maxLength={MAX_INPUT_CHARS}
         multiline
         editable={!busy}
