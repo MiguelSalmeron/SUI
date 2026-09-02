@@ -55,6 +55,7 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) =>
     },
     copy: {
       flex: 1,
+      minWidth: 180,
     },
     title: {
       ...theme.type.headlineSm,
