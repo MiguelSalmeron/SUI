@@ -67,21 +67,6 @@ Al conectar una cuenta puedes sincronizar entre dispositivos y elegir cómo comb
 
 ---
 
-## Disponible en tus dispositivos
-
-SUI está diseñada para **Android, iOS y web**. La interfaz se adapta a distintos tamaños de pantalla e incluye:
-
-- modo claro y oscuro,
-- español e inglés,
-- tamaños de texto ajustables,
-- navegación accesible,
-- uso local sin cuenta,
-- sincronización opcional.
-
-La experiencia mantiene misma intención en cada plataforma: ofrecer una vista tranquila, directa y útil de tu día.
-
----
-
 ## Captura de pantalla de la app
 
 <div align="center">
