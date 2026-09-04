@@ -82,42 +82,6 @@ La experiencia mantiene misma intención en cada plataforma: ofrecer una vista t
 
 ---
 
-## Características
-
-### Productividad sin ruido
-
-Inicio muestra fecha, siguiente paso y carga del día cuando ya tienes contenido. Si estás comenzando, explica diferencia entre Meta y Hábito y te ayuda a crear primero.
-
-### Metas editables
-
-Crea y actualiza título, fecha e importancia. Añade hitos para convertir resultados grandes en pasos manejables.
-
-### Hábitos flexibles
-
-Elige frecuencia diaria o días específicos. Vincula hábitos con metas y registra cumplimiento desde Inicio, Hábitos o Agenda.
-
-### Agenda integrada
-
-Reúne actividades propias y eventos externos. Google Calendar permanece como fuente de consulta para evitar cambios accidentales.
-
-### Recordatorios opcionales
-
-SUI explica para qué necesita permisos antes de solicitarlos. Puedes activar recordatorio local y desactivarlo cuando quieras.
-
-### Chat con límites claros
-
-Sugerencias iniciales ayudan a comenzar una conversación sin enviar mensajes automáticamente. Historial local tiene duración limitada.
-
-### Progreso amable
-
-Nivel, XP, racha, vista semanal y logros permiten reconocer avance sin convertir gamificación en obligación.
-
-### Datos bajo tu control
-
-Trabaja desde dispositivo, sincroniza si lo eliges y decide cómo combinar datos al conectar cuenta.
-
----
-
 ## Captura de pantalla de la app
 
 <div align="center">
@@ -137,20 +101,6 @@ Trabaja desde dispositivo, sincroniza si lo eliges y decide cómo combinar datos
 5. Usa Progreso para observar constancia, no para juzgarla.
 
 Puedes cambiar tema, idioma, tamaño de texto y preferencias desde Ajustes.
-
----
-
-## Contribuciones
-
-SUI acepta contribuciones responsables y enfocadas. Antes de proponer un cambio:
-
-- explica problema que resuelve,
-- mantén experiencia simple,
-- protege datos personales,
-- prueba comportamiento en móvil,
-- evita mezclar cambios sin relación.
-
-Objetivo compartido: mejorar producto sin perder claridad, calma ni confianza.
 
 ---
 
@@ -190,12 +140,6 @@ Usa información según tu contexto y busca ayuda profesional cuando la necesite
 Consulta [LICENSE](LICENSE) para conocer licencia del proyecto.
 
 Usa SUI de forma legal y responsable. Respeta privacidad de otras personas, límites del chat y condiciones de servicios conectados. No dependas de la app como único recurso ante una emergencia.
-
----
-
-## Agradecimiento
-
-Gracias a comunidad de software libre y herramientas que hacen posible una experiencia multiplataforma, estable y accesible.
 
 ---
 
