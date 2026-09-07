@@ -10,6 +10,7 @@ import {
 } from '@/features/auth/public';
 import { ChatScreen } from '@/features/chat/public';
 import { SummaryScreen } from '@/features/home/public';
+import { PomodoroScreen } from '@/features/pomodoro/public';
 import { useIntroStore, WelcomeScreen } from '@/features/onboarding/public';
 import { ConnectionsScreen, SettingsScreen } from '@/features/settings/public';
 import { useAppTheme } from '@/shared/theme/theme';
@@ -92,6 +93,15 @@ export const AppNavigator = () => {
           name="Chat"
           component={ChatScreen}
           options={{ ...standardHeader, title: 'Sui', headerBackTitle: t('nav.backHome') }}
+        />
+        <Stack.Screen
+          name="Pomodoro"
+          component={PomodoroScreen}
+          options={{
+            ...standardHeader,
+            title: t('pomodoro.title'),
+            headerBackTitle: t('nav.backHome'),
+          }}
         />
         <Stack.Screen
           name="Progress"

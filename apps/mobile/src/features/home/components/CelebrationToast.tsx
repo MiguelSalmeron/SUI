@@ -20,7 +20,9 @@ export const CelebrationToast = () => {
       ? t('celebration.goal')
       : kind === 'habit'
         ? t('celebration.habit')
-        : t('celebration.perfectDay');
+        : kind === 'pomodoro'
+          ? t('celebration.pomodoro')
+          : t('celebration.perfectDay');
   const visibleSubtitle = subtitle || t('celebration.consistency');
   const translateY = useRef(new Animated.Value(-120)).current;
   const opacity = useRef(new Animated.Value(0)).current;
