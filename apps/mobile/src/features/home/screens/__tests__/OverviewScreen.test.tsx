@@ -1,5 +1,12 @@
 import { fireEvent, render } from '@testing-library/react-native';
 
+// La tarjeta real basta aquí; el barrel completo arrastra el motor y
+// expo-notifications (ESM) fuera del alcance de jest.
+jest.mock('@/features/pomodoro/public', () => {
+  const { PomodoroCard } = jest.requireActual('../../../pomodoro/components/PomodoroCard');
+  return { PomodoroCard };
+});
+
 const mockNavigation = { navigate: jest.fn() };
 const mockState = {
   stateLoaded: true,
@@ -49,9 +56,15 @@ jest.mock('@/shared/ui/SuiDoodle', () => ({ SuiDoodle: () => null }));
 import { OverviewScreen } from '../OverviewScreen';
 
 describe('OverviewScreen vacío', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    mockState.goals = [];
+    mockState.habits = [];
+    // Deja terminar la hidratación asíncrona del store de Pomodoro.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
 
-  it('muestra fecha y dos CTA; oculta analítica y agenda', async () => {
+  it('muestra fecha y dos CTA; oculta analítica, agenda y Pomodoro', async () => {
     const screen = await render(<OverviewScreen />);
 
     expect(screen.getByText('martes, 1 de septiembre')).toBeTruthy();
@@ -61,6 +74,18 @@ describe('OverviewScreen vacío', () => {
     expect(screen.queryByText('home.next')).toBeNull();
     expect(screen.queryByText('home.dailyProgress')).toBeNull();
     expect(screen.queryByText('home.agenda')).toBeNull();
+    expect(screen.queryByTestId('pomodoro-card')).toBeNull();
+  });
+
+  it('muestra la tarjeta Pomodoro con datos y abre la sesión', async () => {
+    mockState.goals = [{ id: 'goal-1', title: 'Entregar', completed: false } as never];
+
+    const screen = await render(<OverviewScreen />);
+
+    const card = screen.getByTestId('pomodoro-card');
+    expect(card).toBeTruthy();
+    fireEvent.press(card);
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('Pomodoro');
   });
 
   it('abre creación desde CTA', async () => {

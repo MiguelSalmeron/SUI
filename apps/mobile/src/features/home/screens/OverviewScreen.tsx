@@ -17,6 +17,7 @@ import {
 } from '@/shared/theme/theme';
 import { Skeleton } from '@/shared/ui/Skeleton';
 import { buildUnifiedTimeline, loadCachedGoogleEvents } from '@/features/calendar/public';
+import { PomodoroCard } from '@/features/pomodoro/public';
 import type { GoogleEvent, TimelineItem } from '@/shared/types/models';
 import { localDateKey, useProductivityStore } from '@/shared/domain/productivity/public';
 import type { MainTabParamList, RootStackParamList } from '@/shared/navigation/types';
@@ -263,6 +264,7 @@ export const OverviewScreen = () => {
                   <Ionicons name="chevron-forward" size={17} color={colors.primary} />
                 </View>
               </TouchableOpacity>
+              <PomodoroCard onPress={() => navigation.navigate('Pomodoro')} />
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>{t('home.agenda')}</Text>
                 <Text style={styles.sectionMeta}>
