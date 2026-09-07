@@ -27,7 +27,7 @@ Principios:
 
 ## 2. Público y mercado
 
-- Personas de 16 años o más.
+- Personas de 18 años o más.
 - Lanzamiento inicial en español e inglés.
 - Teléfono como superficie principal; tablet y web como superficies adaptadas.
 - Publicación gradual sólo en países con Términos, Privacidad y recursos de
@@ -90,7 +90,7 @@ desde Inicio.
 
 - Bienvenida visual breve con isologo principal, `Cultiva tu vida` y mosaico
   abstracto de capacidades.
-- Confirmación “Tengo al menos 16 años”. Guardar versión/fecha de política; no
+- Confirmación de mayoría de edad (18 años o más) implícita en la aceptación legal. Guardar versión/fecha de política; no
   guardar edad.
 - Acciones: crear cuenta, acceder, continuar local.
 - Términos y Privacidad configurables por ambiente/mercado.
@@ -245,7 +245,7 @@ users/{uid}/connections/{provider}  # backend-only
 - Escritura hacia calendarios externos.
 - Sincronizar historial de Chat.
 - Red social, equipos, feed o competencia pública.
-- Menores de 16 años o consentimiento parental.
+- Menores de 18 años o consentimiento parental.
 - Diagnóstico clínico o intervención de emergencia automatizada.
 - IA creando productividad sin confirmación.
 

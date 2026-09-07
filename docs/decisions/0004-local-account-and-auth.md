@@ -9,7 +9,7 @@ Sui debe ser útil antes de pedir una cuenta. Forzar registro durante bienvenida
 
 ## Decisión
 
-La entrada queda como bienvenida visual, consentimiento 16+ y tres rutas: crear cuenta, iniciar sesión o continuar sin cuenta.
+La entrada queda como bienvenida visual, confirmación 18+ (en términos legales) y tres rutas: crear cuenta, iniciar sesión o continuar sin cuenta.
 
 - `local`: productividad sólo en almacenamiento del dispositivo. Firebase Auth anónimo puede habilitar APIs técnicas, pero reglas Firestore prohíben productividad anónima.
 - `registered`: correo verificado, Google o Apple. Activa respaldo y sincronización.
