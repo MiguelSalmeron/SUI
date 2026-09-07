@@ -16,6 +16,7 @@ import type {
   SyncEntityType,
   SyncMetadata,
   SyncMutation,
+  UserPreferences,
 } from '../sync/syncTypes';
 
 export const PRODUCTIVITY_STORAGE_KEY = 'sui-productivity-v9';
@@ -23,6 +24,29 @@ export const LEGACY_PRODUCTIVITY_V8_STORAGE_KEY = 'sui-productivity-v8';
 export const LEGACY_PRODUCTIVITY_STORAGE_KEY = 'sui-productivity-v7';
 const DEVICE_ID_KEY = '@sui/device-id-v1';
 const SUMMARY_ID = 'singleton';
+
+export const getProductivityStorageKey = (uid?: string | null): string => {
+  const normalized = uid?.trim();
+  return normalized ? `${PRODUCTIVITY_STORAGE_KEY}:${normalized}` : PRODUCTIVITY_STORAGE_KEY;
+};
+
+export const hasMeaningfulProductivityData = (data: Partial<ProductivityData>): boolean => {
+  const hasGoals = Array.isArray(data.goals) && data.goals.length > 0;
+  const hasHabits = Array.isArray(data.habits) && data.habits.length > 0;
+  const hasSnapshots =
+    Array.isArray(data.weeklyHistory) &&
+    data.weeklyHistory.some(
+      (s) =>
+        s &&
+        ((typeof s.goalsCompleted === 'number' && s.goalsCompleted > 0) ||
+          (typeof s.goalsTotal === 'number' && s.goalsTotal > 0) ||
+          (typeof s.habitsCompleted === 'number' && s.habitsCompleted > 0) ||
+          (typeof s.habitsTotal === 'number' && s.habitsTotal > 0)),
+    );
+  const hasStreak = typeof data.streakCount === 'number' && data.streakCount > 0;
+  const hasXp = typeof data.totalXp === 'number' && data.totalXp > 0;
+  return hasGoals || hasHabits || hasSnapshots || hasStreak || hasXp;
+};
 
 export const EMPTY_PRODUCTIVITY_DATA: ProductivityData = {
   goals: [],
@@ -47,6 +71,7 @@ export const productivitySummary = (data: ProductivityData): ProductivitySummary
   streakCount: data.streakCount,
   lastCompletedDate: data.lastCompletedDate,
   totalXp: data.totalXp,
+  ...(data.preferences ? { preferences: data.preferences } : {}),
 });
 
 export const getDeviceId = async (): Promise<string> => {
@@ -383,19 +408,38 @@ const migrateLegacy = async (): Promise<ProductivityEnvelopeV9> => {
   return parseAndMigrate(v6, 6) ?? emptyEnvelope();
 };
 
-export const writeLocalProductivity = async (envelope: ProductivityEnvelopeV9): Promise<void> => {
-  await AsyncStorage.setItem(PRODUCTIVITY_STORAGE_KEY, JSON.stringify(envelope));
+export const writeLocalProductivity = async (
+  envelope: ProductivityEnvelopeV9,
+  uid?: string | null,
+): Promise<void> => {
+  const targetKey = getProductivityStorageKey(uid);
+  await AsyncStorage.setItem(targetKey, JSON.stringify(envelope));
 };
 
-export const loadLocalProductivity = async (): Promise<ProductivityEnvelopeV9> => {
-  const current = await AsyncStorage.getItem(PRODUCTIVITY_STORAGE_KEY);
+export const loadLocalProductivity = async (
+  uid?: string | null,
+): Promise<ProductivityEnvelopeV9> => {
+  const targetKey = getProductivityStorageKey(uid);
+  const current = await AsyncStorage.getItem(targetKey);
   if (current) {
     const parsed = parseProductivityEnvelopeV9(current);
     if (parsed) return parsed;
-    await AsyncStorage.removeItem(PRODUCTIVITY_STORAGE_KEY);
+    await AsyncStorage.removeItem(targetKey);
+  }
+  // Si targetKey es diferente de la clave base y no tiene datos, buscar si hay datos en la clave legacy sin prefijo
+  if (targetKey !== PRODUCTIVITY_STORAGE_KEY) {
+    const legacy = await AsyncStorage.getItem(PRODUCTIVITY_STORAGE_KEY);
+    if (legacy) {
+      const parsed = parseProductivityEnvelopeV9(legacy);
+      if (parsed) {
+        await AsyncStorage.setItem(targetKey, legacy);
+        await AsyncStorage.removeItem(PRODUCTIVITY_STORAGE_KEY);
+        return parsed;
+      }
+    }
   }
   const migrated = await migrateLegacy();
-  await writeLocalProductivity(migrated);
+  await writeLocalProductivity(migrated, uid);
   return migrated;
 };
 
@@ -482,13 +526,32 @@ const queueDeleted = (
   }
 };
 
+const isDefaultPreferences = (prefs?: UserPreferences): boolean => {
+  if (!prefs) return true;
+  return (
+    (!prefs.theme || prefs.theme === 'system') &&
+    (!prefs.fontSize || prefs.fontSize === 'medium') &&
+    (!prefs.language || prefs.language === 'system') &&
+    !prefs.notificationsEnabled
+  );
+};
+
+export const isDefaultSummary = (summary: ProductivitySummary): boolean =>
+  summary.streakCount === 0 &&
+  summary.totalXp === 0 &&
+  !summary.lastCompletedDate &&
+  isDefaultPreferences(summary.preferences);
+
 const queueSummary = (
   data: ProductivityData,
   previous: SyncMetadata | null,
   outbox: SyncMutation[],
   deviceId: string,
-): SyncMetadata => {
+): SyncMetadata | null => {
   const summary = productivitySummary(data);
+  if (!previous && isDefaultSummary(summary)) {
+    return null;
+  }
   const fingerprint = fingerprintValue(summary);
   if (previous?.fingerprint === fingerprint && !previous.deletedAt) return previous;
   const meta = nextMetadata(previous ?? undefined, fingerprint, deviceId);
@@ -498,8 +561,9 @@ const queueSummary = (
 
 export const persistLocalProductivity = async (
   data: ProductivityData,
+  uid?: string | null,
 ): Promise<ProductivityEnvelopeV9> => {
-  const current = await loadLocalProductivity();
+  const current = await loadLocalProductivity(uid);
   const deviceId = await getDeviceId();
   const metadata = { ...current.metadata };
   const outbox = [...current.outbox];
@@ -519,7 +583,7 @@ export const persistLocalProductivity = async (
   );
   const summaryMeta = queueSummary(data, current.summaryMeta, outbox, deviceId);
   const envelope = { ...current, data, metadata, summaryMeta, outbox };
-  await writeLocalProductivity(envelope);
+  await writeLocalProductivity(envelope, uid);
   return envelope;
 };
 
@@ -662,16 +726,20 @@ export const replaceLocalProductivity = async (
   metadata: Record<string, SyncMetadata> = {},
   summaryMeta: SyncMetadata | null = null,
   pullState: PullStateV9 = emptyPullState(),
+  uid?: string | null,
 ): Promise<void> => {
-  await writeLocalProductivity({
-    schemaVersion: 9,
-    data,
-    metadata,
-    summaryMeta,
-    outbox: [],
-    pullState,
-    lastSyncedAt: new Date().toISOString(),
-  });
+  await writeLocalProductivity(
+    {
+      schemaVersion: 9,
+      data,
+      metadata,
+      summaryMeta,
+      outbox: [],
+      pullState,
+      lastSyncedAt: new Date().toISOString(),
+    },
+    uid,
+  );
 };
 
 export const combineProductivity = (
@@ -693,14 +761,56 @@ export const combineProductivity = (
     streakCount: Math.max(local.streakCount, cloud.streakCount),
     lastCompletedDate: local.lastCompletedDate ?? cloud.lastCompletedDate,
     totalXp: Math.max(local.totalXp, cloud.totalXp),
+    preferences: local.preferences ?? cloud.preferences,
   };
 };
 
-export const clearLocalProductivity = async (): Promise<void> => {
+export const clearLocalProductivity = async (uid?: string | null): Promise<void> => {
+  if (uid?.trim()) {
+    const userKey = getProductivityStorageKey(uid);
+    await AsyncStorage.removeItem(userKey);
+    return;
+  }
   await AsyncStorage.multiRemove([
     PRODUCTIVITY_STORAGE_KEY,
     LEGACY_PRODUCTIVITY_V8_STORAGE_KEY,
     LEGACY_PRODUCTIVITY_STORAGE_KEY,
     HOME_STATE_KEY,
   ]);
+};
+
+export const migrateLocalGuestToUser = async (
+  uid: string,
+  guestUid?: string | null,
+): Promise<void> => {
+  if (!uid?.trim()) return;
+  const userKey = getProductivityStorageKey(uid);
+  const guestKey = guestUid?.trim()
+    ? getProductivityStorageKey(guestUid)
+    : PRODUCTIVITY_STORAGE_KEY;
+  let guestRaw = await AsyncStorage.getItem(guestKey);
+  if (!guestRaw && guestKey !== PRODUCTIVITY_STORAGE_KEY) {
+    guestRaw = await AsyncStorage.getItem(PRODUCTIVITY_STORAGE_KEY);
+  }
+  if (!guestRaw) return;
+  const userExisting = await AsyncStorage.getItem(userKey);
+  if (!userExisting) {
+    await AsyncStorage.setItem(userKey, guestRaw);
+  } else {
+    const guestEnvelope = parseProductivityEnvelopeV9(guestRaw);
+    const userEnvelope = parseProductivityEnvelopeV9(userExisting);
+    if (guestEnvelope && userEnvelope) {
+      const mergedData = combineProductivity(guestEnvelope.data, userEnvelope.data);
+      const mergedEnvelope: ProductivityEnvelopeV9 = {
+        ...userEnvelope,
+        data: mergedData,
+        outbox: [...userEnvelope.outbox, ...guestEnvelope.outbox],
+      };
+      await AsyncStorage.setItem(userKey, JSON.stringify(mergedEnvelope));
+    }
+  }
+  await AsyncStorage.removeItem(guestKey);
+  if (guestKey !== PRODUCTIVITY_STORAGE_KEY) {
+    await AsyncStorage.removeItem(PRODUCTIVITY_STORAGE_KEY);
+  }
 };

@@ -1,17 +1,19 @@
 import * as Haptics from 'expo-haptics';
-import { XP_GOAL, XP_HABIT } from './gamification';
+import { XP_GOAL, XP_HABIT, XP_POMODORO } from './gamification';
 
-export type CelebrationKind = 'goal' | 'habit' | 'perfect_day';
+export type CelebrationKind = 'goal' | 'habit' | 'pomodoro' | 'perfect_day';
 
 const XP_BY_KIND: Record<CelebrationKind, number> = {
   goal: XP_GOAL,
   habit: XP_HABIT,
+  pomodoro: XP_POMODORO,
   perfect_day: 0,
 };
 
 const TITLE_BY_KIND: Record<CelebrationKind, string> = {
   goal: '¡Meta cumplida!',
   habit: '¡Hábito hecho!',
+  pomodoro: '¡Sesión completada!',
   perfect_day: '¡Día perfecto!',
 };
 

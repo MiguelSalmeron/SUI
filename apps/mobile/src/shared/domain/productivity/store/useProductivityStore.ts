@@ -10,10 +10,12 @@ import {
   type DailySnapshot,
   computeTotalXp,
   makeSnapshot,
+  snapshotXp,
   upsertSnapshot,
 } from '../model/gamification';
 import type { Goal, Habit, GoalGravity, DayOfWeek, Milestone } from '@/shared/types/models';
 import { useIntroStore } from '@/shared/account/useIntroStore';
+import { applyUserPreferences, getCurrentPreferences } from '@/shared/preferences/useSettingsStore';
 import {
   clearLocalProductivity,
   combineProductivity,
@@ -72,7 +74,7 @@ export type ProductivityState = {
   saveState: () => Promise<void>;
   syncNow: () => Promise<void>;
   resolveCloudMerge: (strategy: 'combine' | 'cloud') => Promise<void>;
-  clearState: () => Promise<void>;
+  clearState: (options?: { preserveStorage?: boolean }) => Promise<void>;
 };
 
 let saveInFlight = false;
@@ -88,6 +90,7 @@ const toProductivityData = (state: ProductivityState): ProductivityData => ({
   lastCompletedDate: state.lastCompletedDate,
   weeklyHistory: state.weeklyHistory,
   totalXp: state.totalXp,
+  preferences: getCurrentPreferences(),
 });
 
 const normalizeLoadedData = (data: ProductivityData): ProductivityData => {
@@ -101,6 +104,8 @@ const normalizeLoadedData = (data: ProductivityData): ProductivityData => {
   }
   const reset = applyDailyReset(data.goals, data.habits, data.lastResetDate);
   weeklyHistory = upsertSnapshot(weeklyHistory, makeSnapshot(reset.goals, reset.habits, todayKey));
+  const explicitXp = typeof data.totalXp === 'number' ? data.totalXp : 0;
+  const totalXp = explicitXp > 0 ? explicitXp : computeTotalXp(weeklyHistory);
   return {
     ...data,
     goals: reset.goals,
@@ -111,7 +116,7 @@ const normalizeLoadedData = (data: ProductivityData): ProductivityData => {
       lastCompletedDate: data.lastCompletedDate,
     }),
     weeklyHistory,
-    totalXp: computeTotalXp(weeklyHistory),
+    totalXp,
   };
 };
 
@@ -354,15 +359,41 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
   loadState: async () => {
     if (get().stateLoaded) return;
     try {
-      const envelope = await loadLocalProductivity();
+      const user = auth.currentUser;
+      const currentUid = user?.uid;
+      const envelope = await loadLocalProductivity(currentUid);
+      if (envelope.data.preferences) {
+        applyUserPreferences(envelope.data.preferences);
+      }
       const normalized = normalizeLoadedData(envelope.data);
-      set({
-        ...statePatch(normalized),
-        stateLoaded: true,
-        syncStatus: envelope.outbox.length ? 'pending' : 'local',
-        lastSyncedAt: envelope.lastSyncedAt,
-      });
-      void get().syncNow();
+      const intro = useIntroStore.getState();
+      const passwordProvider = user?.providerData.some((item) => item.providerId === 'password');
+      const canSync = Boolean(
+        intro.syncEnabled && user && !user.isAnonymous && (!passwordProvider || user.emailVerified),
+      );
+      const needsBootstrap =
+        envelope.pullState.needsBootstrap || envelope.pullState.syncEpoch === null;
+
+      if (canSync && needsBootstrap) {
+        set({
+          ...statePatch(normalized),
+          syncStatus: 'syncing',
+          lastSyncedAt: envelope.lastSyncedAt,
+        });
+        try {
+          await get().syncNow();
+        } finally {
+          set({ stateLoaded: true });
+        }
+      } else {
+        set({
+          ...statePatch(normalized),
+          stateLoaded: true,
+          syncStatus: envelope.outbox.length ? 'pending' : 'local',
+          lastSyncedAt: envelope.lastSyncedAt,
+        });
+        if (canSync) void get().syncNow();
+      }
     } catch {
       set({ stateLoaded: true, syncStatus: 'error' });
     }
@@ -384,13 +415,20 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
       const { goals, habits, streak, lastCompletedDate, lastResetDate, weeklyHistory } = get();
 
       const todaySnapshot = makeSnapshot(goals, habits);
-      const updatedHistory = upsertSnapshot(weeklyHistory, todaySnapshot);
-      const totalXp = computeTotalXp(updatedHistory);
+      const existingToday = weeklyHistory.find((s) => s.date === todaySnapshot.date);
+      const oldTodayXp = existingToday ? snapshotXp(existingToday) : 0;
+      const newTodayXp = snapshotXp(todaySnapshot);
+      const xpDelta = newTodayXp - oldTodayXp;
+      const currentXp = typeof get().totalXp === 'number' ? get().totalXp : 0;
+      const nextTotalXp = Math.max(0, currentXp + xpDelta);
 
-      if (updatedHistory !== weeklyHistory || totalXp !== get().totalXp) {
-        set({ weeklyHistory: updatedHistory, totalXp });
+      const updatedHistory = upsertSnapshot(weeklyHistory, todaySnapshot);
+
+      if (updatedHistory !== weeklyHistory || nextTotalXp !== currentXp) {
+        set({ weeklyHistory: updatedHistory, totalXp: nextTotalXp });
       }
 
+      const preferences = getCurrentPreferences();
       const data: ProductivityData = {
         goals,
         habits,
@@ -398,9 +436,11 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
         streakCount: streak,
         lastCompletedDate: lastCompletedDate,
         weeklyHistory: updatedHistory,
-        totalXp,
+        totalXp: nextTotalXp,
+        preferences,
       };
-      const envelope = await persistLocalProductivity(data);
+      const currentUid = auth.currentUser?.uid;
+      const envelope = await persistLocalProductivity(data, currentUid);
       const syncEnabled = useIntroStore.getState().syncEnabled;
       set({
         syncStatus: syncEnabled && envelope.outbox.length ? 'pending' : 'local',
@@ -437,6 +477,9 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
     set({ syncStatus: 'syncing' });
     try {
       const result = await synchronizeProductivity(user.uid, toProductivityData(get()));
+      if (result.data.preferences) {
+        applyUserPreferences(result.data.preferences);
+      }
       const normalized = normalizeLoadedData(result.data);
       const currentData = toProductivityData(get());
       const stateChanged =
@@ -494,9 +537,13 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
   resolveCloudMerge: async (strategy) => {
     const user = auth.currentUser;
     if (!user || user.isAnonymous) return;
+    const previousAnonymousUid = useIntroStore.getState().previousAnonymousUid;
     set({ syncStatus: 'syncing' });
     try {
-      const local = await loadLocalProductivity();
+      const guestKey = previousAnonymousUid?.trim() ? previousAnonymousUid : undefined;
+      const guestEnvelope = await loadLocalProductivity(guestKey);
+      const localEnvelope = await loadLocalProductivity(user.uid);
+      const localData = combineProductivity(guestEnvelope.data, localEnvelope.data);
       const cloud = await pullCloudProductivity(user.uid);
       const emptyCloud: ProductivityData = {
         goals: [],
@@ -508,8 +555,11 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
       const selected =
         strategy === 'cloud'
           ? (cloud?.data ?? emptyCloud)
-          : combineProductivity(local.data, cloud?.data ?? emptyCloud);
+          : combineProductivity(localData, cloud?.data ?? emptyCloud);
       const normalized = normalizeLoadedData(selected);
+      if (normalized.preferences) {
+        applyUserPreferences(normalized.preferences);
+      }
       let lastSyncedAt = new Date().toISOString();
       if (strategy === 'cloud') {
         await replaceLocalProductivity(
@@ -517,6 +567,7 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
           cloud?.metadata ?? {},
           cloud?.summaryMeta ?? null,
           cloud?.pullState,
+          user.uid,
         );
       } else {
         await replaceLocalProductivity(
@@ -524,9 +575,14 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
           cloud?.metadata ?? {},
           cloud?.summaryMeta ?? null,
           cloud?.pullState,
+          user.uid,
         );
         const result = await synchronizeProductivity(user.uid, normalized);
         lastSyncedAt = result.lastSyncedAt;
+      }
+      if (previousAnonymousUid?.trim()) {
+        await clearLocalProductivity(previousAnonymousUid);
+        useIntroStore.getState().setPreviousAnonymousUid(null);
       }
       useIntroStore.getState().registerAccount(true);
       set({
@@ -541,8 +597,11 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
     }
   },
 
-  clearState: async () => {
-    await clearLocalProductivity();
+  clearState: async (options?: { preserveStorage?: boolean }) => {
+    if (!options?.preserveStorage) {
+      const currentUid = auth.currentUser?.uid;
+      await clearLocalProductivity(currentUid);
+    }
     set({
       goals: [],
       habits: [],
@@ -551,7 +610,7 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
       lastResetDate: undefined,
       weeklyHistory: [],
       totalXp: 0,
-      stateLoaded: true,
+      stateLoaded: false,
       syncStatus: 'local',
       lastSyncedAt: null,
     });

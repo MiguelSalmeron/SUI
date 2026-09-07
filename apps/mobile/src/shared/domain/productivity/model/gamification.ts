@@ -15,6 +15,7 @@ export interface Achievement {
 
 export const XP_GOAL = 10;
 export const XP_HABIT = 5;
+export const XP_POMODORO = 10;
 
 export const snapshotXp = (s: DailySnapshot): number =>
   s.goalsCompleted * XP_GOAL + s.habitsCompleted * XP_HABIT;

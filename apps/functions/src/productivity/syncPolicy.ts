@@ -47,6 +47,21 @@ export const decideMutation = (
     mutation.baseServerRevision !== current.revision ||
     (!current.exists && current.revision > 0)
   ) {
+    if (mutation.entityType === 'summary' && current.exists && current.authoritative) {
+      const serverRevision = current.revision + 1;
+      return {
+        apply: true,
+        outcome: { mutationId: mutation.mutationId, status: 'applied', serverRevision },
+        nextMeta: {
+          schemaVersion: 2,
+          serverRevision,
+          originDeviceId: mutation.deviceId,
+          clientUpdatedAt: mutation.clientUpdatedAt,
+          fingerprint: mutation.fingerprint,
+          lastMutationId: mutation.mutationId,
+        },
+      };
+    }
     return {
       apply: false,
       outcome: {

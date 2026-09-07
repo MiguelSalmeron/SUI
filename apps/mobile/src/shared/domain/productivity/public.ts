@@ -10,3 +10,8 @@ export {
 export { isHabitDueToday, localDateKey } from './model/homeStorage';
 export { useCelebrationStore } from './store/useCelebrationStore';
 export { useProductivityStore, type ProductivityState } from './store/useProductivityStore';
+export {
+  clearLocalProductivity,
+  hasMeaningfulProductivityData,
+  migrateLocalGuestToUser,
+} from './persistence/productivityRepository';

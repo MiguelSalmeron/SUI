@@ -4,6 +4,7 @@ import {
   applyPendingMutations,
   emptyPullState,
   getDeviceId,
+  hasMeaningfulProductivityData,
   loadLocalProductivity,
   metadataKey,
   pendingMetadata,
@@ -139,6 +140,7 @@ const pullPages = async (
 const bootstrap = async (
   dependencies: SyncDependencies,
   deviceId: string,
+  uid?: string | null,
   forceRebase = false,
 ): Promise<{ envelope: ProductivityEnvelopeV9; pages: number; compacted: number }> => {
   const pulled = await pullPages(
@@ -150,7 +152,7 @@ const bootstrap = async (
     dependencies.requestSync,
   );
   const cloud = applyCloudChanges(EMPTY_PRODUCTIVITY_DATA, {}, pulled.changes, pulled.summary);
-  const latest = await dependencies.loadLocal();
+  const latest = await dependencies.loadLocal(uid);
   const outbox =
     forceRebase || latest.pullState.needsRebase
       ? rebasePendingMutations(latest.outbox, cloud.metadata, cloud.summaryMeta)
@@ -171,7 +173,7 @@ const bootstrap = async (
     },
     lastSyncedAt: latest.lastSyncedAt,
   };
-  await dependencies.writeLocal(next);
+  await dependencies.writeLocal(next, uid);
   return { envelope: next, pages: pulled.pages, compacted: pulled.compacted };
 };
 
@@ -211,12 +213,39 @@ const applyOutcomeAuthority = (
   outcomes: MutationOutcomeV9[],
   snapshot: SyncMutation[],
 ) => {
-  let current = { data, metadata, summaryMeta };
+  let current = {
+    data,
+    metadata: { ...metadata },
+    summaryMeta: summaryMeta ? { ...summaryMeta } : null,
+  };
   const mutations = new Map(snapshot.map((item) => [item.mutationId, item]));
   for (const outcome of outcomes) {
-    if (outcome.status !== 'rejected') continue;
     const mutation = mutations.get(outcome.mutationId);
     if (!mutation) continue;
+
+    if (outcome.status === 'applied') {
+      if (mutation.entityType === 'summary') {
+        if (current.summaryMeta) {
+          current.summaryMeta = {
+            ...current.summaryMeta,
+            serverRevision: outcome.serverRevision,
+            lastMutationId: outcome.mutationId,
+          };
+        }
+      } else {
+        const key = metadataKey(mutation.entityType, mutation.entityId);
+        if (current.metadata[key]) {
+          current.metadata[key] = {
+            ...current.metadata[key],
+            serverRevision: outcome.serverRevision,
+            lastMutationId: outcome.mutationId,
+          };
+        }
+      }
+      continue;
+    }
+
+    if (outcome.status !== 'rejected') continue;
     if (outcome.authoritative) {
       const authoritative = outcome.authoritative;
       const cloud =
@@ -237,22 +266,38 @@ const applyOutcomeAuthority = (
 };
 
 export const synchronizeProductivity = async (
-  _uid: string,
+  uid: string,
   data: ProductivityData,
   dependencies: SyncDependencies = defaultDependencies,
 ): Promise<ProductivitySyncResult> => {
-  let initial = await dependencies.persistLocal(data);
+  const stored = await dependencies.loadLocal(uid);
+  const needsBootstrap = stored.pullState.needsBootstrap || stored.pullState.syncEpoch === null;
   const deviceId = await dependencies.getDeviceId();
   let pages = 0;
   let compacted = 0;
   let epochResets = 0;
   let bootstrapped = false;
-  if (initial.pullState.needsBootstrap || initial.pullState.syncEpoch === null) {
-    const result = await bootstrap(dependencies, deviceId);
+  let initial: ProductivityEnvelopeV9;
+
+  if (
+    needsBootstrap &&
+    !hasMeaningfulProductivityData(data) &&
+    !hasMeaningfulProductivityData(stored.data)
+  ) {
+    const result = await bootstrap(dependencies, deviceId, uid);
     initial = result.envelope;
     pages += result.pages;
     compacted += result.compacted;
     bootstrapped = true;
+  } else {
+    initial = await dependencies.persistLocal(data, uid);
+    if (initial.pullState.needsBootstrap || initial.pullState.syncEpoch === null) {
+      const result = await bootstrap(dependencies, deviceId, uid);
+      initial = result.envelope;
+      pages += result.pages;
+      compacted += result.compacted;
+      bootstrapped = true;
+    }
   }
 
   const snapshot = initial.outbox.slice(0, 50);
@@ -268,7 +313,7 @@ export const synchronizeProductivity = async (
   compacted += pulled.compacted;
   if (pulled.resetRequired) {
     epochResets += 1;
-    const result = await bootstrap(dependencies, deviceId, true);
+    const result = await bootstrap(dependencies, deviceId, uid, true);
     initial = result.envelope;
     pages += result.pages;
     compacted += result.compacted;
@@ -288,7 +333,7 @@ export const synchronizeProductivity = async (
   }
 
   const processed = new Set(pulled.outcomes.map((item) => item.mutationId));
-  const latest = await dependencies.loadLocal();
+  const latest = await dependencies.loadLocal(uid);
   const remaining = latest.outbox.filter((mutation) => !processed.has(mutation.mutationId));
   const cloud = applyCloudChanges(latest.data, latest.metadata, pulled.changes, pulled.summary);
   const authoritative = applyOutcomeAuthority(
@@ -298,15 +343,20 @@ export const synchronizeProductivity = async (
     pulled.outcomes,
     snapshot,
   );
+  const rebasedRemaining = rebasePendingMutations(
+    remaining,
+    authoritative.metadata,
+    authoritative.summaryMeta,
+  );
   const syncedAt = dependencies.now();
   const next: ProductivityEnvelopeV9 = {
     schemaVersion: 9,
-    data: applyPendingMutations(authoritative.data, remaining),
-    metadata: pendingMetadata(authoritative.metadata, { ...latest, outbox: remaining }),
-    summaryMeta: remaining.some((item) => item.entityType === 'summary')
+    data: applyPendingMutations(authoritative.data, rebasedRemaining),
+    metadata: pendingMetadata(authoritative.metadata, { ...latest, outbox: rebasedRemaining }),
+    summaryMeta: rebasedRemaining.some((item) => item.entityType === 'summary')
       ? latest.summaryMeta
       : authoritative.summaryMeta,
-    outbox: remaining,
+    outbox: rebasedRemaining,
     pullState: {
       syncEpoch: pulled.syncEpoch,
       cursors: pulled.cursors,
@@ -315,14 +365,14 @@ export const synchronizeProductivity = async (
     },
     lastSyncedAt: syncedAt,
   };
-  await dependencies.writeLocal(next);
+  await dependencies.writeLocal(next, uid);
   return {
     data: next.data,
     metadata: next.metadata,
     summaryMeta: next.summaryMeta,
     pullState: next.pullState,
     lastSyncedAt: syncedAt,
-    pending: remaining.length,
+    pending: rebasedRemaining.length,
     accepted: pulled.outcomes.filter((item) => item.status === 'applied').length,
     replayed: pulled.outcomes.filter((item) => item.status === 'replayed').length,
     rejected: pulled.outcomes.filter((item) => item.status === 'rejected').length,

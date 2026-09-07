@@ -214,4 +214,212 @@ describe('productivity sync coordinator v9', () => {
     ]);
     expect(requestSync.mock.calls[2][0].mutations).toEqual([]);
   });
+
+  it('bootstrap en frío no persiste datos vacíos antes de descargar de la nube', async () => {
+    const emptyBootstrapEnvelope: ProductivityEnvelopeV9 = {
+      schemaVersion: 9,
+      data: emptyData(),
+      metadata: {},
+      summaryMeta: null,
+      outbox: [],
+      pullState: { syncEpoch: null, cursors, needsBootstrap: true, needsRebase: false },
+      lastSyncedAt: null,
+    };
+    let local = { ...emptyBootstrapEnvelope };
+    const requestSync = jest
+      .fn()
+      .mockResolvedValueOnce(
+        response({
+          syncEpoch: 1,
+          changes: [
+            {
+              entityType: 'habit',
+              entityId: 'cloud-habit',
+              data: {
+                id: 'cloud-habit',
+                title: 'Hábito Nube',
+                completed: true,
+                frequency: 'daily',
+                streak: 5,
+                createdAt: '2026-09-01',
+              },
+              meta: {
+                schemaVersion: 2,
+                originDeviceId: 'other-device',
+                clientUpdatedAt: '2026-09-01T10:00:00.000Z',
+                fingerprint: 'cloud-fp',
+                serverRevision: 1,
+                lastMutationId: 'mut-1',
+              },
+              serverUpdatedAt: timestamp,
+            },
+          ],
+          summary: {
+            data: { streakCount: 5, totalXp: 150 },
+            meta: {
+              schemaVersion: 2,
+              originDeviceId: 'other-device',
+              clientUpdatedAt: '2026-09-01T10:00:00.000Z',
+              fingerprint: 'summary-fp',
+              serverRevision: 1,
+              lastMutationId: 'mut-2',
+            },
+            serverUpdatedAt: timestamp,
+          },
+        }),
+      )
+      .mockResolvedValueOnce(response({ syncEpoch: 1 }));
+
+    const persistLocalMock = jest.fn(async (data: ProductivityData) => ({
+      ...local,
+      data,
+    }));
+    const deps: SyncDependencies = {
+      persistLocal: persistLocalMock,
+      loadLocal: jest.fn(async () => local),
+      writeLocal: jest.fn(async (value) => {
+        local = value;
+      }),
+      requestSync,
+      getDeviceId: jest.fn(async () => 'device-a'),
+      now: () => '2026-09-01T12:00:00.000Z',
+    };
+
+    const result = await synchronizeProductivity('user-bootstrap', emptyData(), deps);
+
+    expect(persistLocalMock).not.toHaveBeenCalled();
+    expect(result.data.habits).toHaveLength(1);
+    expect(result.data.habits[0].title).toBe('Hábito Nube');
+    expect(result.data.streakCount).toBe(5);
+    expect(result.data.totalXp).toBe(150);
+  });
+
+  it('cold bootstrap con snapshot diario sintético generado por normalización no sobrescribe racha ni XP remotos con ceros', async () => {
+    const normalizedSyntheticData: ProductivityData = {
+      ...emptyData(),
+      weeklyHistory: [
+        {
+          date: '2026-09-01',
+          goalsCompleted: 0,
+          goalsTotal: 0,
+          habitsCompleted: 0,
+          habitsTotal: 0,
+        },
+      ],
+      lastResetDate: '2026-09-01',
+    };
+
+    let local: ProductivityEnvelopeV9 = {
+      schemaVersion: 9,
+      data: normalizedSyntheticData,
+      metadata: {},
+      summaryMeta: null,
+      outbox: [],
+      pullState: { syncEpoch: null, cursors, needsBootstrap: true, needsRebase: false },
+      lastSyncedAt: null,
+    };
+
+    const requestSync = jest
+      .fn()
+      .mockResolvedValueOnce(
+        response({
+          syncEpoch: 1,
+          changes: [
+            {
+              entityType: 'habit',
+              entityId: 'cloud-habit',
+              data: {
+                id: 'cloud-habit',
+                title: 'Hábito Nube',
+                completed: true,
+                frequency: 'daily',
+                streak: 15,
+                createdAt: '2026-09-01',
+              },
+              meta: {
+                schemaVersion: 2,
+                originDeviceId: 'other-device',
+                clientUpdatedAt: '2026-09-01T10:00:00.000Z',
+                fingerprint: 'cloud-fp',
+                serverRevision: 1,
+                lastMutationId: 'mut-1',
+              },
+              serverUpdatedAt: timestamp,
+            },
+          ],
+          summary: {
+            data: { streakCount: 15, totalXp: 450 },
+            meta: {
+              schemaVersion: 2,
+              originDeviceId: 'other-device',
+              clientUpdatedAt: '2026-09-01T10:00:00.000Z',
+              fingerprint: 'summary-fp',
+              serverRevision: 1,
+              lastMutationId: 'mut-2',
+            },
+            serverUpdatedAt: timestamp,
+          },
+        }),
+      )
+      .mockResolvedValueOnce(response({ syncEpoch: 1 }));
+
+    let storedEnvelope = local;
+    const { persistLocalProductivity } = jest.requireActual('../persistence/productivityRepository');
+    const deps: SyncDependencies = {
+      persistLocal: jest.fn(async (d, u) => {
+        const env = await persistLocalProductivity(d, u);
+        storedEnvelope = env;
+        return env;
+      }),
+      loadLocal: jest.fn(async () => storedEnvelope),
+      writeLocal: jest.fn(async (value) => {
+        storedEnvelope = value;
+      }),
+      requestSync,
+      getDeviceId: jest.fn(async () => 'device-a'),
+      now: () => '2026-09-01T12:00:00.000Z',
+    };
+
+    const result = await synchronizeProductivity(
+      'user-bootstrap-synthetic',
+      normalizedSyntheticData,
+      deps,
+    );
+
+    expect(deps.persistLocal).not.toHaveBeenCalled();
+    expect(result.data.streakCount).toBe(15);
+    expect(result.data.totalXp).toBe(450);
+    expect(storedEnvelope.outbox.filter((m) => m.entityType === 'summary')).toHaveLength(0);
+  });
+
+  it('rebase actualiza baseServerRevision de mutaciones pendientes en outbox tras completar respuesta previa', async () => {
+    const initial = envelope();
+    const newer: SyncMutation = {
+      ...mutation,
+      mutationId: 'mutation-2',
+      baseServerRevision: 1,
+      fingerprint: 'newer',
+      payload: { ...(mutation.payload as ProductivityData['habits'][number]), title: 'Nueva Versión' },
+    };
+    const latest = envelope([newer]);
+    latest.data.habits[0].title = 'Nueva Versión';
+
+    let writtenEnvelope: ProductivityEnvelopeV9 | undefined;
+    const deps = dependencies(
+      initial,
+      jest.fn(async () =>
+        response({
+          outcomes: [{ mutationId: 'mutation-1', status: 'applied', serverRevision: 2 }],
+        }),
+      ),
+      jest.fn(async () => latest),
+    );
+    deps.writeLocal = jest.fn(async (env) => {
+      writtenEnvelope = env;
+    });
+
+    const result = await synchronizeProductivity('owner', initial.data, deps);
+    expect(result.pending).toBe(1);
+    expect(writtenEnvelope!.outbox[0].baseServerRevision).toBe(2);
+  });
 });
