@@ -14,9 +14,10 @@ El flujo inicial de la aplicación carecía de una experiencia guiada de primer 
 ## Decisión
 
 1. **FTUX Orgánico y Sembrado de Intención**:
-   - Desacoplar la bienvenida en componentes modulares (`AnimatedMosaic`, `ValuePulseSlide`, `IntentionCard`, `AccountDecisionView`) orquestados por la máquina de estados [`useOnboardingFlow`](file:///home/sma/Documentos/Proyectos_Desarrollo/SUI/apps/mobile/src/features/onboarding/hooks/useOnboardingFlow.ts).
+   - Desacoplar la bienvenida en componentes modulares (`AnimatedMosaic`, `ValuePulseSlide`, `AccountDecisionView`) orquestados por la máquina de estados [`useOnboardingFlow`](file:///home/sma/Documentos/Proyectos_Desarrollo/SUI/apps/mobile/src/features/onboarding/hooks/useOnboardingFlow.ts).
+   - Optimización del embudo a 4 pasos directos (`welcome` -> `value_goals` -> `value_habits` -> `account`), eliminando fricción previa y asignando intención por defecto (`'habit'`) persistida en [`useIntroStore`](file:///home/sma/Documentos/Proyectos_Desarrollo/SUI/apps/mobile/src/shared/account/useIntroStore.ts) para el foco contextual en Home.
+   - Rediseño de la pantalla de bienvenida con tarjeta `welcomeCard` (`surfaceContainerLowest`, `radius.xl`), tres chips de valor (`Metas claras`, `Hábitos`, `100% Privado`) y enlace conversacional bajo el CTA principal, suprimiendo atajos redundantes en la barra superior.
    - Animaciones a 60fps con motor nativo (`useNativeDriver: true`) respetando preferencias de accesibilidad (`isReduceMotionEnabled`).
-   - Persistir la intención del usuario (`userIntention`: `'goal' | 'habit' | 'agenda' | 'explore'`) en [`useIntroStore`](file:///home/sma/Documentos/Proyectos_Desarrollo/SUI/apps/mobile/src/shared/account/useIntroStore.ts) mediante migración de esquema compatible (v5).
    - Implementar un foco guiado de primer uso ([`FirstRunSpotlight`](file:///home/sma/Documentos/Proyectos_Desarrollo/SUI/apps/mobile/src/features/home/components/FirstRunSpotlight.tsx)) en la pantalla principal que conecta directamente con la intención declarada.
 
 2. **Blindaje de Integraciones y Modo Local**:
