@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   Linking,
   ScrollView,
@@ -89,7 +89,6 @@ const Mosaic = ({ compact }: { compact: boolean }) => {
 
 export const WelcomeScreen = ({ navigation }: Props) => {
   const theme = useAppTheme();
-  const { colors } = theme;
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const compact = width <= 340;
@@ -97,15 +96,6 @@ export const WelcomeScreen = ({ navigation }: Props) => {
   const { locale, t } = useI18n();
   const acceptPolicy = useIntroStore((state) => state.acceptPolicy);
   const completeIntro = useIntroStore((state) => state.completeIntro);
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
-  const [ageError, setAgeError] = useState(false);
-
-  const validateAge = () => {
-    if (ageConfirmed) return true;
-    setAgeError(true);
-    return false;
-  };
-
   const recordConsent = () => {
     acceptPolicy({
       minimumAgeConfirmed: true,
@@ -116,13 +106,11 @@ export const WelcomeScreen = ({ navigation }: Props) => {
   };
 
   const openAuth = (route: 'Login' | 'Register') => {
-    if (!validateAge()) return;
     recordConsent();
     navigation.navigate(route);
   };
 
   const continueLocal = () => {
-    if (!validateAge()) return;
     recordConsent();
     completeIntro('local', false);
     navigation.replace('Home');
@@ -145,22 +133,6 @@ export const WelcomeScreen = ({ navigation }: Props) => {
         <Text style={styles.subtitle}>{t('welcome.subtitle')}</Text>
       </View>
 
-      <TouchableOpacity
-        style={styles.ageRow}
-        onPress={() => {
-          setAgeConfirmed((current) => !current);
-          setAgeError(false);
-        }}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: ageConfirmed }}
-      >
-        <View style={[styles.checkbox, ageConfirmed && styles.checkboxSelected]}>
-          {ageConfirmed ? <Ionicons name="checkmark" size={16} color={colors.onPrimary} /> : null}
-        </View>
-        <Text style={styles.ageText}>{t('welcome.age')}</Text>
-      </TouchableOpacity>
-      {ageError ? <Text style={styles.error}>{t('welcome.ageRequired')}</Text> : null}
-
       <View style={styles.actions}>
         <TouchableOpacity style={styles.primaryButton} onPress={() => openAuth('Register')}>
           <Text style={styles.primaryButtonText}>{t('welcome.create')}</Text>
@@ -170,7 +142,6 @@ export const WelcomeScreen = ({ navigation }: Props) => {
         </TouchableOpacity>
         <TouchableOpacity style={styles.localButton} onPress={continueLocal}>
           <Text style={styles.localButtonText}>{t('welcome.local')}</Text>
-          <Text style={styles.localHint}>{t('welcome.localHint')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -239,28 +210,7 @@ const createStyles = ({ colors, radius, type }: AppTheme, compact: boolean) =>
       textAlign: 'center',
     },
     subtitle: { ...type.bodyMd, color: colors.onSurfaceVariant, textAlign: 'center', marginTop: 2 },
-    ageRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      alignSelf: 'center',
-      marginTop: SPACING.md,
-      minHeight: 44,
-      paddingHorizontal: SPACING.sm,
-    },
-    checkbox: {
-      width: 22,
-      height: 22,
-      borderRadius: 7,
-      borderWidth: 2,
-      borderColor: colors.outline,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: SPACING.sm,
-    },
-    checkboxSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-    ageText: { ...type.bodyMd, color: colors.onSurface },
-    error: { ...type.bodySm, color: colors.error, textAlign: 'center', marginTop: -4 },
-    actions: { paddingHorizontal: SPACING.lg, gap: SPACING.sm, marginTop: SPACING.sm },
+    actions: { paddingHorizontal: SPACING.lg, gap: SPACING.sm, marginTop: SPACING.md },
     primaryButton: {
       minHeight: 52,
       backgroundColor: colors.primary,
@@ -279,7 +229,6 @@ const createStyles = ({ colors, radius, type }: AppTheme, compact: boolean) =>
     secondaryButtonText: { ...type.titleMd, color: colors.onSurface },
     localButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
     localButtonText: { ...type.labelLg, color: colors.primary },
-    localHint: { ...type.bodySm, color: colors.onSurfaceVariant, marginTop: 1 },
     legal: {
       ...type.labelXs,
       color: colors.onSurfaceVariant,

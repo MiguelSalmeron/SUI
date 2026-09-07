@@ -56,7 +56,7 @@ Expo Go no reproduce todas las capacidades nativas. Para notificaciones, splash 
 
 ## 6. Recorrer flujo principal
 
-1. Confirma 16+ en Bienvenida.
+1. Revisa Bienvenida (enfoque 18+ en aviso legal).
 2. Entra con cuenta o continúa local.
 3. Comprueba Inicio vacío, sin datos de ejemplo.
 4. Crea una meta y un hábito desde CTA independientes.

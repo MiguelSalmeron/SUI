@@ -1,6 +1,6 @@
 export const PRODUCT_CONFIG = {
   environment: process.env.EXPO_PUBLIC_APP_ENV?.trim() || 'development',
-  minimumAge: 16,
+  minimumAge: 18,
   policyVersion: process.env.EXPO_PUBLIC_POLICY_VERSION?.trim() || '2026-08-27',
   termsUrl: process.env.EXPO_PUBLIC_TERMS_URL?.trim() || '',
   privacyUrl: process.env.EXPO_PUBLIC_PRIVACY_URL?.trim() || '',

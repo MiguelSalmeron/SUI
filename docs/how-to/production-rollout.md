@@ -2,7 +2,7 @@
 
 ## Alcance de primera entrega
 
-- Público 16+.
+- Público 18+.
 - Español e inglés.
 - Invitado local, correo/contraseña, Google; Apple en iOS.
 - Productividad offline-first con respaldo opcional.

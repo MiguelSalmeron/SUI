@@ -61,11 +61,10 @@ Orden:
 2. isologo principal;
 3. `Cultiva tu vida`;
 4. descripción breve;
-5. confirmación 16+;
-6. `Crear cuenta`;
-7. `Ya tengo cuenta`;
-8. `Continuar sin cuenta`;
-9. Términos y Privacidad.
+5. `Crear cuenta`;
+6. `Ya tengo cuenta`;
+7. `Continuar sin cuenta`;
+8. aviso legal de mayoría de edad (18+), Términos y Privacidad.
 
 Mosaico representa Meta, Hábito, Agenda y Progreso sin fotografías, nombres,
 fechas ni ejemplos. Es decorativo y queda fuera de lector de pantalla.

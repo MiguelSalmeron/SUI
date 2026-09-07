@@ -4,7 +4,7 @@ Alcance: [PRD](product/PRD.md). UX/UI: [sistema de diseño](product/DESIGN_SYSTE
 
 ## Completado en código
 
-- [x] Bienvenida breve con cuenta opcional y consentimiento 16+.
+- [x] Bienvenida breve con cuenta opcional y confirmación 18+.
 - [x] Inicio vacío guiado; nuevos usuarios sin datos de ejemplo.
 - [x] i18n ES/EN persistido.
 - [x] Auth correo, Google, Apple iOS e invitado técnico.
