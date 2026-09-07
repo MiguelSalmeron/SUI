@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import { exchangeCodeAsync } from 'expo-auth-session';
 
 import { linkOrSignInWithGoogleIdToken } from '../services/googleAuth';
 import type { MigrationResult } from '../services/accountMigration';
@@ -88,6 +89,13 @@ export const useGoogleAuth = () => {
     setBusy(true);
     setError(null);
     try {
+      if (__DEV__) {
+        console.log('[Google Auth] Starting auth flow with:', {
+          clientId: request.clientId,
+          redirectUri: request.redirectUri,
+          platform: Platform.OS,
+        });
+      }
       const authResult = await promptAsync();
 
       if (authResult.type === 'dismiss' || authResult.type === 'cancel') {
@@ -105,7 +113,40 @@ export const useGoogleAuth = () => {
         return result;
       }
 
-      const idToken = authResult.params.id_token || authResult.authentication?.idToken || '';
+      let idToken = authResult.params.id_token || authResult.authentication?.idToken || '';
+
+      if (!idToken && authResult.params.code) {
+        try {
+          if (__DEV__) {
+            console.log('[Google Auth] Exchanging authorization code with PKCE...');
+          }
+          const tokenResult = await exchangeCodeAsync(
+            {
+              clientId: request.clientId,
+              code: authResult.params.code,
+              redirectUri: request.redirectUri,
+              extraParams: {
+                code_verifier: request.codeVerifier || '',
+              },
+            },
+            Google.discovery,
+          );
+          idToken = tokenResult.idToken || '';
+        } catch (exchangeErr) {
+          if (__DEV__) {
+            console.error('[Google Auth] Code exchange failed:', exchangeErr);
+          }
+          const result: MigrationResult = {
+            ok: false,
+            uid: '',
+            linked: false,
+            error:
+              'No se pudo intercambiar el código con Google. Verifica tu conexión y configuración.',
+          };
+          setError(result.error ?? null);
+          return result;
+        }
+      }
 
       if (!idToken) {
         const result: MigrationResult = {

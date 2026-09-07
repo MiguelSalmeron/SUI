@@ -35,15 +35,23 @@ export const ForgotPasswordScreen = ({ navigation }: Props) => {
       <TextInput
         style={styles.input}
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(val) => {
+          setEmail(val);
+          if (message) setMessage('');
+        }}
         keyboardType="email-address"
         autoCapitalize="none"
         autoComplete="email"
+        editable={!busy}
         placeholder="name@example.com"
         placeholderTextColor={theme.colors.onSurfaceVariant}
       />
       {message ? <Text style={styles.message}>{message}</Text> : null}
-      <TouchableOpacity style={styles.primary} onPress={() => void submit()} disabled={busy}>
+      <TouchableOpacity
+        style={[styles.primary, busy && styles.primaryDisabled]}
+        onPress={() => void submit()}
+        disabled={busy}
+      >
         {busy ? (
           <ActivityIndicator color={theme.colors.onPrimary} />
         ) : (
@@ -74,6 +82,9 @@ const createStyles = ({ colors, radius, type }: AppTheme) =>
       backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    primaryDisabled: {
+      opacity: 0.65,
     },
     primaryText: { ...type.titleMd, color: colors.onPrimary },
   });

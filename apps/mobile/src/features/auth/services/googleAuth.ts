@@ -31,6 +31,10 @@ const getGoogleErrorMessage = (error: unknown): string => {
       return 'Google no está habilitado en Firebase Console.';
     case 'auth/network-request-failed':
       return 'Sin conexión. Revisa tu red e inténtalo de nuevo.';
+    case 'auth/unauthorized-domain':
+      return 'El dominio web no está autorizado en Firebase Console (Authentication > Ajustes > Dominios autorizados).';
+    case 'auth/user-disabled':
+      return 'Esta cuenta ha sido deshabilitada.';
     case 'auth/invalid-credential':
       return 'Credencial de Google inválida o expirada. Inténtalo de nuevo.';
     default:
@@ -78,9 +82,15 @@ export const linkOrSignInWithGoogleIdToken = async (idToken: string): Promise<Mi
   } catch (error) {
     const code = (error as { code?: string })?.code;
     if (user?.isAnonymous && code === 'auth/credential-already-in-use') {
+      const previousAnonymousUid = user.uid;
       try {
         const result = await signInWithCredential(auth, credential);
-        return { ok: true, uid: result.user.uid, linked: false };
+        return {
+          ok: true,
+          uid: result.user.uid,
+          linked: false,
+          previousAnonymousUid,
+        };
       } catch (signInError) {
         return {
           ok: false,

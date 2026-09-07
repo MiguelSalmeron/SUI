@@ -6,6 +6,7 @@ export interface MigrationResult {
   uid: string;
   /** true si la cuenta anónima se enlazó (preserva datos). */
   linked: boolean;
+  previousAnonymousUid?: string;
   error?: string;
   /** true si el usuario cerró el prompt OAuth sin completar. */
   cancelled?: boolean;

@@ -117,7 +117,12 @@ describe('googleAuth · linkOrSignInWithGoogleIdToken', () => {
     mockedLink.mockRejectedValueOnce({ code: 'auth/credential-already-in-use' } as never);
     mockedSignIn.mockResolvedValueOnce({ user: { uid: 'existing-1' } } as never);
     const res = await linkOrSignInWithGoogleIdToken('tok');
-    expect(res).toMatchObject({ ok: true, uid: 'existing-1', linked: false });
+    expect(res).toMatchObject({
+      ok: true,
+      uid: 'existing-1',
+      linked: false,
+      previousAnonymousUid: 'anon-1',
+    });
   });
 
   it('mapea operation-not-allowed', async () => {
