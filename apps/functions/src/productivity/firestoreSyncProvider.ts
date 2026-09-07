@@ -17,6 +17,7 @@ import type {
   SummaryChange,
   SyncMutationV9,
   TimestampCursor,
+  UserPreferences,
 } from './types';
 import type { ChangeQuery, SyncProvider } from './provider';
 import { decideMutation } from './syncPolicy';
@@ -99,12 +100,16 @@ const serializeSummary = (root: DocumentSnapshot): SummaryChange | null => {
   if (!productivity?.meta) return null;
   const lastResetDate = productivity.lastResetDate;
   const lastCompletedDate = productivity.lastCompletedDate;
+  const preferences = root.data()?.preferences as UserPreferences | undefined;
   return {
     data: {
       streakCount: typeof productivity.streakCount === 'number' ? productivity.streakCount : 0,
       totalXp: typeof productivity.totalXp === 'number' ? productivity.totalXp : 0,
       ...(typeof lastResetDate === 'string' ? { lastResetDate } : {}),
       ...(typeof lastCompletedDate === 'string' ? { lastCompletedDate } : {}),
+      ...(preferences && typeof preferences === 'object' && preferences.schemaVersion === 1
+        ? { preferences }
+        : {}),
     },
     meta: serializeMetadata(productivity.meta),
     serverUpdatedAt: serializeTimestamp(productivity.serverUpdatedAt),
@@ -262,21 +267,41 @@ export const applyMutationBatch = async (
       const nextMeta: Record<string, unknown> = { ...decision.nextMeta };
       if (mutation.entityType === 'summary') {
         const summary = mutation.payload as ProductivitySummary;
-        transaction.set(
-          rootRef,
-          {
-            schemaVersion: 9,
-            productivity: {
-              lastResetDate: summary.lastResetDate ?? null,
-              streakCount: summary.streakCount,
-              lastCompletedDate: summary.lastCompletedDate ?? null,
-              totalXp: summary.totalXp,
-              meta: nextMeta,
-              serverUpdatedAt: FieldValue.serverTimestamp(),
-            },
+        const existingData = snapshot.data()?.productivity as Record<string, unknown> | undefined;
+        let nextTotalXp = summary.totalXp;
+        if (existingData && typeof existingData.totalXp === 'number' && mutation.baseServerRevision !== revision) {
+          const delta =
+            typeof summary.xpDelta === 'number'
+              ? summary.xpDelta
+              : Math.max(0, summary.totalXp);
+          nextTotalXp = (existingData.totalXp as number) + delta;
+        } else if (existingData && typeof existingData.totalXp === 'number' && typeof summary.xpDelta === 'number') {
+          nextTotalXp = (existingData.totalXp as number) + summary.xpDelta;
+        }
+        const summaryDoc: Record<string, unknown> = {
+          schemaVersion: 9,
+          productivity: {
+            lastResetDate: summary.lastResetDate ?? existingData?.lastResetDate ?? null,
+            streakCount: Math.max(
+              typeof existingData?.streakCount === 'number' ? (existingData.streakCount as number) : 0,
+              summary.streakCount,
+            ),
+            lastCompletedDate: summary.lastCompletedDate ?? existingData?.lastCompletedDate ?? null,
+            totalXp: nextTotalXp,
+            meta: nextMeta,
+            serverUpdatedAt: FieldValue.serverTimestamp(),
           },
-          { merge: true },
-        );
+        };
+        if (summary.preferences) {
+          const existingPreferences = snapshot.data()?.preferences as Record<string, unknown> | undefined;
+          summaryDoc.preferences = {
+            ...existingPreferences,
+            ...summary.preferences,
+            schemaVersion: 1,
+            serverUpdatedAt: FieldValue.serverTimestamp(),
+          };
+        }
+        transaction.set(rootRef, summaryDoc, { merge: true });
       } else if (mutation.operation === 'delete') {
         const purgeAfter = Timestamp.fromMillis(now.toMillis() + TOMBSTONE_RETENTION_MS);
         nextMeta.deletedAt = now;

@@ -87,3 +87,37 @@ test('in-memory tombstone compaction increments epoch', async () => {
     epoch: 1,
   });
 });
+
+test('two devices adding XP concurrently: second device should not lose XP', async () => {
+  const provider = new InMemorySyncProvider();
+  const summaryA = {
+    mutationId: 'mut-sum-a',
+    entityType: 'summary',
+    entityId: '__summary__',
+    operation: 'upsert',
+    payload: { streakCount: 1, totalXp: 10 },
+    baseServerRevision: 0,
+    deviceId: 'device-a',
+    clientUpdatedAt: '2026-08-30T00:00:00.000Z',
+    fingerprint: 'sum-a',
+  };
+  const summaryB = {
+    mutationId: 'mut-sum-b',
+    entityType: 'summary',
+    entityId: '__summary__',
+    operation: 'upsert',
+    payload: { streakCount: 1, totalXp: 5 },
+    baseServerRevision: 0,
+    deviceId: 'device-b',
+    clientUpdatedAt: '2026-08-30T00:00:00.000Z',
+    fingerprint: 'sum-b',
+  };
+
+  const outcomesA = await applyMutationBatch(uid, [summaryA], provider.now(), provider);
+  assert.equal(outcomesA[0].status, 'applied');
+
+  const outcomesB = await applyMutationBatch(uid, [summaryB], provider.now(), provider);
+  assert.equal(outcomesB[0].status, 'applied');
+  const summary = await provider.readSummary(uid);
+  assert.equal(summary?.data.totalXp, 15);
+});

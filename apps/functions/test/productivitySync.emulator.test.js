@@ -119,19 +119,79 @@ if (!process.env.FIRESTORE_EMULATOR_HOST) {
     assert.equal(result.authoritative.data, null);
   });
 
-  test('summary is independently versioned', async () => {
-    const summary = mutation({
-      mutationId: 'summary-a',
+  test('summary merges additively on revision mismatch and preserves XP and streak', async () => {
+    // Initial summary: streak = 3, totalXp = 100
+    const summaryInitial = mutation({
+      mutationId: 'summary-init',
       entityType: 'summary',
       entityId: 'singleton',
-      payload: { streakCount: 3, totalXp: 40 },
-      fingerprint: 'summary-a',
+      payload: { streakCount: 3, totalXp: 100 },
+      fingerprint: 'summary-init',
     });
-    const first = (await applyMutationBatch(uid, [summary]))[0];
+    const first = (await applyMutationBatch(uid, [summaryInitial]))[0];
     assert.equal(first.serverRevision, 1);
-    const stale = (await applyMutationBatch(uid, [{ ...summary, mutationId: 'summary-b' }]))[0];
-    assert.equal(stale.status, 'rejected');
-    assert.equal(stale.authoritative.data.totalXp, 40);
+
+    // Evento A: +10 XP (baseServerRevision: 1)
+    const eventA = mutation({
+      mutationId: 'event-a',
+      entityType: 'summary',
+      entityId: 'singleton',
+      deviceId: 'device-a',
+      baseServerRevision: 1,
+      payload: { streakCount: 3, totalXp: 110, xpDelta: 10 },
+      fingerprint: 'event-a',
+    });
+    const resultA = (await applyMutationBatch(uid, [eventA]))[0];
+    assert.equal(resultA.status, 'applied');
+    assert.equal(resultA.serverRevision, 2);
+
+    // Evento B: +5 XP (concurrente, baseServerRevision: 1 - desfasado respecto al server)
+    const eventB = mutation({
+      mutationId: 'event-b',
+      entityType: 'summary',
+      entityId: 'singleton',
+      deviceId: 'device-b',
+      baseServerRevision: 1,
+      payload: { streakCount: 4, totalXp: 105, xpDelta: 5 },
+      fingerprint: 'event-b',
+    });
+    const resultB = (await applyMutationBatch(uid, [eventB]))[0];
+    assert.equal(resultB.status, 'applied');
+    assert.equal(resultB.serverRevision, 3);
+
+    // Verificar en Firestore que el totalXp materializado es 115 y streak es 4
+    let snapshot = await root().get();
+    let data = snapshot.data()?.productivity;
+    assert.equal(data.totalXp, 115);
+    assert.equal(data.streakCount, 4);
+
+    // Evento C: +10 XP
+    const eventC = mutation({
+      mutationId: 'event-c',
+      entityType: 'summary',
+      entityId: 'singleton',
+      deviceId: 'device-a',
+      baseServerRevision: 3,
+      payload: { streakCount: 4, totalXp: 125, xpDelta: 10 },
+      fingerprint: 'event-c',
+    });
+    const resultC = (await applyMutationBatch(uid, [eventC]))[0];
+    assert.equal(resultC.status, 'applied');
+    assert.equal(resultC.serverRevision, 4);
+
+    snapshot = await root().get();
+    data = snapshot.data()?.productivity;
+    assert.equal(data.totalXp, 125);
+
+    // Reintento de Evento C con mismo mutationId (respuesta previa perdida)
+    const replayC = (await applyMutationBatch(uid, [eventC]))[0];
+    assert.equal(replayC.status, 'replayed');
+    assert.equal(replayC.serverRevision, 4);
+
+    // El total NO debe incrementarse nuevamente
+    snapshot = await root().get();
+    data = snapshot.data()?.productivity;
+    assert.equal(data.totalXp, 125);
   });
 
   test('incremental pull preserves documents with equal timestamps', async () => {
@@ -211,5 +271,41 @@ if (!process.env.FIRESTORE_EMULATOR_HOST) {
     assert.equal(response.resetRequired, true);
     assert.equal(response.outcomes.length, 0);
     assert.equal((await root().collection('habits').doc('habit-1').get()).exists, false);
+  });
+
+  test('cold bootstrap pull retrieves cloud data without destructive empty summary write', async () => {
+    // Populate server with existing cloud data
+    const summary = mutation({
+      mutationId: 'server-summary',
+      entityType: 'summary',
+      entityId: 'singleton',
+      payload: { streakCount: 5, totalXp: 200 },
+      fingerprint: 'server-summary',
+    });
+    await applyMutationBatch(uid, [summary, mutation({ mutationId: 'server-habit' })]);
+
+    // Clean client performs cold bootstrap (mode: 'bootstrap', empty mutations)
+    const response = await synchronizeProductivityV9(uid, {
+      schemaVersion: 9,
+      deviceId: 'clean-device',
+      mutations: [],
+      pull: {
+        mode: 'bootstrap',
+        syncEpoch: 0,
+        cursors: { goals: null, habits: null, snapshots: null },
+        upperBound: null,
+      },
+    });
+
+    assert.equal(response.resetRequired, false);
+    assert.equal(response.summary?.data.totalXp, 200);
+    assert.equal(response.summary?.data.streakCount, 5);
+    assert.equal(response.changes.length, 1);
+    assert.equal(response.changes[0].entityId, 'habit-1');
+
+    // Server data remains intact
+    const serverDoc = await root().get();
+    assert.equal(serverDoc.data()?.productivity?.totalXp, 200);
+    assert.equal(serverDoc.data()?.productivity?.streakCount, 5);
   });
 }

@@ -63,11 +63,22 @@ export interface PullCursors {
   snapshots: TimestampCursor | null;
 }
 
+export interface UserPreferences {
+  schemaVersion: 1;
+  theme?: 'system' | 'light' | 'dark';
+  fontSize?: 'small' | 'medium' | 'large';
+  language?: 'system' | 'es' | 'en';
+  notificationsEnabled?: boolean;
+  updatedAt?: string;
+}
+
 export interface ProductivitySummary {
   lastResetDate?: string;
   streakCount: number;
   lastCompletedDate?: string;
   totalXp: number;
+  xpDelta?: number;
+  preferences?: UserPreferences;
 }
 
 export type SyncPayload = Goal | Habit | DailySnapshot | ProductivitySummary | null;
@@ -249,13 +260,40 @@ const isSnapshot = (value: unknown, entityId?: string): value is DailySnapshot =
   nonNegativeInteger(value.habitsCompleted) &&
   nonNegativeInteger(value.habitsTotal);
 
+const isPreferencesData = (value: unknown): value is UserPreferences =>
+  isRecord(value) &&
+  onlyKeys(value, [
+    'schemaVersion',
+    'theme',
+    'fontSize',
+    'language',
+    'notificationsEnabled',
+    'updatedAt',
+  ]) &&
+  value.schemaVersion === 1 &&
+  (value.theme === undefined || ['system', 'light', 'dark'].includes(value.theme as string)) &&
+  (value.fontSize === undefined ||
+    ['small', 'medium', 'large'].includes(value.fontSize as string)) &&
+  (value.language === undefined || ['system', 'es', 'en'].includes(value.language as string)) &&
+  (value.notificationsEnabled === undefined || typeof value.notificationsEnabled === 'boolean') &&
+  optionalString(value.updatedAt, 64);
+
 const isSummaryData = (value: unknown): value is ProductivitySummary =>
   isRecord(value) &&
-  onlyKeys(value, ['lastResetDate', 'streakCount', 'lastCompletedDate', 'totalXp']) &&
+  onlyKeys(value, [
+    'lastResetDate',
+    'streakCount',
+    'lastCompletedDate',
+    'totalXp',
+    'xpDelta',
+    'preferences',
+  ]) &&
   optionalString(value.lastResetDate) &&
   nonNegativeInteger(value.streakCount) &&
   optionalString(value.lastCompletedDate) &&
-  nonNegativeInteger(value.totalXp);
+  nonNegativeInteger(value.totalXp) &&
+  (value.xpDelta === undefined || Number.isInteger(value.xpDelta)) &&
+  (value.preferences === undefined || isPreferencesData(value.preferences));
 
 const isMutation = (value: unknown, deviceId: string): value is SyncMutationV9 => {
   if (
@@ -375,12 +413,7 @@ export const parseSyncResponse = (value: unknown): SyncResponseV9 | null => {
 // ---------------------------------------------------------------------------
 export type SubscriptionTier = 'free' | 'plus' | 'pro';
 export type SubscriptionStatus =
-  | 'active'
-  | 'trialing'
-  | 'canceled'
-  | 'expired'
-  | 'grace_period'
-  | 'none';
+  'active' | 'trialing' | 'canceled' | 'expired' | 'grace_period' | 'none';
 
 export interface SubscriptionPlan {
   id: string;
@@ -429,7 +462,8 @@ export const parseUserEntitlements = (value: unknown): UserEntitlements => {
     tier,
     status,
     expiresAt: typeof value.expiresAt === 'string' ? value.expiresAt : undefined,
-    hasUnlimitedAI: typeof value.hasUnlimitedAI === 'boolean' ? value.hasUnlimitedAI : tier !== 'free',
+    hasUnlimitedAI:
+      typeof value.hasUnlimitedAI === 'boolean' ? value.hasUnlimitedAI : tier !== 'free',
     hasMultiDeviceSync:
       typeof value.hasMultiDeviceSync === 'boolean' ? value.hasMultiDeviceSync : tier !== 'free',
     hasAdvancedCalendar:
@@ -500,4 +534,3 @@ export interface ActionableNotificationPayload {
   goalId?: string;
   scheduledTime?: string;
 }
-

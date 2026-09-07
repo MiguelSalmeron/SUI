@@ -2,6 +2,7 @@ import type {
   CloudChange,
   CloudMetadataV2,
   ProductivityEntityType,
+  ProductivitySummary,
   SerializedTimestamp,
   SummaryChange,
   SyncMutationV9,
@@ -89,7 +90,26 @@ export class InMemorySyncProvider implements SyncProvider {
       if (!decision.apply) return decision.outcome;
       if (mutation.entityType === 'summary') {
         if (!mutation.payload || !('totalXp' in mutation.payload)) return decision.outcome;
-        user.summary = { data: mutation.payload, meta: decision.nextMeta, serverUpdatedAt: now };
+        const currentSummary = user.summary?.data;
+        const payload = mutation.payload as ProductivitySummary;
+        let nextTotalXp = payload.totalXp;
+        const currentRev = current?.meta.serverRevision ?? 0;
+        if (currentSummary && mutation.baseServerRevision !== currentRev) {
+          const delta =
+            typeof payload.xpDelta === 'number'
+              ? payload.xpDelta
+              : Math.max(0, payload.totalXp);
+          nextTotalXp = currentSummary.totalXp + delta;
+        } else if (currentSummary && typeof payload.xpDelta === 'number') {
+          nextTotalXp = currentSummary.totalXp + payload.xpDelta;
+        }
+        const mergedSummary: ProductivitySummary = {
+          ...currentSummary,
+          ...payload,
+          totalXp: nextTotalXp,
+          streakCount: Math.max(currentSummary?.streakCount ?? 0, payload.streakCount),
+        };
+        user.summary = { data: mergedSummary, meta: decision.nextMeta, serverUpdatedAt: now };
         return decision.outcome;
       }
       const meta: CloudMetadataV2 =

@@ -21,6 +21,7 @@ export type {
   SyncRequestV9,
   SyncResponseV9,
   TimestampCursor,
+  UserPreferences,
 } from '@sui/contracts';
 
 export type SyncStatus = 'local' | 'pending' | 'syncing' | 'synced' | 'offline' | 'error';

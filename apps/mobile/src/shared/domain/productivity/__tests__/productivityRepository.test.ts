@@ -10,7 +10,11 @@ import {
   PRODUCTIVITY_STORAGE_KEY,
   applyPendingMutations,
   clearLocalProductivity,
+  getProductivityStorageKey,
+  hasMeaningfulProductivityData,
+  isDefaultSummary,
   loadLocalProductivity,
+  migrateLocalGuestToUser,
   migrateToLatest,
   migrateV6ToV7,
   migrateV7ToV8,
@@ -268,5 +272,111 @@ describe('productivity repository v9', () => {
         expect(await AsyncStorage.getItem(key)).toBeNull();
       }),
     );
+  });
+
+  it('getProductivityStorageKey aísla por uid', () => {
+    expect(getProductivityStorageKey()).toBe(PRODUCTIVITY_STORAGE_KEY);
+    expect(getProductivityStorageKey('user-123')).toBe(`${PRODUCTIVITY_STORAGE_KEY}:user-123`);
+  });
+
+  it('no genera mutación de summary si el estado inicial es por defecto (streak 0, xp 0)', async () => {
+    expect(isDefaultSummary(emptyData())).toBe(true);
+    const envelope = await persistLocalProductivity(emptyData(), 'new-user');
+    expect(envelope.summaryMeta).toBeNull();
+    const summaryMutations = envelope.outbox.filter((m) => m.entityType === 'summary');
+    expect(summaryMutations).toHaveLength(0);
+  });
+
+  it('hasMeaningfulProductivityData detecta correctamente datos significativos', () => {
+    expect(hasMeaningfulProductivityData(emptyData())).toBe(false);
+    expect(hasMeaningfulProductivityData({ streakCount: 3 })).toBe(true);
+    expect(hasMeaningfulProductivityData({ totalXp: 50 })).toBe(true);
+    expect(hasMeaningfulProductivityData({ habits: [habit()] })).toBe(true);
+  });
+
+  it('migrateLocalGuestToUser transfiere datos de invitado al namespace del usuario', async () => {
+    const guestData: ProductivityData = {
+      ...emptyData(),
+      habits: [habit('Hábito Invitado')],
+      streakCount: 2,
+      totalXp: 20,
+    };
+    await persistLocalProductivity(guestData);
+    expect(await AsyncStorage.getItem(PRODUCTIVITY_STORAGE_KEY)).not.toBeNull();
+
+    await migrateLocalGuestToUser('google-user-456');
+
+    // El storage de invitado se borró
+    expect(await AsyncStorage.getItem(PRODUCTIVITY_STORAGE_KEY)).toBeNull();
+    // El storage del usuario contiene los datos migrados
+    const userEnvelope = await loadLocalProductivity('google-user-456');
+    expect(userEnvelope.data.habits).toHaveLength(1);
+    expect(userEnvelope.data.habits[0].title).toBe('Hábito Invitado');
+    expect(userEnvelope.data.streakCount).toBe(2);
+    expect(userEnvelope.data.totalXp).toBe(20);
+  });
+
+  it('clearLocalProductivity con uid solo borra los datos de ese usuario', async () => {
+    await AsyncStorage.setItem(`${PRODUCTIVITY_STORAGE_KEY}:user-A`, 'data-A');
+    await AsyncStorage.setItem(`${PRODUCTIVITY_STORAGE_KEY}:user-B`, 'data-B');
+
+    await clearLocalProductivity('user-A');
+
+    expect(await AsyncStorage.getItem(`${PRODUCTIVITY_STORAGE_KEY}:user-A`)).toBeNull();
+    expect(await AsyncStorage.getItem(`${PRODUCTIVITY_STORAGE_KEY}:user-B`)).toBe('data-B');
+  });
+
+  it('migración legacy elimina la clave legacy para que un segundo usuario no herede datos del primero', async () => {
+    const legacyEnvelope = {
+      schemaVersion: 9,
+      data: { ...emptyData(), habits: [habit('Secreto de Usuario A')] },
+      metadata: {},
+      summaryMeta: null,
+      outbox: [],
+      pullState: {
+        syncEpoch: null,
+        cursors: { goals: null, habits: null, snapshots: null },
+        needsBootstrap: false,
+        needsRebase: false,
+      },
+      lastSyncedAt: null,
+    };
+    await AsyncStorage.setItem(PRODUCTIVITY_STORAGE_KEY, JSON.stringify(legacyEnvelope));
+
+    // Usuario A carga su productividad (migra de legacy a user-A)
+    const userAEnvelope = await loadLocalProductivity('user-A');
+    expect(userAEnvelope.data.habits[0].title).toBe('Secreto de Usuario A');
+
+    // La clave legacy DEBE haber sido borrada
+    expect(await AsyncStorage.getItem(PRODUCTIVITY_STORAGE_KEY)).toBeNull();
+
+    // Usuario B inicia sesión en el mismo dispositivo sin datos previos
+    const userBEnvelope = await loadLocalProductivity('user-B');
+    // Usuario B NO debe recibir los datos del Usuario A
+    expect(userBEnvelope.data.habits).toHaveLength(0);
+  });
+
+  it('migrateLocalGuestToUser con guestUid migra datos desde el namespace anónimo al nuevo usuario', async () => {
+    const guestData: ProductivityData = {
+      ...emptyData(),
+      habits: [habit('Hábito de Invitado Anónimo')],
+      streakCount: 5,
+      totalXp: 120,
+    };
+    await persistLocalProductivity(guestData, 'anon-guest-1');
+    expect(await AsyncStorage.getItem(`${PRODUCTIVITY_STORAGE_KEY}:anon-guest-1`)).not.toBeNull();
+
+    // Migrar especificando el guestUid origen
+    await (migrateLocalGuestToUser as any)('google-target-2', 'anon-guest-1');
+
+    // Storage del guest se borró
+    expect(await AsyncStorage.getItem(`${PRODUCTIVITY_STORAGE_KEY}:anon-guest-1`)).toBeNull();
+
+    // Storage del nuevo usuario contiene los datos
+    const userEnvelope = await loadLocalProductivity('google-target-2');
+    expect(userEnvelope.data.habits).toHaveLength(1);
+    expect(userEnvelope.data.habits[0].title).toBe('Hábito de Invitado Anónimo');
+    expect(userEnvelope.data.streakCount).toBe(5);
+    expect(userEnvelope.data.totalXp).toBe(120);
   });
 });
