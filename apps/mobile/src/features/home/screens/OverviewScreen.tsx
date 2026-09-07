@@ -24,6 +24,8 @@ import type { MainTabParamList, RootStackParamList } from '@/shared/navigation/t
 import { SuiDoodle } from '@/shared/ui/SuiDoodle';
 import { useI18n } from '@/shared/i18n/i18n';
 import type { TranslationKey } from '@/shared/i18n/translations';
+import { FirstRunSpotlight } from '../components/FirstRunSpotlight';
+import { useFirstRunSpotlight } from '../hooks/useFirstRunSpotlight';
 
 type OverviewNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Overview'>,
@@ -44,6 +46,7 @@ export const OverviewScreen = () => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation<OverviewNavigation>();
   const { t, formatDate } = useI18n();
+  const spotlight = useFirstRunSpotlight();
   const stateLoaded = useProductivityStore((s) => s.stateLoaded);
   const goals = useProductivityStore((s) => s.goals);
   const habits = useProductivityStore((s) => s.habits);
@@ -124,8 +127,9 @@ export const OverviewScreen = () => {
   };
 
   return (
-    <FlatList
-      style={{ flex: 1, backgroundColor: colors.background }}
+    <View style={styles.screenContainer}>
+      <FlatList
+        style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
       data={emptyState ? [] : timelineItems}
@@ -140,8 +144,20 @@ export const OverviewScreen = () => {
           {emptyState ? (
             <View style={styles.firstRunCard}>
               <SuiDoodle variant="sprout" size={72} color={colors.primary} />
-              <Text style={styles.firstRunTitle}>{t('home.emptyTitle')}</Text>
-              <Text style={styles.firstRunBody}>{t('home.emptyBody')}</Text>
+              <Text style={styles.firstRunTitle}>
+                {spotlight.userIntention === 'habit'
+                  ? t('onboarding.intentions.habit')
+                  : spotlight.userIntention === 'goal'
+                    ? t('onboarding.intentions.goal')
+                    : t('home.emptyTitle')}
+              </Text>
+              <Text style={styles.firstRunBody}>
+                {spotlight.userIntention === 'habit'
+                  ? t('onboarding.intentions.habitDesc')
+                  : spotlight.userIntention === 'goal'
+                    ? t('onboarding.intentions.goalDesc')
+                    : t('home.emptyBody')}
+              </Text>
               <View style={styles.firstRunActions}>
                 <TouchableOpacity
                   style={styles.firstRunPrimary}
@@ -340,12 +356,26 @@ export const OverviewScreen = () => {
         );
       }}
     />
+    <FirstRunSpotlight
+      visible={spotlight.visible}
+      step={spotlight.step}
+      stepIndex={spotlight.stepIndex}
+      totalSteps={spotlight.totalSteps}
+      userIntention={spotlight.userIntention}
+      onNext={spotlight.nextSpotlight}
+      onDismiss={spotlight.skipSpotlight}
+    />
+  </View>
   );
 };
 
 const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
   const { colors, radius, type } = theme;
   return StyleSheet.create({
+    screenContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
     content: {
       width: '100%',
       maxWidth: SCREEN_MAX_CONTENT_WIDTH,

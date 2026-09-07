@@ -5,6 +5,8 @@ Alcance: [PRD](product/PRD.md). UX/UI: [sistema de diseño](product/DESIGN_SYSTE
 ## Completado en código
 
 - [x] Bienvenida breve con cuenta opcional y confirmación 18+.
+- [x] Flujo de onboarding modular (FTUX) con intención declarada, animaciones nativas a 60fps y spotlight guiado contextual.
+- [x] Remediación de estabilidad: navegación hardware Android, blindaje Google Calendar local, clasificación offline precisa y escalado Cloud Function a 512MiB.
 - [x] Inicio vacío guiado; nuevos usuarios sin datos de ejemplo.
 - [x] i18n ES/EN persistido.
 - [x] Auth correo, Google, Apple iOS e invitado técnico.

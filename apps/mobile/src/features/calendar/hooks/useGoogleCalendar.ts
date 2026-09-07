@@ -21,6 +21,7 @@ import {
 import type { GoogleEvent } from '@/shared/types/models';
 import type { ConnectionProvider, ConnectionStatus } from '@/features/connections/public';
 import { recordTelemetry } from '@/shared/observability/telemetry';
+import { auth } from '@/shared/infrastructure/firebase/firebase';
 import { useI18n } from '@/shared/i18n/i18n';
 import type { TranslationKey } from '@/shared/i18n/translations';
 
@@ -98,6 +99,10 @@ export const useGoogleCalendar = () => {
 
   const sync = useCallback(async (): Promise<boolean> => {
     if (inFlightRef.current || !configured) return false;
+    const currentUser = auth.currentUser;
+    if (!currentUser || currentUser.isAnonymous) {
+      return false;
+    }
     inFlightRef.current = true;
     const startedAt = Date.now();
     setStatus('syncing');
@@ -147,6 +152,12 @@ export const useGoogleCalendar = () => {
         setCache(stored);
         setStatus(stored.lastSyncedAt ? 'offline' : 'idle');
         if (!configured) return;
+        const currentUser = auth.currentUser;
+        if (!currentUser || currentUser.isAnonymous) {
+          setConnected(false);
+          setStatus(stored.lastSyncedAt ? 'offline' : 'idle');
+          return;
+        }
         let remoteConnected = false;
         try {
           remoteConnected = await getGoogleCalendarConnectionStatus();
@@ -190,6 +201,12 @@ export const useGoogleCalendar = () => {
     if (inFlightRef.current) return false;
     if (!configured) {
       setError(t('connections.errorConfig'));
+      setStatus('error');
+      return false;
+    }
+    const currentUser = auth.currentUser;
+    if (!currentUser || currentUser.isAnonymous) {
+      setError(t('connections.errorDenied'));
       setStatus('error');
       return false;
     }

@@ -520,9 +520,17 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
         Date.now() - syncStartedAt,
       );
     } catch (error) {
-      const code = (error as { code?: string })?.code ?? '';
+      const code = ((error as { code?: string })?.code ?? '').toLowerCase();
+      const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
+      const isOffline =
+        code.includes('unavailable') ||
+        code.includes('network') ||
+        message.includes('network') ||
+        message.includes('fetch') ||
+        message.includes('offline') ||
+        message.includes('aborted');
       set({
-        syncStatus: code.includes('unavailable') || code.includes('network') ? 'offline' : 'error',
+        syncStatus: isOffline ? 'offline' : 'error',
       });
       recordTelemetry('sync.completed', { result: 'error' }, Date.now() - syncStartedAt);
     } finally {

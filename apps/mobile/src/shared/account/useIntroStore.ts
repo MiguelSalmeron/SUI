@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { AccountMode, ConsentRecord, IntroStep } from './introTypes';
+import type { AccountMode, ConsentRecord, IntroStep, UserIntention } from './introTypes';
 
 export const INTRO_STORAGE_KEY = 'sui-onboarding-v3';
-const INTRO_STORAGE_VERSION = 4;
+const INTRO_STORAGE_VERSION = 5;
 
 export interface IntroState {
   hydrated: boolean;
@@ -13,12 +13,14 @@ export interface IntroState {
   accountMode: AccountMode;
   syncEnabled: boolean;
   consent: ConsentRecord | null;
+  userIntention: UserIntention | null;
   firstRunGuideDismissed: boolean;
   technicalAuthPending: boolean;
   pendingCloudMerge: boolean;
   previousAnonymousUid: string | null;
   setHydrated: (value: boolean) => void;
   acceptPolicy: (consent: ConsentRecord) => void;
+  setUserIntention: (intention: UserIntention) => void;
   completeIntro: (mode: AccountMode, syncEnabled?: boolean) => void;
   registerAccount: (syncEnabled: boolean) => void;
   setSyncEnabled: (enabled: boolean) => void;
@@ -33,6 +35,7 @@ type LegacyIntroState = {
   onboardingComplete?: boolean;
   syncPending?: boolean;
   profile?: { name?: string };
+  userIntention?: UserIntention | null;
 };
 
 export const migrateIntroState = (
@@ -44,6 +47,7 @@ export const migrateIntroState = (
   | 'accountMode'
   | 'syncEnabled'
   | 'consent'
+  | 'userIntention'
   | 'firstRunGuideDismissed'
   | 'technicalAuthPending'
   | 'pendingCloudMerge'
@@ -56,6 +60,7 @@ export const migrateIntroState = (
     accountMode: legacy.accountMode ?? 'local',
     syncEnabled: legacy.syncEnabled ?? false,
     consent: legacy.consent ?? null,
+    userIntention: legacy.userIntention ?? null,
     firstRunGuideDismissed: legacy.firstRunGuideDismissed ?? wasComplete,
     technicalAuthPending: legacy.technicalAuthPending ?? legacy.syncPending ?? false,
     pendingCloudMerge: legacy.pendingCloudMerge ?? false,
@@ -71,12 +76,14 @@ export const useIntroStore = create<IntroState>()(
       accountMode: 'local',
       syncEnabled: false,
       consent: null,
+      userIntention: null,
       firstRunGuideDismissed: false,
       technicalAuthPending: false,
       pendingCloudMerge: false,
       previousAnonymousUid: null,
       setHydrated: (hydrated) => set({ hydrated }),
       acceptPolicy: (consent) => set({ consent }),
+      setUserIntention: (userIntention) => set({ userIntention }),
       completeIntro: (accountMode, syncEnabled = false) =>
         set({ step: 'complete', introComplete: true, accountMode, syncEnabled }),
       registerAccount: (syncEnabled) =>
@@ -93,6 +100,7 @@ export const useIntroStore = create<IntroState>()(
           accountMode: 'local',
           syncEnabled: false,
           consent: null,
+          userIntention: null,
           firstRunGuideDismissed: false,
           technicalAuthPending: false,
           pendingCloudMerge: false,
@@ -110,6 +118,7 @@ export const useIntroStore = create<IntroState>()(
         accountMode: state.accountMode,
         syncEnabled: state.syncEnabled,
         consent: state.consent,
+        userIntention: state.userIntention,
         firstRunGuideDismissed: state.firstRunGuideDismissed,
         technicalAuthPending: state.technicalAuthPending,
         pendingCloudMerge: state.pendingCloudMerge,
@@ -119,3 +128,6 @@ export const useIntroStore = create<IntroState>()(
     },
   ),
 );
+
+export type { UserIntention } from './introTypes';
+

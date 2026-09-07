@@ -17,6 +17,14 @@ describe('intro migration', () => {
       step: 'welcome',
       accountMode: 'local',
       syncEnabled: false,
+      userIntention: null,
+    });
+  });
+
+  it('preserva userIntention cuando está presente', () => {
+    expect(migrateIntroState({ userIntention: 'habit' })).toMatchObject({
+      userIntention: 'habit',
     });
   });
 });
+

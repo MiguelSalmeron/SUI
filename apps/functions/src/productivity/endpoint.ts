@@ -7,7 +7,7 @@ import { synchronizeProductivityV9 } from './syncEngine';
 import { parseSyncRequest } from './validation';
 
 export const syncProductivity = onRequest(
-  { cors: false, timeoutSeconds: 60, memory: '256MiB' },
+  { cors: false, timeoutSeconds: 60, memory: '512MiB' },
   async (request, response): Promise<void> => {
     if (!setCorsHeaders(request, response)) {
       response.status(403).json({ error: 'Origin not allowed' });

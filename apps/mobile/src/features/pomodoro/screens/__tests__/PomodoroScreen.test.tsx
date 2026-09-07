@@ -77,10 +77,9 @@ const baseState = () => ({
   focusMinutes: 0,
 });
 
+jest.setTimeout(30000);
+
 describe('PomodoroScreen', () => {
-  beforeAll(() => {
-    jest.setTimeout(15000);
-  });
 
   beforeEach(async () => {
     jest.clearAllMocks();

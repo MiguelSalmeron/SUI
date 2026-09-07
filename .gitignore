@@ -22,6 +22,7 @@ yarn-error.log*
 .metro/
 /*.pdf
 # --- AI助手工具目录 / AI assistant tool directories ---
+.zcode/
 .claude/
 .opencode/
 .commandcode/
