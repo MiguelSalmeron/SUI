@@ -4,7 +4,6 @@ export type OnboardingStep =
   | 'welcome'
   | 'value_goals'
   | 'value_habits'
-  | 'intention'
   | 'account';
 
 export interface IntentionOption {

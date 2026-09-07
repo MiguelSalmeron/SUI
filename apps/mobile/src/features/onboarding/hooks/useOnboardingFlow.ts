@@ -6,7 +6,6 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   'welcome',
   'value_goals',
   'value_habits',
-  'intention',
   'account',
 ];
 

@@ -2,11 +2,11 @@ import { renderHook, act } from '@testing-library/react-native';
 import { useOnboardingFlow, TOTAL_ONBOARDING_STEPS } from '../useOnboardingFlow';
 
 describe('useOnboardingFlow', () => {
-  it('inicializa en el paso 0 con 5 pasos totales y selectedIntention por defecto', async () => {
+  it('inicializa en el paso 0 con 4 pasos totales y selectedIntention por defecto', async () => {
     const { result } = await renderHook(() => useOnboardingFlow());
 
     expect(result.current.currentStep).toBe(0);
-    expect(result.current.totalSteps).toBe(TOTAL_ONBOARDING_STEPS);
+    expect(result.current.totalSteps).toBe(4);
     expect(result.current.selectedIntention).toBe('habit');
   });
 
