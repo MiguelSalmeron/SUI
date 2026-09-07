@@ -41,11 +41,45 @@ firebase deploy --only firestore:rules,functions
 
 ## Google identidad
 
-- Consent screen: `openid`, `email`, `profile`.
-- Web: dominios y redirects exactos.
-- Android: package + SHA release/Play App Signing.
-- iOS: bundle ID y URL scheme requerido.
-- Cargar tres Client IDs públicos en EAS.
+### 1. Pantalla de consentimiento de OAuth (Google Cloud Console)
+- Tipo de usuario: Externo (o Interno si es Workspace).
+- Scopes mínimos obligatorios: `openid`, `https://www.googleapis.com/auth/userinfo.email`, `https://www.googleapis.com/auth/userinfo.profile`.
+- Estado de publicación: En desarrollo ("Testing"), añadir los correos de prueba en "Test users" para que Google no bloquee el login. Para producción, pasar a "In production".
+
+### 2. Credenciales OAuth 2.0 (Google Cloud Console)
+
+#### A. Cliente Web (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`) — **Obligatorio para Web y base de tokens**:
+- **Orígenes de JavaScript autorizados:**
+  - Localhost: `http://localhost:8081` (o el puerto activo de Metro/Vite).
+  - Web desplegada: `https://<tu-proyecto>.web.app`, `https://<tu-proyecto>.firebaseapp.com` o dominio personalizado (ej. `https://app.sui.com`).
+- **URIs de redireccionamiento autorizados:**
+  - Localhost: `http://localhost:8081` y `http://localhost:8081/`.
+  - Web desplegada: `https://<tu-proyecto>.web.app/` y el handler de Firebase `https://<tu-proyecto>.firebaseapp.com/__/auth/handler`.
+
+#### B. Cliente Android (`EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`) — **Para APK compilada**:
+- Tipo de aplicación: **Android**.
+- Nombre del paquete: `com.sui.app` (coincidente con `android.package` en `app.json`).
+- **Huella digital SHA-1** (muy importante; si difiere del certificado del APK instalado, Google dará `Error 400: redirect_uri_mismatch`):
+  - *Build local (debug):* Obtener con `keytool -list -v -keystore android/app/debug.keystore -alias androiddebugkey -storepass android -keypass android` (SHA-1 por defecto: `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25` o el que genere tu entorno).
+  - *Build EAS (staging/production):* Ejecutar `eas credentials -p android` y copiar la huella SHA-1 del Keystore administrado.
+  - *Google Play Store (si aplica):* Copiar el SHA-1 de "Firma de apps de Google Play" en Play Console.
+- **Deep Linking y Redirección en la APK:**
+  - `expo-auth-session` redirige a `com.sui.app:/oauthredirect`.
+  - `apps/mobile/app.json` declara `"scheme": ["sui", "com.sui.app"]` y `AndroidManifest.xml` cuenta con el `intent-filter` para `com.sui.app` para que el navegador del móvil devuelva el control a la app tras autorizar la cuenta.
+  - En la app, el código de autorización se intercambia con PKCE contra el endpoint de Google para obtener el `id_token` final.
+
+#### C. Cliente iOS (`EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`):
+- Tipo de aplicación: **iOS**.
+- ID de paquete: `com.sui.app`.
+- Configurar el valor en `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`.
+
+### 3. Firebase Console (Autenticación)
+- **Dominios autorizados:** Ve a **Authentication > Ajustes > Dominios autorizados** y agrega el dominio de la web desplegada. `localhost` viene incluido por defecto.
+- **Client IDs adicionales:** Si los Client IDs de Google Cloud se crearon en un proyecto de GCP independiente al de Firebase, agrégalos en **Authentication > Sign-in method > Google > Configuración del SDK web > "Permitir IDs de cliente adicionales"**.
+- Cargar las variables en `.env` o en EAS Secrets:
+  - `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
+  - `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`
+  - `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
 
 ## Google Calendar
 

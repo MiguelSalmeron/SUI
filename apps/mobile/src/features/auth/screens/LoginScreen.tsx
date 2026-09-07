@@ -18,9 +18,14 @@ import { AuthScaffold } from '../components/AuthScaffold';
 import { SPACING, type AppTheme, useAppTheme } from '@/shared/theme/theme';
 import { useI18n } from '@/shared/i18n/i18n';
 import { useIntroStore } from '@/features/onboarding/public';
-import { useProductivityStore } from '@/shared/domain/productivity/public';
+import {
+  hasMeaningfulProductivityData,
+  migrateLocalGuestToUser,
+  useProductivityStore,
+} from '@/shared/domain/productivity/public';
 import { recordTelemetry } from '@/shared/observability/telemetry';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
+import { Ionicons } from '@/shared/ui/Ionicons';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -34,32 +39,58 @@ export const LoginScreen = ({ navigation }: Props) => {
   const { available: appleAvailable, busy: appleBusy, signInWithApple } = useAppleAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const finish = (linked: boolean, provider: 'password' | 'google' | 'apple') => {
-    const localState = useProductivityStore.getState();
-    const hasLocalData = localState.goals.length > 0 || localState.habits.length > 0;
-    const current = auth.currentUser;
-    if (provider === 'password' && current && !current.emailVerified) {
-      setPendingCloudMerge(hasLocalData && !linked);
-      registerAccount(false);
-      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
-      return;
-    }
-    if (hasLocalData && !linked) {
+  const isSubmitting = busy || googleBusy || appleBusy;
+
+  const finish = async (
+    linked: boolean,
+    provider: 'password' | 'google' | 'apple',
+    previousAnonymousUid?: string,
+  ) => {
+    setBusy(true);
+    try {
+      if (previousAnonymousUid) {
+        useIntroStore.getState().setPreviousAnonymousUid(previousAnonymousUid);
+      }
+      const localState = useProductivityStore.getState();
+      const hasLocalData = hasMeaningfulProductivityData(localState);
+      const current = auth.currentUser;
+      if (linked && current?.uid) {
+        await migrateLocalGuestToUser(current.uid, previousAnonymousUid);
+      }
+      if (provider === 'password' && current && !current.emailVerified) {
+        setPendingCloudMerge(hasLocalData && !linked);
+        registerAccount(false);
+        navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+        return;
+      }
+      if (hasLocalData && !linked) {
+        setPendingCloudMerge(false);
+        navigation.replace('MergeData');
+        return;
+      }
       setPendingCloudMerge(false);
-      navigation.replace('MergeData');
-      return;
+      registerAccount(true);
+      await useProductivityStore.getState().reloadState();
+      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+    } finally {
+      setBusy(false);
     }
-    setPendingCloudMerge(false);
-    registerAccount(true);
-    void useProductivityStore.getState().reloadState();
-    navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
   };
 
   const mapError = (code?: string) => {
-    if (code === 'auth/invalid-credential') return t('auth.invalidCredential');
+    if (
+      code === 'auth/invalid-credential' ||
+      code === 'auth/wrong-password' ||
+      code === 'auth/user-not-found'
+    ) {
+      return t('auth.invalidCredential');
+    }
+    if (code === 'auth/unauthorized-domain') return t('auth.unauthorizedDomain');
+    if (code === 'auth/user-disabled') return t('auth.userDisabled');
     if (code === 'auth/network-request-failed') return t('auth.networkError');
     if (code === 'auth/too-many-requests') return t('auth.tooManyRequests');
     return t('auth.genericError');
@@ -70,15 +101,22 @@ export const LoginScreen = ({ navigation }: Props) => {
     if (!email.includes('@')) return setError(t('auth.invalidEmail'));
     if (password.length < 8) return setError(t('auth.shortPassword'));
     setBusy(true);
-    const result = await signInEmailAccount(email, password);
-    setBusy(false);
-    recordTelemetry('auth.completed', {
-      provider: 'password',
-      flow: 'login',
-      result: result.ok ? 'success' : 'error',
-    });
-    if (!result.ok) return setError(mapError(result.error));
-    finish(false, 'password');
+    try {
+      const result = await signInEmailAccount(email, password);
+      recordTelemetry('auth.completed', {
+        provider: 'password',
+        flow: 'login',
+        result: result.ok ? 'success' : 'error',
+      });
+      if (!result.ok) {
+        setBusy(false);
+        return setError(mapError(result.error));
+      }
+      await finish(false, 'password');
+    } catch {
+      setBusy(false);
+      setError(t('auth.genericError'));
+    }
   };
 
   const submitGoogle = async () => {
@@ -90,8 +128,8 @@ export const LoginScreen = ({ navigation }: Props) => {
       result: result.cancelled ? 'cancel' : result.ok ? 'success' : 'error',
     });
     if (result.cancelled) return;
-    if (!result.ok) return setError(t('auth.genericError'));
-    finish(result.linked, 'google');
+    if (!result.ok) return setError(result.error || t('auth.genericError'));
+    await finish(result.linked, 'google', result.previousAnonymousUid);
   };
 
   const submitApple = async () => {
@@ -103,8 +141,8 @@ export const LoginScreen = ({ navigation }: Props) => {
       result: result.cancelled ? 'cancel' : result.ok ? 'success' : 'error',
     });
     if (result.cancelled) return;
-    if (!result.ok) return setError(t('auth.genericError'));
-    finish(result.linked, 'apple');
+    if (!result.ok) return setError(result.error || t('auth.genericError'));
+    await finish(result.linked, 'apple', result.previousAnonymousUid);
   };
 
   return (
@@ -117,53 +155,87 @@ export const LoginScreen = ({ navigation }: Props) => {
       <TextInput
         style={styles.input}
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(val) => {
+          setEmail(val);
+          if (error) setError('');
+        }}
         keyboardType="email-address"
         autoCapitalize="none"
         autoComplete="email"
+        editable={!isSubmitting}
         placeholder="name@example.com"
         placeholderTextColor={theme.colors.onSurfaceVariant}
       />
       <Text style={styles.label}>{t('auth.password')}</Text>
-      <TextInput
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        autoComplete="current-password"
-        placeholder="••••••••"
-        placeholderTextColor={theme.colors.onSurfaceVariant}
-      />
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          value={password}
+          onChangeText={(val) => {
+            setPassword(val);
+            if (error) setError('');
+          }}
+          secureTextEntry={!showPassword}
+          editable={!isSubmitting}
+          autoComplete="current-password"
+          placeholder="••••••••"
+          placeholderTextColor={theme.colors.onSurfaceVariant}
+        />
+        <TouchableOpacity
+          style={styles.eyeButton}
+          onPress={() => setShowPassword((prev) => !prev)}
+          accessibilityRole="button"
+          accessibilityLabel={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+          disabled={isSubmitting}
+        >
+          <Ionicons
+            name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+            size={20}
+            color={theme.colors.onSurfaceVariant}
+          />
+        </TouchableOpacity>
+      </View>
       {error ? (
         <Text style={styles.error} accessibilityRole="alert">
           {error}
         </Text>
       ) : null}
-      <TouchableOpacity style={styles.primary} onPress={() => void submitEmail()} disabled={busy}>
+      <TouchableOpacity
+        style={[styles.primary, isSubmitting && styles.primaryDisabled]}
+        onPress={() => void submitEmail()}
+        disabled={isSubmitting}
+      >
         {busy ? (
           <ActivityIndicator color={theme.colors.onPrimary} />
         ) : (
           <Text style={styles.primaryText}>{t('auth.signIn')}</Text>
         )}
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-        <Text style={styles.link}>{t('auth.forgot')}</Text>
+      <TouchableOpacity
+        onPress={() => navigation.navigate('ForgotPassword')}
+        disabled={isSubmitting}
+      >
+        <Text style={[styles.link, isSubmitting && styles.linkDisabled]}>{t('auth.forgot')}</Text>
       </TouchableOpacity>
       <View style={styles.divider} />
       <GoogleSignInButton
         label={t('auth.google')}
         onPress={() => void submitGoogle()}
         busy={googleBusy}
+        disabled={isSubmitting}
       />
       {appleAvailable ? (
         <AppleSignInButton
           label={t('auth.apple')}
           onPress={() => void submitApple()}
           busy={appleBusy}
+          disabled={isSubmitting}
         />
       ) : null}
-      <TouchableOpacity onPress={() => navigation.replace('Register')}>
-        <Text style={styles.link}>{t('auth.needAccount')}</Text>
+      <TouchableOpacity onPress={() => navigation.replace('Register')} disabled={isSubmitting}>
+        <Text style={[styles.link, isSubmitting && styles.linkDisabled]}>
+          {t('auth.needAccount')}
+        </Text>
       </TouchableOpacity>
     </AuthScaffold>
   );
@@ -182,6 +254,27 @@ const createStyles = ({ colors, radius, type }: AppTheme) =>
       paddingHorizontal: SPACING.md,
       color: colors.onSurface,
     },
+    passwordContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 50,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      backgroundColor: colors.surfaceContainerLow,
+      borderRadius: radius.md,
+      paddingHorizontal: SPACING.md,
+    },
+    passwordInput: {
+      flex: 1,
+      ...type.bodyLg,
+      color: colors.onSurface,
+      paddingVertical: SPACING.sm,
+    },
+    eyeButton: {
+      padding: SPACING.xs,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
     error: { ...type.bodySm, color: colors.error },
     primary: {
       minHeight: 52,
@@ -190,12 +283,18 @@ const createStyles = ({ colors, radius, type }: AppTheme) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
+    primaryDisabled: {
+      opacity: 0.65,
+    },
     primaryText: { ...type.titleMd, color: colors.onPrimary },
     link: {
       ...type.labelLg,
       color: colors.primary,
       textAlign: 'center',
       paddingVertical: SPACING.xs,
+    },
+    linkDisabled: {
+      opacity: 0.5,
     },
     divider: { height: 1, backgroundColor: colors.outlineVariant, marginVertical: SPACING.xs },
   });
