@@ -6,7 +6,8 @@
     "apps/mobile/src/features/home/components/DailyProgress.tsx",
     "apps/mobile/src/features/home/components/HomeListSection.tsx",
     "apps/mobile/src/features/home/components/NightlyReportModal.tsx",
-    "apps/mobile/src/features/home/components/StreakBadge.tsx"
+    "apps/mobile/src/features/home/components/StreakBadge.tsx",
+    "apps/mobile/src/shared/billing/**"
   ],
   "ignoreDependencies": [
     "@react-native/jest-preset",

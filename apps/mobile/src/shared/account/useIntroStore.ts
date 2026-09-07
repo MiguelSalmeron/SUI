@@ -16,6 +16,7 @@ export interface IntroState {
   firstRunGuideDismissed: boolean;
   technicalAuthPending: boolean;
   pendingCloudMerge: boolean;
+  previousAnonymousUid: string | null;
   setHydrated: (value: boolean) => void;
   acceptPolicy: (consent: ConsentRecord) => void;
   completeIntro: (mode: AccountMode, syncEnabled?: boolean) => void;
@@ -23,6 +24,7 @@ export interface IntroState {
   setSyncEnabled: (enabled: boolean) => void;
   setTechnicalAuthPending: (pending: boolean) => void;
   setPendingCloudMerge: (pending: boolean) => void;
+  setPreviousAnonymousUid: (uid: string | null) => void;
   dismissFirstRunGuide: () => void;
   resetIntro: () => void;
 }
@@ -72,6 +74,7 @@ export const useIntroStore = create<IntroState>()(
       firstRunGuideDismissed: false,
       technicalAuthPending: false,
       pendingCloudMerge: false,
+      previousAnonymousUid: null,
       setHydrated: (hydrated) => set({ hydrated }),
       acceptPolicy: (consent) => set({ consent }),
       completeIntro: (accountMode, syncEnabled = false) =>
@@ -81,6 +84,7 @@ export const useIntroStore = create<IntroState>()(
       setSyncEnabled: (syncEnabled) => set({ syncEnabled }),
       setTechnicalAuthPending: (technicalAuthPending) => set({ technicalAuthPending }),
       setPendingCloudMerge: (pendingCloudMerge) => set({ pendingCloudMerge }),
+      setPreviousAnonymousUid: (previousAnonymousUid) => set({ previousAnonymousUid }),
       dismissFirstRunGuide: () => set({ firstRunGuideDismissed: true }),
       resetIntro: () =>
         set({
@@ -92,6 +96,7 @@ export const useIntroStore = create<IntroState>()(
           firstRunGuideDismissed: false,
           technicalAuthPending: false,
           pendingCloudMerge: false,
+          previousAnonymousUid: null,
         }),
     }),
     {
@@ -108,6 +113,7 @@ export const useIntroStore = create<IntroState>()(
         firstRunGuideDismissed: state.firstRunGuideDismissed,
         technicalAuthPending: state.technicalAuthPending,
         pendingCloudMerge: state.pendingCloudMerge,
+        previousAnonymousUid: state.previousAnonymousUid,
       }),
       onRehydrateStorage: () => (state) => state?.setHydrated(true),
     },

@@ -19,7 +19,7 @@ import { AuthContext, deleteRegisteredAccount } from '@/features/auth/public';
 import { clearGoogleEventsCache } from '@/features/calendar/public';
 import { useIntroStore } from '@/features/onboarding/public';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
-import { useProductivityStore } from '@/shared/domain/productivity/public';
+import { clearLocalProductivity, useProductivityStore } from '@/shared/domain/productivity/public';
 import type { RootStackParamList } from '@/shared/navigation/types';
 import { useI18n } from '@/shared/i18n/i18n';
 import {
@@ -208,7 +208,7 @@ export const SettingsScreen = ({ navigation }: Props) => {
     try {
       await signOut(auth);
       await clearGoogleEventsCache();
-      await home.clearState();
+      await home.clearState({ preserveStorage: true });
       resetIntro();
       setLogoutVisible(false);
       navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
@@ -225,12 +225,16 @@ export const SettingsScreen = ({ navigation }: Props) => {
 
   const performDelete = async () => {
     const current = auth.currentUser;
+    const currentUid = current?.uid;
     if (current && !current.isAnonymous) {
       await deleteRegisteredAccount();
     } else if (current) {
       await deleteUser(current);
     }
     await clearGoogleEventsCache();
+    if (currentUid) {
+      await clearLocalProductivity(currentUid);
+    }
     await home.clearState();
     resetIntro();
     navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
