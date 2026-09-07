@@ -11,6 +11,7 @@ import {
   type GoogleCalendarCache,
 } from '../services/googleSync';
 import {
+  ConnectionApiError,
   connectGoogleCalendar,
   disconnectGoogleCalendarConnection,
   getGoogleCalendarConnectionStatus,
@@ -40,6 +41,25 @@ const cancelled = (result: { type: string }): boolean =>
 
 type Translate = (key: TranslationKey, values?: Record<string, string | number>) => string;
 
+const isAuthError = (error: unknown): boolean => {
+  if (error instanceof ConnectionApiError && error.status === 401) return true;
+  if (error && typeof error === 'object') {
+    const status = (error as { status?: unknown }).status;
+    if (status === 401) return true;
+    const message = (error as { message?: unknown }).message;
+    if (
+      typeof message === 'string' &&
+      (message.includes('401') ||
+        message.includes('reconnect_required') ||
+        message.includes('not_connected') ||
+        message.includes('invalid_grant'))
+    ) {
+      return true;
+    }
+  }
+  return false;
+};
+
 const getCalendarError = (_error: unknown, t: Translate): string => t('connections.errorSync');
 
 /**
@@ -54,6 +74,7 @@ export const useGoogleCalendar = () => {
   const [connected, setConnected] = useState(false);
   const inFlightRef = useRef(false);
   const cacheRef = useRef(cache);
+  const syncRef = useRef<() => Promise<boolean>>(() => Promise.resolve(false));
 
   useEffect(() => {
     cacheRef.current = cache;
@@ -75,29 +96,6 @@ export const useGoogleCalendar = () => {
     extraParams: { access_type: 'offline', prompt: 'consent' },
   });
 
-  useEffect(() => {
-    let active = true;
-    setStatus('loading-cache');
-    loadGoogleCalendarCache()
-      .then(async (stored) => {
-        if (!active) return;
-        setCache(stored);
-        setStatus(stored.lastSyncedAt ? 'offline' : 'idle');
-        if (!configured) return;
-        const remoteConnected = await getGoogleCalendarConnectionStatus();
-        if (!active) return;
-        setConnected(remoteConnected);
-        setStatus(remoteConnected ? (stored.lastSyncedAt ? 'synced' : 'idle') : 'idle');
-      })
-      .catch(() => {
-        if (active) setStatus(cacheRef.current.lastSyncedAt ? 'offline' : 'error');
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [configured]);
-
   const sync = useCallback(async (): Promise<boolean> => {
     if (inFlightRef.current || !configured) return false;
     inFlightRef.current = true;
@@ -117,8 +115,14 @@ export const useGoogleCalendar = () => {
       );
       return true;
     } catch (syncError) {
-      setError(getCalendarError(syncError, t));
-      setStatus(cache.lastSyncedAt ? 'offline' : 'error');
+      if (isAuthError(syncError)) {
+        setConnected(false);
+        setStatus('reauthRequired');
+        setError(t('connections.reauthRequired'));
+      } else {
+        setError(getCalendarError(syncError, t));
+        setStatus(cacheRef.current.lastSyncedAt ? 'offline' : 'error');
+      }
       recordTelemetry(
         'connection.completed',
         { provider: 'google_calendar', action: 'sync', result: 'error' },
@@ -128,7 +132,59 @@ export const useGoogleCalendar = () => {
     } finally {
       inFlightRef.current = false;
     }
-  }, [cache.lastSyncedAt, configured, t]);
+  }, [configured, t]);
+
+  useEffect(() => {
+    syncRef.current = sync;
+  }, [sync]);
+
+  useEffect(() => {
+    let active = true;
+    setStatus('loading-cache');
+    loadGoogleCalendarCache()
+      .then(async (stored) => {
+        if (!active) return;
+        setCache(stored);
+        setStatus(stored.lastSyncedAt ? 'offline' : 'idle');
+        if (!configured) return;
+        let remoteConnected = false;
+        try {
+          remoteConnected = await getGoogleCalendarConnectionStatus();
+        } catch (statusError) {
+          if (!active) return;
+          if (isAuthError(statusError)) {
+            setConnected(false);
+            setStatus('reauthRequired');
+            setError(t('connections.reauthRequired'));
+            return;
+          }
+          setStatus(stored.lastSyncedAt ? 'offline' : 'error');
+          return;
+        }
+        if (!active) return;
+        setConnected(remoteConnected);
+        if (remoteConnected) {
+          void syncRef.current();
+        } else {
+          setStatus(stored.lastSyncedAt ? 'offline' : 'idle');
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          if (isAuthError(err)) {
+            setConnected(false);
+            setStatus('reauthRequired');
+            setError(t('connections.reauthRequired'));
+          } else {
+            setStatus(cacheRef.current.lastSyncedAt ? 'offline' : 'error');
+          }
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [configured, t]);
 
   const connectAndSync = useCallback(async (): Promise<boolean> => {
     if (inFlightRef.current) return false;
@@ -148,9 +204,16 @@ export const useGoogleCalendar = () => {
     setError(null);
 
     try {
+      if (__DEV__) {
+        console.log('[Google Calendar] Starting auth flow with:', {
+          clientId: request.clientId,
+          redirectUri: request.redirectUri,
+          platform: Platform.OS,
+        });
+      }
       const authResult = await promptAsync();
       if (cancelled(authResult)) {
-        setStatus(cache.lastSyncedAt ? 'offline' : 'idle');
+        setStatus(cacheRef.current.lastSyncedAt ? 'offline' : 'idle');
         return false;
       }
       if (authResult.type !== 'success') {
@@ -177,13 +240,19 @@ export const useGoogleCalendar = () => {
       inFlightRef.current = false;
       return sync();
     } catch (syncError) {
-      setError(getCalendarError(syncError, t));
-      setStatus(cache.lastSyncedAt ? 'offline' : 'error');
+      if (isAuthError(syncError)) {
+        setConnected(false);
+        setStatus('reauthRequired');
+        setError(t('connections.reauthRequired'));
+      } else {
+        setError(getCalendarError(syncError, t));
+        setStatus(cacheRef.current.lastSyncedAt ? 'offline' : 'error');
+      }
       return false;
     } finally {
       inFlightRef.current = false;
     }
-  }, [cache.lastSyncedAt, configured, promptAsync, request, sync, t]);
+  }, [configured, promptAsync, request, sync, t]);
 
   const disconnect = useCallback(async (): Promise<void> => {
     if (configured) await disconnectGoogleCalendarConnection();
@@ -197,10 +266,10 @@ export const useGoogleCalendar = () => {
   const clearError = useCallback(() => setError(null), []);
 
   const platformHint = useMemo(() => {
-    if (Platform.OS === 'android' && configured && !androidClientId) {
+    if (Platform?.OS === 'android' && configured && !androidClientId) {
       return t('connections.androidConfig');
     }
-    if (Platform.OS === 'ios' && configured && !iosClientId) {
+    if (Platform?.OS === 'ios' && configured && !iosClientId) {
       return t('connections.iosConfig');
     }
     return null;
@@ -211,13 +280,15 @@ export const useGoogleCalendar = () => {
       ? connected
         ? 'syncing'
         : 'connecting'
-      : status === 'error'
-        ? 'error'
-        : status === 'offline'
-          ? 'offline'
-          : connected
-            ? 'connected'
-            : 'disconnected';
+      : status === 'reauthRequired'
+        ? 'reauthRequired'
+        : status === 'error'
+          ? 'error'
+          : status === 'offline'
+            ? 'offline'
+            : connected
+              ? 'connected'
+              : 'disconnected';
 
   return useMemo(
     () => ({

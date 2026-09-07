@@ -1,5 +1,11 @@
 export type ConnectionStatus =
-  'disconnected' | 'connecting' | 'connected' | 'syncing' | 'offline' | 'error';
+  | 'disconnected'
+  | 'connecting'
+  | 'connected'
+  | 'syncing'
+  | 'offline'
+  | 'reauthRequired'
+  | 'error';
 
 export type ConnectionCapabilities = {
   read: boolean;

@@ -1,5 +1,5 @@
 /**
- * Notificaciones Push LOCALES (expo-notifications).
+ * Notificaciones Push LOCALES del reporte nocturno (expo-notifications).
  *
  * Arquitectura 100% local / offline:
  *  - No usa FCM ni servidores externos. La alerta se programa en el propio
@@ -8,11 +8,23 @@
  *  - Se dispara a las 21:30 hora local (recordatorio de cierre del día).
  *  - El payload `data.type = 'nightly_report'` permite que HomeScreen detecte
  *    el toque y abra el reporte reflexivo (consulta a la IA bajo demanda).
+ *
+ * El scheduling, el permiso y el canal de Android viven en
+ * `shared/infrastructure/notifications`; este módulo sólo describe el
+ * reporte nocturno y sus preferencias.
  */
 
-import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
+import type { NotificationResponse } from 'expo-notifications';
 import { useSettingsStore } from '@/shared/preferences/useSettingsStore';
+import {
+  cancelScheduledNotification,
+  configureNotificationHandler,
+  getNotificationPermission,
+  requestNotificationPermission,
+  scheduleLocalNotification,
+} from '@/shared/infrastructure/notifications';
+
+export { configureNotificationHandler };
 
 /** Identificador estable: re-programar reemplaza, no duplica. */
 export const NIGHTLY_REPORT_ID = 'sui-nightly-report';
@@ -24,53 +36,13 @@ export const NIGHTLY_REPORT_TYPE = 'nightly_report';
 export const REPORT_HOUR = 21;
 export const REPORT_MINUTE = 30;
 
-const ANDROID_CHANNEL_ID = 'daily-reports';
-
-/**
- * Handler global: muestra la notificación incluso con la app en primer plano.
- * Debe registrarse una sola vez al inicio de la app.
- */
-export const configureNotificationHandler = (): void => {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-    }),
-  });
-};
-
-/** Crea el canal de Android (no-op en iOS). Requerido para entregar alertas. */
-const ensureAndroidChannel = async (): Promise<void> => {
-  if (Platform.OS !== 'android') return;
-  await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
-    name: 'Reportes diarios',
-    importance: Notifications.AndroidImportance.DEFAULT,
-    sound: undefined,
-  });
-};
+const NIGHTLY_CHANNEL = { id: 'daily-reports', name: 'Reportes diarios' };
 
 export type NotificationEnableResult = 'scheduled' | 'denied' | 'blocked' | 'error';
 
-const permissionResult = (permission: { granted: boolean; canAskAgain: boolean }) => {
-  if (permission.granted) return 'granted' as const;
-  return permission.canAskAgain ? ('denied' as const) : ('blocked' as const);
-};
-
-export const requestNotificationPermission = async (): Promise<
-  'granted' | 'denied' | 'blocked'
-> => {
-  const current = await Notifications.getPermissionsAsync();
-  const currentResult = permissionResult(current);
-  if (currentResult !== 'denied') return currentResult;
-  const requested = await Notifications.requestPermissionsAsync();
-  return requested.granted ? 'granted' : 'denied';
-};
-
 /** Cancela el recordatorio nocturno. */
 export const cancelNightlyReport = async (): Promise<void> => {
-  await Notifications.cancelScheduledNotificationAsync(NIGHTLY_REPORT_ID).catch(() => undefined);
+  await cancelScheduledNotification(NIGHTLY_REPORT_ID);
 };
 
 /**
@@ -79,21 +51,14 @@ export const cancelNightlyReport = async (): Promise<void> => {
  * Devuelve true si quedó programada.
  */
 const programNightlyReport = async (): Promise<void> => {
-  await ensureAndroidChannel();
   await cancelNightlyReport();
-  await Notifications.scheduleNotificationAsync({
+  await scheduleLocalNotification({
     identifier: NIGHTLY_REPORT_ID,
-    content: {
-      title: 'Sui está listo para escuchar 🌙',
-      body: '¿Cómo te fue hoy? Toca para cerrar tu día con un resumen.',
-      data: { type: NIGHTLY_REPORT_TYPE },
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: REPORT_HOUR,
-      minute: REPORT_MINUTE,
-      ...(Platform.OS === 'android' ? { channelId: ANDROID_CHANNEL_ID } : {}),
-    },
+    title: 'Sui está listo para escuchar 🌙',
+    body: '¿Cómo te fue hoy? Toca para cerrar tu día con un resumen.',
+    data: { type: NIGHTLY_REPORT_TYPE },
+    trigger: { kind: 'daily', hour: REPORT_HOUR, minute: REPORT_MINUTE },
+    channel: NIGHTLY_CHANNEL,
   });
 };
 
@@ -124,7 +89,7 @@ export const reconcileNightlyReport = async (): Promise<NotificationEnableResult
     return 'disabled';
   }
   try {
-    const current = permissionResult(await Notifications.getPermissionsAsync());
+    const current = await getNotificationPermission();
     if (current !== 'granted') {
       await disableNightlyReport();
       return current;
@@ -138,6 +103,5 @@ export const reconcileNightlyReport = async (): Promise<NotificationEnableResult
 };
 
 /** true si la respuesta a una notificación corresponde al reporte nocturno. */
-export const isNightlyReportResponse = (
-  response: Notifications.NotificationResponse | null,
-): boolean => response?.notification.request.content.data?.type === NIGHTLY_REPORT_TYPE;
+export const isNightlyReportResponse = (response: NotificationResponse | null): boolean =>
+  response?.notification.request.content.data?.type === NIGHTLY_REPORT_TYPE;

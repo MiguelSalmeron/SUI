@@ -78,10 +78,16 @@ const persistThemeMode = async (mode: ThemeMode): Promise<void> => {
   themeModeListeners.forEach((cb) => cb(mode));
 };
 
-export const getThemeMode = (): ThemeMode => themeModeCache;
+export const getThemeMode = (): ThemeMode => {
+  const storeMode = useSettingsStore.getState().theme;
+  return storeMode || themeModeCache;
+};
 
 export const setThemeMode = async (mode: ThemeMode): Promise<void> => {
   await persistThemeMode(mode);
+  if (useSettingsStore.getState().theme !== mode) {
+    useSettingsStore.getState().setTheme(mode);
+  }
 };
 
 export const subscribeThemeMode = (cb: Listener): (() => void) => {
@@ -90,6 +96,13 @@ export const subscribeThemeMode = (cb: Listener): (() => void) => {
     themeModeListeners.delete(cb);
   };
 };
+
+useSettingsStore.subscribe((state, prevState) => {
+  if (state.theme !== prevState.theme && state.theme !== themeModeCache) {
+    themeModeCache = state.theme;
+    themeModeListeners.forEach((cb) => cb(state.theme));
+  }
+});
 
 // Hidratar al cargar el módulo (no bloqueante).
 void loadThemeMode();

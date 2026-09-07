@@ -11,6 +11,7 @@ export type RootStackParamList = {
   Welcome: undefined;
   Home: undefined;
   Chat: undefined;
+  Pomodoro: undefined;
   Progress: undefined;
   Settings: undefined;
   Login: undefined;

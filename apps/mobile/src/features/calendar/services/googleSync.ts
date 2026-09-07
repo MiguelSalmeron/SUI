@@ -8,7 +8,13 @@ const GOOGLE_EVENTS_CACHE_KEY = '@sui/google-events-v2';
 const LEGACY_GOOGLE_EVENTS_CACHE_KEY = '@sui/google-events-v1';
 
 export type CalendarSyncStatus =
-  'idle' | 'loading-cache' | 'syncing' | 'synced' | 'offline' | 'error';
+  | 'idle'
+  | 'loading-cache'
+  | 'syncing'
+  | 'synced'
+  | 'offline'
+  | 'reauthRequired'
+  | 'error';
 
 export interface GoogleCalendarCache {
   events: GoogleEvent[];

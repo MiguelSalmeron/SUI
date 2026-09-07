@@ -7,6 +7,7 @@ type TelemetryEvent =
   | 'auth.completed'
   | 'sync.completed'
   | 'productivity.completed'
+  | 'pomodoro.completed'
   | 'connection.completed';
 
 type TelemetryAttributes = Record<string, string | number | boolean>;
