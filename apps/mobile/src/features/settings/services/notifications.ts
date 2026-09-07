@@ -16,6 +16,7 @@
 
 import type { NotificationResponse } from 'expo-notifications';
 import { useSettingsStore } from '@/shared/preferences/useSettingsStore';
+import { resolveLocale, translate } from '@/shared/i18n/i18n';
 import {
   cancelScheduledNotification,
   configureNotificationHandler,
@@ -52,10 +53,15 @@ export const cancelNightlyReport = async (): Promise<void> => {
  */
 const programNightlyReport = async (): Promise<void> => {
   await cancelNightlyReport();
+  const preference = useSettingsStore.getState().language;
+  const locale = resolveLocale(preference);
+  const title = translate(locale, 'notifications.nightlyTitle');
+  const body = translate(locale, 'notifications.nightlyBody');
+
   await scheduleLocalNotification({
     identifier: NIGHTLY_REPORT_ID,
-    title: 'Sui está listo para escuchar 🌙',
-    body: '¿Cómo te fue hoy? Toca para cerrar tu día con un resumen.',
+    title,
+    body,
     data: { type: NIGHTLY_REPORT_TYPE },
     trigger: { kind: 'daily', hour: REPORT_HOUR, minute: REPORT_MINUTE },
     channel: NIGHTLY_CHANNEL,

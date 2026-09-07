@@ -8,6 +8,8 @@ module.exports = {
     '^@react-native-async-storage/async-storage$': '<rootDir>/__mocks__/async-storage.js',
     '^expo-crypto$': '<rootDir>/__mocks__/expo-crypto.js',
     '^expo-haptics$': '<rootDir>/__mocks__/expo-haptics.js',
+    '^expo-localization$': '<rootDir>/__mocks__/expo-localization.js',
+    '^react-native-safe-area-context$': '<rootDir>/__mocks__/react-native-safe-area-context.js',
   },
   transform: {
     '^.+\\.(js|jsx|tsx)$': [

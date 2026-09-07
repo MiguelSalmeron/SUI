@@ -1,2 +1,3 @@
 export { WelcomeScreen } from './screens/WelcomeScreen';
-export { useIntroStore } from './store/useIntroStore';
+export { useIntroStore, type UserIntention } from './store/useIntroStore';
+export type { OnboardingStep, IntentionOption } from './model/onboardingTypes';
