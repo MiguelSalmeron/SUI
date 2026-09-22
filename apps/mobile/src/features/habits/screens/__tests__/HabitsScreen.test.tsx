@@ -49,6 +49,18 @@ jest.mock('@/shared/theme/theme', () => {
 jest.mock('@/shared/ui/Ionicons', () => ({ Ionicons: () => null }));
 jest.mock('@/shared/ui/ScreenIntro', () => ({ ScreenIntro: () => null }));
 jest.mock('@/shared/ui/SuiDoodle', () => ({ SuiDoodle: () => null }));
+jest.mock('@/features/calendar/public', () => ({
+  enqueueMirror: jest.fn(),
+  collectMirrorCandidates: jest.fn(() => []),
+  flushMirrorQueue: jest.fn(),
+}));
+jest.mock('@/features/accountability/public', () => ({
+  AccountabilitySetupSheet: () => null,
+  activateFollowUp: jest.fn(),
+  deactivateFollowUp: jest.fn(),
+  useAccountabilityStore: (selector: (state: { commitments: unknown[] }) => unknown) =>
+    selector({ commitments: [] }),
+}));
 jest.mock('../../components/HabitFormModal', () => ({
   HabitFormModal: (props: { visible: boolean; initialHabit: Habit | null }) => {
     const React = require('react');

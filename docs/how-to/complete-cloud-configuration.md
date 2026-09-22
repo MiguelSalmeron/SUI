@@ -64,8 +64,8 @@ firebase deploy --only firestore:rules,functions
   - *Build EAS (staging/production):* Ejecutar `eas credentials -p android` y copiar la huella SHA-1 del Keystore administrado.
   - *Google Play Store (si aplica):* Copiar el SHA-1 de "Firma de apps de Google Play" en Play Console.
 - **Deep Linking y Redirección en la APK:**
-  - `expo-auth-session` redirige a `com.sui.app:/oauthredirect`.
-  - `apps/mobile/app.json` declara `"scheme": ["sui", "com.sui.app"]` y `AndroidManifest.xml` cuenta con el `intent-filter` para `com.sui.app` para que el navegador del móvil devuelva el control a la app tras autorizar la cuenta.
+  - `expo-auth-session` redirige al esquema reverso `com.googleusercontent.apps.<prefijo-del-client-id>:/oauth2redirect`. Login y Calendar usan el mismo redirect.
+  - `apps/mobile/app.json` declara `"scheme": ["sui", "com.sui.app"]` y un `intent-filter` (`android.intentFilters`) para el esquema reverso con `path: "/oauth2redirect"`, de modo que el navegador del móvil devuelva el control a la app tras autorizar la cuenta.
   - En la app, el código de autorización se intercambia con PKCE contra el endpoint de Google para obtener el `id_token` final.
 
 #### C. Cliente iOS (`EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`):
@@ -86,7 +86,7 @@ firebase deploy --only firestore:rules,functions
 Calendar no comparte consentimiento con login.
 
 1. Activar Google Calendar API.
-2. Añadir `calendar.readonly`.
+2. Añadir `calendar.events` (lectura de agenda + espejo de metas/hábitos en el calendario primario).
 3. Registrar redirects por ambiente.
 4. Poner todos Client IDs en `GOOGLE_OAUTH_CLIENT_IDS`.
 5. Poner Web Client ID en `GOOGLE_OAUTH_WEB_CLIENT_ID`.

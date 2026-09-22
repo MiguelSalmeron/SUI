@@ -38,8 +38,18 @@ export const useGoogleAuth = () => {
   const configured = Boolean(webClientId);
   const effectiveWebId = configured ? webClientId : PLACEHOLDER_CLIENT_ID;
 
+  // Cliente Android nativo: Google solo acepta el redirect reverso
+  // com.googleusercontent.apps.<prefijo>:/oauth2redirect (el esquema de la
+  // app da 400 invalid_request). El intent-filter vive en AndroidManifest
+  // (ver android.intentFilters en app.json como fuente durable).
+  const androidRedirectUri =
+    Platform.OS === 'android' && configured && androidClientId
+      ? `com.googleusercontent.apps.${androidClientId.split('.')[0]}:/oauth2redirect`
+      : undefined;
+
   const [request, , promptAsync] = Google.useIdTokenAuthRequest({
     clientId: effectiveWebId,
+    redirectUri: androidRedirectUri,
     webClientId: effectiveWebId,
     androidClientId: configured ? androidClientId || effectiveWebId : PLACEHOLDER_CLIENT_ID,
     iosClientId: configured ? iosClientId || effectiveWebId : PLACEHOLDER_CLIENT_ID,

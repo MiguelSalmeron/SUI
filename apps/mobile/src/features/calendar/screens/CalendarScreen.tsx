@@ -17,6 +17,7 @@ import {
 } from '@/shared/domain/productivity/public';
 import type { GoalGravity } from '@/shared/types/models';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
+import { useMirrorEffects } from '../hooks/useMirrorEffects';
 import { useNavigation, type CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -38,6 +39,7 @@ export const CalendarScreen = () => {
   const daysHeader =
     locale === 'es' ? ['L', 'M', 'X', 'J', 'V', 'S', 'D'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   const { events: googleEvents, connected: calendarConnected } = useGoogleCalendar();
+  useMirrorEffects(calendarConnected);
 
   const goals = useProductivityStore((s) => s.goals);
   const habits = useProductivityStore((s) => s.habits);

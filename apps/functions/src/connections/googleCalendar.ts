@@ -1,10 +1,25 @@
 import { onRequest } from 'firebase-functions/v2/https';
+import * as logger from 'firebase-functions/logger';
 import { defineSecret, defineString } from 'firebase-functions/params';
 import { FieldValue } from 'firebase-admin/firestore';
 import { authenticateBearer } from '../chat/auth';
 import { firestore } from '../chat/firebase';
 import { setCorsHeaders } from '../http/cors';
 import { verifyAppCheckHeader } from '../http/appCheck';
+import {
+  createCalendarEvent,
+  deleteCalendarEvent,
+  ensureSuiCalendar,
+  GoogleApiError,
+  patchCalendarEvent,
+} from './googleApi';
+import { CalendarFetchError, fetchCalendarEvents } from './calendarFetch';
+import { resolveMirrorCalendarId } from './mirrorCalendar';
+import {
+  fingerprintMirrorBody,
+  toGoogleEventBody,
+  type MirrorSource,
+} from './mirrorMapper';
 
 const GOOGLE_OAUTH_CLIENT_IDS = defineString('GOOGLE_OAUTH_CLIENT_IDS', { default: '' });
 const GOOGLE_OAUTH_WEB_CLIENT_ID = defineString('GOOGLE_OAUTH_WEB_CLIENT_ID', { default: '' });
@@ -12,8 +27,16 @@ const GOOGLE_OAUTH_WEB_CLIENT_SECRET = defineSecret('GOOGLE_OAUTH_WEB_CLIENT_SEC
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
-const CALENDAR_API = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
-const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
+const CALENDAR_READ_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
+const CALENDAR_WRITE_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+
+const scopeSet = (scope: string | undefined): Set<string> =>
+  new Set((scope ?? '').split(' ').map((s) => s.trim()).filter(Boolean));
+const hasReadScope = (scope: string | undefined): boolean => {
+  const scopes = scopeSet(scope);
+  return scopes.has(CALENDAR_READ_SCOPE) || scopes.has(CALENDAR_WRITE_SCOPE);
+};
+const hasWriteScope = (scope: string | undefined): boolean => scopeSet(scope).has(CALENDAR_WRITE_SCOPE);
 
 type ConnectionDocument = {
   accessToken: string;
@@ -31,17 +54,66 @@ type TokenResponse = {
   error?: string;
 };
 
-type GoogleEvent = {
-  id?: string;
-  status?: string;
-  summary?: string;
-  location?: string;
-  start?: { date?: string; dateTime?: string; timeZone?: string };
-  end?: { date?: string; dateTime?: string; timeZone?: string };
-};
-
 const connectionRef = (uid: string) =>
   firestore.collection('users').doc(uid).collection('connections').doc('google_calendar');
+
+const mirrorRef = (uid: string, suiId: string) =>
+  firestore.collection('users').doc(uid).collection('mirror').doc(suiId);
+
+type MirrorDoc = {
+  googleCalendarId: string;
+  googleEventId: string;
+  fingerprint: string;
+  suiType: 'goal' | 'habit';
+};
+
+const readSuiEntity = async (
+  uid: string,
+  suiType: 'goal' | 'habit',
+  suiId: string,
+): Promise<Record<string, unknown> | null> => {
+  const collection = suiType === 'goal' ? 'goals' : 'habits';
+  const snapshot = await firestore.collection('users').doc(uid).collection(collection).doc(suiId).get();
+  if (!snapshot.exists) return null;
+  const stored = snapshot.data() as { data?: unknown } | undefined;
+  if (!stored || typeof stored.data !== 'object' || stored.data === null) return null;
+  return stored.data as Record<string, unknown>;
+};
+
+const toMirrorSource = (
+  suiType: 'goal' | 'habit',
+  suiId: string,
+  entity: Record<string, unknown>,
+): MirrorSource | null => {
+  if (typeof entity.title !== 'string') return null;
+  if (suiType === 'goal') {
+    if (typeof entity.deadline !== 'string') return null;
+    return {
+      suiType: 'goal',
+      suiId,
+      title: entity.title,
+      deadline: entity.deadline,
+      impactDays: Array.isArray(entity.impactDays)
+        ? entity.impactDays.filter((d): d is string => typeof d === 'string')
+        : undefined,
+      completed: entity.completed === true,
+      gravity: entity.gravity === 'high' ? 'high' : 'low',
+      mirrorToGoogle: typeof entity.mirrorToGoogle === 'boolean' ? entity.mirrorToGoogle : undefined,
+    };
+  }
+  return {
+    suiType: 'habit',
+    suiId,
+    title: entity.title,
+    frequency:
+      entity.frequency === 'daily' || Array.isArray(entity.frequency)
+        ? (entity.frequency as 'daily' | ('mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun')[])
+        : 'daily',
+    plannedTime: typeof entity.plannedTime === 'string' ? entity.plannedTime : undefined,
+    completed: entity.completed === true,
+    mirrorToGoogle: typeof entity.mirrorToGoogle === 'boolean' ? entity.mirrorToGoogle : undefined,
+  };
+};
 
 const allowedClientIds = (): Set<string> =>
   new Set(
@@ -146,59 +218,7 @@ const getActiveConnection = async (uid: string): Promise<ConnectionDocument> => 
   return connection;
 };
 
-const normalizeEvent = (event: GoogleEvent) => {
-  if (!event.id || event.status === 'cancelled' || !event.start) return null;
-  const allDay = Boolean(event.start.date && !event.start.dateTime);
-  const startAt = event.start.dateTime ?? `${event.start.date}T00:00:00`;
-  const endAt = event.end?.dateTime ?? `${event.end?.date ?? event.start.date}T00:00:00`;
-  const date = event.start.date ?? startAt.slice(0, 10);
-  const time = allDay ? undefined : startAt.slice(11, 16);
-  return {
-    id: event.id,
-    calendarId: 'primary',
-    title: event.summary?.trim() || '',
-    date,
-    time,
-    startAt,
-    endAt,
-    allDay,
-    timeZone: event.start.timeZone,
-    location: event.location?.trim() || undefined,
-    type: 'event',
-    source: 'google',
-  };
-};
-
-const fetchEvents = async (accessToken: string) => {
-  const now = new Date();
-  const timeMax = new Date(now);
-  timeMax.setDate(timeMax.getDate() + 31);
-  const events: ReturnType<typeof normalizeEvent>[] = [];
-  let pageToken = '';
-  for (let page = 0; page < 10; page += 1) {
-    const params = new URLSearchParams({
-      singleEvents: 'true',
-      orderBy: 'startTime',
-      showDeleted: 'false',
-      maxResults: '250',
-      timeMin: now.toISOString(),
-      timeMax: timeMax.toISOString(),
-    });
-    if (pageToken) params.set('pageToken', pageToken);
-    const response = await fetch(`${CALENDAR_API}?${params}`, {
-      headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
-    });
-    if (!response.ok)
-      throw new Error(response.status === 401 ? 'reconnect_required' : 'calendar_fetch_failed');
-    const body = (await response.json()) as { items?: GoogleEvent[]; nextPageToken?: string };
-    for (const item of body.items ?? []) events.push(normalizeEvent(item));
-    pageToken = body.nextPageToken ?? '';
-    if (!pageToken) break;
-  }
-  return events
-    .filter((item): item is NonNullable<typeof item> => item !== null)
-    .sort((a, b) => a.startAt.localeCompare(b.startAt));
-};
+const fetchEvents = (accessToken: string) => fetchCalendarEvents(accessToken);
 
 const functionOptions = {
   secrets: [GOOGLE_OAUTH_WEB_CLIENT_SECRET],
@@ -230,8 +250,18 @@ export const googleCalendarConnect = onRequest(functionOptions, async (request, 
   const codeVerifier = typeof body.codeVerifier === 'string' ? body.codeVerifier.trim() : '';
   const redirectUri = typeof body.redirectUri === 'string' ? body.redirectUri.trim() : '';
   const clientId = typeof body.clientId === 'string' ? body.clientId.trim() : '';
-  if (!code || !codeVerifier || !redirectUri || !allowedClientIds().has(clientId)) {
+  if (!code || !codeVerifier || !redirectUri) {
     response.status(400).json({ error: 'Invalid OAuth request' });
+    return;
+  }
+  const allowed = allowedClientIds();
+  if (!allowed.has(clientId)) {
+    // Misconfig típico: GOOGLE_OAUTH_CLIENT_IDS vacío en el .env del proyecto.
+    logger.warn('googleCalendarConnect rejected client', {
+      operation: 'googleCalendarConnect',
+      configuredClients: allowed.size,
+    });
+    response.status(400).json({ error: 'OAuth client not allowed' });
     return;
   }
   try {
@@ -246,7 +276,7 @@ export const googleCalendarConnect = onRequest(functionOptions, async (request, 
       params.set('client_secret', GOOGLE_OAUTH_WEB_CLIENT_SECRET.value());
     }
     const token = await exchangeToken(params);
-    if (!(token.scope ?? '').split(' ').includes(CALENDAR_SCOPE)) {
+    if (!hasReadScope(token.scope)) {
       response.status(403).json({ error: 'Calendar permission missing' });
       return;
     }
@@ -282,9 +312,20 @@ export const googleCalendarSync = onRequest(functionOptions, async (request, res
     const events = await fetchEvents(connection.accessToken);
     response.status(200).json({ events, syncedAt: Date.now() });
   } catch (error) {
-    const code = error instanceof Error ? error.message : 'sync_failed';
-    response.status(code === 'not_connected' || code === 'reconnect_required' ? 401 : 502).json({
-      error: code === 'reconnect_required' ? 'Reconnect Google Calendar' : 'Calendar sync failed',
+    const code =
+      error instanceof CalendarFetchError
+        ? error.code
+        : error instanceof Error && error.message === 'reconnect_required'
+          ? 'reconnect_required'
+          : 'calendar_fetch_failed';
+    const status = code === 'reconnect_required' ? 401 : code === 'rate_limited' ? 429 : 502;
+    response.status(status).json({
+      error:
+        code === 'reconnect_required'
+          ? 'Reconnect Google Calendar'
+          : code === 'rate_limited'
+            ? 'Calendar rate limited'
+            : 'Calendar sync failed',
     });
   }
 });
@@ -294,4 +335,135 @@ export const googleCalendarDisconnect = onRequest(functionOptions, async (reques
   if (!uid) return;
   await disconnectGoogleCalendarForUser(uid);
   response.status(200).json({ connected: false });
+});
+
+const mirrorErrorStatus = (error: unknown): number => {
+  if (error instanceof GoogleApiError) {
+    if (error.code === 'reconnect_required') return 401;
+    if (error.code === 'rate_limited') return 429;
+    if (error.code === 'not_found') return 502;
+  }
+  const code = error instanceof Error ? error.message : '';
+  if (code === 'not_connected' || code === 'reconnect_required' || code === 'write_forbidden') return 401;
+  if (code === 'mirror_disabled' || code === 'invalid_mirror_request') return 400;
+  return 502;
+};
+
+/**
+ * Espeja un Goal/Habit Sui en el calendario dedicado "Sui" de Google.
+ * Body: { suiId, suiType: goal|habit, startDate?: YYYY-MM-DD, timeZone?: string }.
+ * Lee la entidad desde Firestore (fuente de verdad), no confía en payload cliente.
+ * Idempotente por fingerprint: si nada cambió, no hace PATCH.
+ */
+export const googleMirrorUpsert = onRequest(functionOptions, async (request, response) => {
+  const uid = await validateRequest(request, response, 'POST', 'googleMirrorUpsert');
+  if (!uid) return;
+  try {
+    const body = parseBody(request.body);
+    const suiId = typeof body.suiId === 'string' ? body.suiId.trim() : '';
+    const suiType = body.suiType === 'goal' || body.suiType === 'habit' ? body.suiType : null;
+    const startDate =
+      typeof body.startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.startDate)
+        ? body.startDate
+        : new Date().toISOString().slice(0, 10);
+    const timeZone = typeof body.timeZone === 'string' && body.timeZone.length <= 64 ? body.timeZone : undefined;
+    if (!suiId || !suiType) throw new Error('invalid_mirror_request');
+
+    const connection = await getActiveConnection(uid);
+    if (!hasWriteScope(connection.scope)) throw new Error('write_forbidden');
+
+    const entity = await readSuiEntity(uid, suiType, suiId);
+    const ref = mirrorRef(uid, suiId);
+    if (!entity) {
+      const existing = (await ref.get()).data() as MirrorDoc | undefined;
+      if (existing) {
+        await deleteCalendarEvent(connection.accessToken, existing.googleCalendarId, existing.googleEventId).catch(
+          () => undefined,
+        );
+        await ref.delete();
+      }
+      response.status(200).json({ deleted: true });
+      return;
+    }
+
+    const source = toMirrorSource(suiType, suiId, entity);
+    const eventBody = source ? toGoogleEventBody(source, { startDate, timeZone }) : null;
+    if (!eventBody) throw new Error('mirror_disabled');
+
+    // El scope calendar.events no permite listar/crear calendarios: según el
+    // scope concedido, el espejo escribe en el primario o en el dedicado "Sui".
+    const calendarId = await resolveMirrorCalendarId(
+      connection.accessToken,
+      connection.scope,
+      ensureSuiCalendar,
+    );
+    const fingerprint = fingerprintMirrorBody(eventBody);
+    const previous = (await ref.get()).data() as MirrorDoc | undefined;
+    if (previous && previous.fingerprint === fingerprint && previous.googleCalendarId === calendarId) {
+      response.status(200).json({
+        googleEventId: previous.googleEventId,
+        calendarId,
+        status: 'mirrored',
+        unchanged: true,
+      });
+      return;
+    }
+
+    let googleEventId = previous?.googleEventId;
+    if (googleEventId && previous?.googleCalendarId === calendarId) {
+      try {
+        await patchCalendarEvent(connection.accessToken, calendarId, googleEventId, eventBody);
+      } catch (error) {
+        if (error instanceof GoogleApiError && error.code === 'not_found') {
+          googleEventId = undefined;
+        } else {
+          throw error;
+        }
+      }
+    }
+    if (!googleEventId) {
+      googleEventId = (await createCalendarEvent(connection.accessToken, calendarId, eventBody)).id;
+    }
+    await ref.set(
+      {
+        googleCalendarId: calendarId,
+        googleEventId,
+        fingerprint,
+        suiType,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    response.status(200).json({ googleEventId, calendarId, status: 'mirrored', unchanged: false });
+  } catch (error) {
+    response.status(mirrorErrorStatus(error)).json({
+      error: error instanceof Error ? error.message : 'mirror_failed',
+    });
+  }
+});
+
+/** Elimina el espejo de un item (borra en Google si existe + borra mapeo). */
+export const googleMirrorDelete = onRequest(functionOptions, async (request, response) => {
+  const uid = await validateRequest(request, response, 'POST', 'googleMirrorDelete');
+  if (!uid) return;
+  try {
+    const body = parseBody(request.body);
+    const suiId = typeof body.suiId === 'string' ? body.suiId.trim() : '';
+    if (!suiId) throw new Error('invalid_mirror_request');
+    const connection = await getActiveConnection(uid);
+    if (!hasWriteScope(connection.scope)) throw new Error('write_forbidden');
+    const ref = mirrorRef(uid, suiId);
+    const existing = (await ref.get()).data() as MirrorDoc | undefined;
+    if (existing) {
+      await deleteCalendarEvent(connection.accessToken, existing.googleCalendarId, existing.googleEventId).catch(
+        () => undefined,
+      );
+      await ref.delete();
+    }
+    response.status(200).json({ deleted: true });
+  } catch (error) {
+    response.status(mirrorErrorStatus(error)).json({
+      error: error instanceof Error ? error.message : 'mirror_failed',
+    });
+  }
 });

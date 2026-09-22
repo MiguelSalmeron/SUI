@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import {
+  Animated,
   Linking,
   StyleSheet,
   Text,
@@ -34,13 +35,13 @@ export const AccountDecisionView = ({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.privacyBox, entrance.animatedStyle]}>
+      <Animated.View style={[styles.privacyBox, entrance.animatedStyle]}>
         <View style={styles.shieldIcon}>
           <Ionicons name="shield-checkmark" size={32} color={theme.colors.primary} />
         </View>
         <Text style={styles.privacyTitle}>{t('onboarding.privacyTitle')}</Text>
         <Text style={styles.privacyBody}>{t('onboarding.privacyBody')}</Text>
-      </View>
+      </Animated.View>
 
       <View style={styles.actions}>
         <TouchableOpacity

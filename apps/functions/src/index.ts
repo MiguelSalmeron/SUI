@@ -14,6 +14,8 @@ export {
   googleCalendarDisconnect,
   googleCalendarStatus,
   googleCalendarSync,
+  googleMirrorDelete,
+  googleMirrorUpsert,
 } from './connections/googleCalendar';
 export { deleteAccount } from './account/deleteAccount';
 export { syncProductivity } from './productivity/endpoint';

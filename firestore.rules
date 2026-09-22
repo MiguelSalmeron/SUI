@@ -34,6 +34,10 @@ service cloud.firestore {
       match /connections/{connectionId} {
         allow read, write: if false;
       }
+
+      match /mirror/{mirrorId} {
+        allow read, write: if false;
+      }
     }
 
     match /app_config/crisis {

@@ -13,10 +13,12 @@ import { SummaryScreen } from '@/features/home/public';
 import { PomodoroScreen } from '@/features/pomodoro/public';
 import { useIntroStore, WelcomeScreen } from '@/features/onboarding/public';
 import { ConnectionsScreen, SettingsScreen } from '@/features/settings/public';
+import { AccountabilitySettingsScreen } from '@/features/accountability/public';
 import { useAppTheme } from '@/shared/theme/theme';
 import { TabNavigator } from './TabNavigator';
 import type { RootStackParamList } from '@/shared/navigation/types';
 import { useI18n } from '@/shared/i18n/i18n';
+import { PRODUCT_CONFIG } from '@/shared/config/product';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -132,6 +134,17 @@ export const AppNavigator = () => {
             headerBackTitle: t('nav.backSettings'),
           }}
         />
+        {PRODUCT_CONFIG.accountabilityEnabled ? (
+          <Stack.Screen
+            name="AccountabilitySettings"
+            component={AccountabilitySettingsScreen}
+            options={{
+              ...standardHeader,
+              title: t('accountability.settings.title'),
+              headerBackTitle: t('nav.backSettings'),
+            }}
+          />
+        ) : null}
       </Stack.Navigator>
     </NavigationContainer>
   );

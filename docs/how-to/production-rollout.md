@@ -6,7 +6,7 @@
 - Español e inglés.
 - Invitado local, correo/contraseña, Google; Apple en iOS.
 - Productividad offline-first con respaldo opcional.
-- Google Calendar sólo lectura, bajo solicitud explícita.
+- Google Calendar (lectura + espejo) bajo solicitud explícita; el espejo escribe en el calendario primario con scope `calendar.events`.
 - Historial de Chat local con TTL de 48 horas.
 
 ## 1. Separar ambientes

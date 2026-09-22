@@ -9,6 +9,7 @@ export const PRODUCT_CONFIG = {
     .split(',')
     .map((value: string) => value.trim().toUpperCase())
     .filter(Boolean),
+  accountabilityEnabled: process.env.EXPO_PUBLIC_ACCOUNTABILITY_ENABLED?.trim() === 'true',
 } as const;
 
 export const isProductionEnvironment = PRODUCT_CONFIG.environment === 'production';

@@ -127,7 +127,7 @@ desde Inicio.
 - Mes lunes–domingo, selección de fecha, indicadores discretos.
 - Unificar metas, hábitos y eventos externos normalizados.
 - Crear entrega para fecha seleccionada.
-- Google Calendar sólo lectura; conexión contextual o desde Ajustes.
+- Google Calendar: lectura de agenda y espejo de metas/hábitos; conexión contextual o desde Ajustes.
 
 ### 6.6 Progreso
 

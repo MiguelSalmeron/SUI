@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AppState, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { createBottomTabNavigator, type BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@/shared/ui/Ionicons';
@@ -26,11 +26,97 @@ import { CalendarScreen } from '@/features/calendar/public';
 import { GoalsScreen } from '@/features/goals/public';
 import { HabitsScreen } from '@/features/habits/public';
 import { CelebrationToast, OverviewScreen } from '@/features/home/public';
+import {
+  AccountabilityCheckInHost,
+  ACCOUNTABILITY_PAYLOAD_TYPE,
+  cancelAllAccountabilityNotifications,
+  reconcileAccountability,
+  useAccountabilityStore,
+} from '@/features/accountability/public';
+import {
+  addNotificationResponseListener,
+  getLastNotificationResponseAsync,
+} from '@/shared/infrastructure/notifications';
 import { useI18n } from '@/shared/i18n/i18n';
+import { PRODUCT_CONFIG } from '@/shared/config/product';
 
 export { MAIN_TAB_ITEMS } from './mainTabs';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
+
+/**
+ * Hidrata accountability con la sesión vigente y reconcilia la agenda:
+ * al montar, al cambiar de usuario y al volver a foreground (plan §7.5).
+ * Limpia compromisos de metas/hábitos eliminados vía verificación inyectada.
+ * Nunca solicita permisos ni bloquea el render.
+ */
+const useReconcileAccountability = (uid: string | null, enabled: boolean) => {
+  const handleAuthUserChanged = useAccountabilityStore((state) => state.handleAuthUserChanged);
+  const goals = useProductivityStore((state) => state.goals);
+  const habits = useProductivityStore((state) => state.habits);
+  const subjectExistsRef = useRef({ goals, habits });
+  subjectExistsRef.current = { goals, habits };
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      await handleAuthUserChanged(uid);
+      if (!active) return;
+      if (!enabled) {
+        await cancelAllAccountabilityNotifications();
+        return;
+      }
+      await reconcileAccountability({
+        subjectExists: (type, id) =>
+          type === 'goal'
+            ? subjectExistsRef.current.goals.some((item) => item.id === id)
+            : subjectExistsRef.current.habits.some((item) => item.id === id),
+      });
+    })();
+    return () => {
+      active = false;
+    };
+  }, [uid, enabled, handleAuthUserChanged]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (enabled && state === 'active' && useAccountabilityStore.getState().stateLoaded) {
+        void reconcileAccountability({
+          subjectExists: (type, id) =>
+            type === 'goal'
+              ? subjectExistsRef.current.goals.some((item) => item.id === id)
+              : subjectExistsRef.current.habits.some((item) => item.id === id),
+        });
+      }
+    });
+    return () => subscription.remove();
+  }, [enabled]);
+};
+
+/**
+ * Toque de una alerta de accountability → abre el check-in correspondiente.
+ * Sólo enruta: nunca muta datos sin confirmación del usuario (plan §11).
+ */
+const useAccountabilityNotificationRouting = (enabled: boolean) => {
+  const openCheckIn = useAccountabilityStore((state) => state.openCheckIn);
+
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const routeResponse = (
+      response: {
+        notification: { request: { content: { data?: Record<string, unknown> } } };
+      } | null,
+    ) => {
+      const data = response?.notification.request.content.data;
+      if (data?.type !== ACCOUNTABILITY_PAYLOAD_TYPE) return;
+      const commitmentId = typeof data.commitmentId === 'string' ? data.commitmentId : '';
+      const cycleId = typeof data.cycleId === 'string' ? data.cycleId : '';
+      if (commitmentId && cycleId) openCheckIn(commitmentId, cycleId);
+    };
+    void getLastNotificationResponseAsync().then(routeResponse);
+    return addNotificationResponseListener(routeResponse);
+  }, [enabled, openCheckIn]);
+};
 
 type TabHeaderProps = {
   colors: ColorScheme;
@@ -190,6 +276,7 @@ export const TabNavigator = () => {
 
   const stateLoaded = useProductivityStore((state) => state.stateLoaded);
   const loadState = useProductivityStore((state) => state.loadState);
+  const handleAuthUserChanged = useProductivityStore((state) => state.handleAuthUserChanged);
   const saveState = useProductivityStore((state) => state.saveState);
   const goals = useProductivityStore((state) => state.goals);
   const habits = useProductivityStore((state) => state.habits);
@@ -201,6 +288,15 @@ export const TabNavigator = () => {
   useEffect(() => {
     loadState();
   }, [loadState]);
+
+  // Si la sesión se restaura después del mount inicial (o cambia el uid),
+  // recargar para no dejar datos cargados bajo otra clave de usuario.
+  useEffect(() => {
+    handleAuthUserChanged(user?.uid ?? null);
+  }, [user?.uid, handleAuthUserChanged]);
+
+  useReconcileAccountability(user?.uid ?? null, PRODUCT_CONFIG.accountabilityEnabled);
+  useAccountabilityNotificationRouting(PRODUCT_CONFIG.accountabilityEnabled);
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -251,6 +347,9 @@ export const TabNavigator = () => {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <CelebrationToast />
+      {PRODUCT_CONFIG.accountabilityEnabled ? (
+        <AccountabilityCheckInHost goals={goals} habits={habits} />
+      ) : null}
       <Tab.Navigator
         tabBar={(props) => (
           <MainTabBar

@@ -16,6 +16,20 @@ import { useProductivityStore } from '@/shared/domain/productivity/public';
 import type { Goal } from '@/shared/types/models';
 import { useI18n } from '@/shared/i18n/i18n';
 import type { MainTabParamList } from '@/shared/navigation/types';
+import {
+  enqueueMirror,
+  collectMirrorCandidates,
+  flushMirrorQueue,
+} from '@/features/calendar/public';
+import { getMirrorPreferences } from '@/shared/preferences/useSettingsStore';
+import { PRODUCT_CONFIG } from '@/shared/config/product';
+import {
+  AccountabilitySetupSheet,
+  activateFollowUp,
+  deactivateFollowUp,
+  useAccountabilityStore,
+  type SetupDraft,
+} from '@/features/accountability/public';
 import { GoalFormModal } from '../components/GoalFormModal';
 
 type Filter = 'active' | 'completed';
@@ -45,6 +59,14 @@ export const GoalsScreen = () => {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [milestoneGoalId, setMilestoneGoalId] = useState<string | null>(null);
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
+  const [followUpGoalId, setFollowUpGoalId] = useState<string | null>(null);
+  const commitments = useAccountabilityStore((state) => state.commitments);
+  const followUpGoal = goals.find((goal) => goal.id === followUpGoalId) ?? null;
+  const followUpCommitment = followUpGoal
+    ? (commitments.find(
+        (item) => item.subjectType === 'goal' && item.subjectId === followUpGoal.id,
+      ) ?? null)
+    : null;
 
   useEffect(() => {
     if (!route.params?.create) return;
@@ -64,7 +86,8 @@ export const GoalsScreen = () => {
   }, [goals, navigation, route.params?.editId]);
 
   const activeGoals = useMemo(
-    () => goals.filter((goal) => !goal.completed).sort((a, b) => a.deadline.localeCompare(b.deadline)),
+    () =>
+      goals.filter((goal) => !goal.completed).sort((a, b) => a.deadline.localeCompare(b.deadline)),
     [goals],
   );
   const completedGoals = useMemo(() => goals.filter((goal) => goal.completed), [goals]);
@@ -74,7 +97,14 @@ export const GoalsScreen = () => {
   const confirmRemove = (goal: Goal) => {
     Alert.alert(t('goals.delete'), t('goals.deleteBody', { title: goal.title }), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('goals.remove'), style: 'destructive', onPress: () => removeGoal(goal.id) },
+      {
+        text: t('goals.remove'),
+        style: 'destructive',
+        onPress: () => {
+          removeGoal(goal.id);
+          void enqueueMirror({ suiId: goal.id, suiType: 'goal', operation: 'delete' });
+        },
+      },
     ]);
   };
 
@@ -84,6 +114,9 @@ export const GoalsScreen = () => {
         text: goal.completed ? t('goals.reopen') : t('goals.markComplete'),
         onPress: () => toggleGoal(goal.id),
       },
+      ...(PRODUCT_CONFIG.accountabilityEnabled
+        ? [{ text: t('accountability.setup.cta'), onPress: () => setFollowUpGoalId(goal.id) }]
+        : []),
       { text: t('goals.remove'), style: 'destructive', onPress: () => confirmRemove(goal) },
       { text: t('common.cancel'), style: 'cancel' },
     ]);
@@ -109,7 +142,14 @@ export const GoalsScreen = () => {
           <View key={label} style={styles.summaryEntry}>
             {index ? <View style={styles.summaryDivider} /> : null}
             <View style={styles.summaryItem}>
-              <Text style={[styles.summaryValue, index === 1 && importantCount > 0 && { color: colors.flame }]}>{value}</Text>
+              <Text
+                style={[
+                  styles.summaryValue,
+                  index === 1 && importantCount > 0 && { color: colors.flame },
+                ]}
+              >
+                {value}
+              </Text>
               <Text style={styles.summaryLabel}>{label}</Text>
             </View>
           </View>
@@ -166,9 +206,26 @@ export const GoalsScreen = () => {
           return (
             <View style={styles.goalCard}>
               <View style={styles.cardTopRow}>
-                <View style={[styles.priorityPill, goal.gravity === 'high' && styles.priorityPillImportant]}>
-                  <View style={[styles.priorityDot, { backgroundColor: goal.gravity === 'high' ? colors.flame : colors.secondary }]} />
-                  <Text style={[styles.priorityText, goal.gravity === 'high' && { color: colors.onFlameContainer }]}>
+                <View
+                  style={[
+                    styles.priorityPill,
+                    goal.gravity === 'high' && styles.priorityPillImportant,
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.priorityDot,
+                      {
+                        backgroundColor: goal.gravity === 'high' ? colors.flame : colors.secondary,
+                      },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.priorityText,
+                      goal.gravity === 'high' && { color: colors.onFlameContainer },
+                    ]}
+                  >
                     {goal.gravity === 'high' ? t('goals.important') : t('goals.normal')}
                   </Text>
                 </View>
@@ -191,15 +248,25 @@ export const GoalsScreen = () => {
                 accessibilityLabel={t('goals.editLabel', { title: goal.title })}
                 accessibilityHint={t('goals.editHint')}
               >
-                <Text style={[styles.goalTitle, goal.completed && styles.goalTitleDone]}>{goal.title}</Text>
+                <Text style={[styles.goalTitle, goal.completed && styles.goalTitleDone]}>
+                  {goal.title}
+                </Text>
                 <View style={styles.deadlineRow}>
                   <Ionicons name="calendar-outline" size={14} color={colors.onSurfaceVariant} />
                   <Text style={styles.deadlineText}>
-                    {formatDate(new Date(`${goal.deadline}T00:00:00`), { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {formatDate(new Date(`${goal.deadline}T00:00:00`), {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
                   </Text>
                   {!goal.completed && remaining <= 7 ? (
                     <Text style={[styles.remainingText, remaining < 0 && { color: colors.error }]}>
-                      {remaining < 0 ? t('goals.overdue') : remaining === 0 ? t('goals.today') : t('goals.days', { count: remaining })}
+                      {remaining < 0
+                        ? t('goals.overdue')
+                        : remaining === 0
+                          ? t('goals.today')
+                          : t('goals.days', { count: remaining })}
                     </Text>
                   ) : null}
                 </View>
@@ -208,7 +275,15 @@ export const GoalsScreen = () => {
                   <Text style={styles.progressValue}>{goal.progress}%</Text>
                 </View>
                 <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: `${goal.progress}%`, backgroundColor: goal.completed ? colors.success : colors.primary }]} />
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${goal.progress}%`,
+                        backgroundColor: goal.completed ? colors.success : colors.primary,
+                      },
+                    ]}
+                  />
                 </View>
               </TouchableOpacity>
               <TouchableOpacity
@@ -221,11 +296,18 @@ export const GoalsScreen = () => {
                   <Ionicons name="list-outline" size={17} color={colors.primary} />
                   <Text style={styles.milestoneSummaryText}>
                     {goal.milestones.length
-                      ? t('goals.milestones', { done: milestonesDone, total: goal.milestones.length })
+                      ? t('goals.milestones', {
+                          done: milestonesDone,
+                          total: goal.milestones.length,
+                        })
                       : t('goals.addMilestones')}
                   </Text>
                 </View>
-                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={colors.onSurfaceVariant} />
+                <Ionicons
+                  name={expanded ? 'chevron-up' : 'chevron-down'}
+                  size={18}
+                  color={colors.onSurfaceVariant}
+                />
               </TouchableOpacity>
               {expanded ? (
                 <View style={styles.milestoneList}>
@@ -237,11 +319,22 @@ export const GoalsScreen = () => {
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: milestone.completed }}
                     >
-                      <Ionicons name={milestone.completed ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={milestone.completed ? colors.success : colors.outline} />
-                      <Text style={[styles.milestoneText, milestone.completed && styles.milestoneDone]}>{milestone.title}</Text>
+                      <Ionicons
+                        name={milestone.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={20}
+                        color={milestone.completed ? colors.success : colors.outline}
+                      />
+                      <Text
+                        style={[styles.milestoneText, milestone.completed && styles.milestoneDone]}
+                      >
+                        {milestone.title}
+                      </Text>
                     </TouchableOpacity>
                   ))}
-                  <TouchableOpacity style={styles.addMilestone} onPress={() => setMilestoneGoalId(goal.id)}>
+                  <TouchableOpacity
+                    style={styles.addMilestone}
+                    onPress={() => setMilestoneGoalId(goal.id)}
+                  >
                     <Ionicons name="add" size={17} color={colors.primary} />
                     <Text style={styles.addMilestoneText}>{t('goals.addMilestone')}</Text>
                   </TouchableOpacity>
@@ -260,6 +353,17 @@ export const GoalsScreen = () => {
           setFormVisible(false);
           setEditingGoal(null);
           setFilter('active');
+          void (async () => {
+            const state = useProductivityStore.getState();
+            for (const job of collectMirrorCandidates(
+              state.goals,
+              state.habits,
+              getMirrorPreferences(),
+            )) {
+              await enqueueMirror(job);
+            }
+            await flushMirrorQueue();
+          })();
         }}
         onCancel={() => {
           setFormVisible(false);
@@ -278,6 +382,38 @@ export const GoalsScreen = () => {
         }}
         onCancel={() => setMilestoneGoalId(null)}
       />
+      {PRODUCT_CONFIG.accountabilityEnabled ? (
+        <AccountabilitySetupSheet
+          visible={followUpGoalId !== null && Boolean(followUpGoal)}
+          subjectType="goal"
+          subjectTitle={followUpGoal?.title ?? ''}
+          existing={followUpCommitment}
+          onSubmit={(draft: SetupDraft) => {
+            if (followUpGoal) {
+              void activateFollowUp({
+                subjectType: 'goal',
+                subjectId: followUpGoal.id,
+                nextAction: draft.nextAction,
+                ...(draft.minimumAction ? { minimumAction: draft.minimumAction } : {}),
+                ...(draft.durationMinutes ? { durationMinutes: draft.durationMinutes } : {}),
+                intensity: draft.intensity,
+                escalation: draft.escalation,
+                schedule: draft.schedule,
+              });
+            }
+            setFollowUpGoalId(null);
+          }}
+          onDisable={
+            followUpGoal && followUpCommitment
+              ? () => {
+                  void deactivateFollowUp('goal', followUpGoal.id);
+                  setFollowUpGoalId(null);
+                }
+              : undefined
+          }
+          onCancel={() => setFollowUpGoalId(null)}
+        />
+      ) : null}
     </View>
   );
 };
@@ -286,47 +422,142 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
   const { colors, radius, type } = theme;
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
-    content: { width: '100%', maxWidth: SCREEN_MAX_CONTENT_WIDTH, alignSelf: 'center', paddingHorizontal: SPACING.lg, paddingTop: SPACING.sm, paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING, gap: SPACING.md },
-    summaryCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.outlineVariant, borderRadius: radius.lg, paddingVertical: SPACING.md },
+    content: {
+      width: '100%',
+      maxWidth: SCREEN_MAX_CONTENT_WIDTH,
+      alignSelf: 'center',
+      paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.sm,
+      paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING,
+      gap: SPACING.md,
+    },
+    summaryCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: radius.lg,
+      paddingVertical: SPACING.md,
+    },
     summaryEntry: { flex: 1, flexDirection: 'row', alignItems: 'center' },
     summaryItem: { flex: 1, alignItems: 'center' },
     summaryValue: { ...type.titleLg, color: colors.onSurface },
     summaryLabel: { ...type.bodySm, color: colors.onSurfaceVariant },
     summaryDivider: { width: 1, height: 30, backgroundColor: colors.outlineVariant },
-    filters: { flexDirection: 'row', gap: SPACING.xs, backgroundColor: colors.surfaceContainer, borderRadius: radius.lg, padding: SPACING.xs },
-    filter: { flex: 1, minHeight: 44, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+    filters: {
+      flexDirection: 'row',
+      gap: SPACING.xs,
+      backgroundColor: colors.surfaceContainer,
+      borderRadius: radius.lg,
+      padding: SPACING.xs,
+    },
+    filter: {
+      flex: 1,
+      minHeight: 44,
+      borderRadius: radius.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+    },
     filterActive: { backgroundColor: colors.surface },
     filterText: { ...type.labelMd, color: colors.onSurfaceVariant },
     filterTextActive: { color: colors.onSurface },
-    countBadge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.surfaceContainerHighest, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+    countBadge: {
+      minWidth: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: colors.surfaceContainerHighest,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 5,
+    },
     countBadgeActive: { backgroundColor: colors.primaryContainer },
     countText: { ...type.labelSm, color: colors.onSurfaceVariant },
     countTextActive: { color: colors.onPrimaryContainer },
-    emptyCard: { minHeight: 260, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceContainerLow, borderRadius: radius.xl, padding: SPACING.xl },
+    emptyCard: {
+      minHeight: 260,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surfaceContainerLow,
+      borderRadius: radius.xl,
+      padding: SPACING.xl,
+    },
     emptyTitle: { ...type.titleMd, color: colors.onSurface, textAlign: 'center' },
-    emptyText: { ...type.bodyMd, color: colors.onSurfaceVariant, textAlign: 'center', marginTop: SPACING.xs },
-    goalCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.outlineVariant, borderRadius: radius.lg, padding: SPACING.md },
+    emptyText: {
+      ...type.bodyMd,
+      color: colors.onSurfaceVariant,
+      textAlign: 'center',
+      marginTop: SPACING.xs,
+    },
+    goalCard: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: radius.lg,
+      padding: SPACING.md,
+    },
     cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    priorityPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.secondaryContainer, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 5 },
+    priorityPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: colors.secondaryContainer,
+      borderRadius: 14,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+    },
     priorityPillImportant: { backgroundColor: colors.flameContainer },
     priorityDot: { width: 7, height: 7, borderRadius: 4 },
     priorityText: { ...type.labelSm, color: colors.onSecondaryContainer },
-    menuButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+    menuButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     mainAction: { minHeight: 44 },
     goalTitle: { ...type.titleLg, color: colors.onSurface },
     goalTitleDone: { color: colors.onSurfaceVariant, textDecorationLine: 'line-through' },
-    deadlineRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4, marginBottom: SPACING.md },
+    deadlineRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      marginTop: 4,
+      marginBottom: SPACING.md,
+    },
     deadlineText: { ...type.bodySm, color: colors.onSurfaceVariant },
     remainingText: { ...type.labelSm, color: colors.flame, marginLeft: 'auto' },
     progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
     progressLabel: { ...type.bodySm, color: colors.onSurfaceVariant },
     progressValue: { ...type.labelSm, color: colors.primary },
-    progressTrack: { height: 7, borderRadius: radius.full, backgroundColor: colors.surfaceContainerHighest, overflow: 'hidden' },
+    progressTrack: {
+      height: 7,
+      borderRadius: radius.full,
+      backgroundColor: colors.surfaceContainerHighest,
+      overflow: 'hidden',
+    },
     progressFill: { height: '100%', borderRadius: radius.full },
-    milestoneSummary: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: SPACING.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.outlineVariant, paddingTop: SPACING.sm },
+    milestoneSummary: {
+      minHeight: 44,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: SPACING.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.outlineVariant,
+      paddingTop: SPACING.sm,
+    },
     milestoneSummaryCopy: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 7 },
     milestoneSummaryText: { ...type.bodySm, color: colors.onSurfaceVariant, flex: 1 },
-    milestoneList: { gap: SPACING.sm, backgroundColor: colors.surfaceContainerLow, borderRadius: radius.md, padding: SPACING.sm },
+    milestoneList: {
+      gap: SPACING.sm,
+      backgroundColor: colors.surfaceContainerLow,
+      borderRadius: radius.md,
+      padding: SPACING.sm,
+    },
     milestoneRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, minHeight: 44 },
     milestoneText: { ...type.bodyMd, color: colors.onSurface, flex: 1 },
     milestoneDone: { color: colors.onSurfaceVariant, textDecorationLine: 'line-through' },

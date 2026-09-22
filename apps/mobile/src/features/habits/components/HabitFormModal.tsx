@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@/shared/ui/Ionicons';
+import { isPlannedTime } from '@sui/contracts';
 import { SCREEN_MAX_CONTENT_WIDTH, SPACING, useAppTheme } from '@/shared/theme/theme';
 import type { DayOfWeek, Goal, Habit } from '@/shared/types/models';
 import { useI18n } from '@/shared/i18n/i18n';
@@ -20,6 +21,8 @@ type HabitDraft = {
   title: string;
   frequency: 'daily' | DayOfWeek[];
   linkedGoalId: string | null;
+  plannedTime?: string;
+  mirrorToGoogle?: boolean;
 };
 
 type Props = {
@@ -34,6 +37,46 @@ const DAYS: DayOfWeek[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 const dayKey = (day: DayOfWeek, short = false): TranslationKey =>
   `habitForm.${short ? 'dayShort' : 'day'}.${day}` as TranslationKey;
 
+export const isValidHabitTime = (value: string): boolean => isPlannedTime(value);
+
+export type HabitDraftErrorKey =
+  | 'habitForm.required'
+  | 'habitForm.dayRequired'
+  | 'habitForm.invalidTime';
+
+export interface HabitDraftInput {
+  title: string;
+  daily: boolean;
+  days: DayOfWeek[];
+  linkedGoalId: string | null;
+  plannedTime: string;
+  mirrorToGoogle: boolean;
+}
+
+/**
+ * Construye el draft o devuelve la clave de error a mostrar.
+ * Lógica pura para poder testearse sin render.
+ */
+export const buildHabitDraft = (
+  input: HabitDraftInput,
+): { draft: HabitDraft } | { errorKey: HabitDraftErrorKey } => {
+  const title = input.title.trim();
+  if (!title) return { errorKey: 'habitForm.required' };
+  if (!input.daily && input.days.length === 0) return { errorKey: 'habitForm.dayRequired' };
+  const time = input.plannedTime.trim();
+  const validTime = time && isValidHabitTime(time) ? time : undefined;
+  if (input.mirrorToGoogle && !validTime) return { errorKey: 'habitForm.invalidTime' };
+  return {
+    draft: {
+      title,
+      frequency: input.daily ? 'daily' : input.days,
+      linkedGoalId: input.linkedGoalId,
+      ...(validTime ? { plannedTime: validTime } : {}),
+      mirrorToGoogle: input.mirrorToGoogle && Boolean(validTime),
+    },
+  };
+};
+
 export const HabitFormModal = ({ visible, initialHabit, goals, onSubmit, onCancel }: Props) => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -43,7 +86,11 @@ export const HabitFormModal = ({ visible, initialHabit, goals, onSubmit, onCance
   const [daily, setDaily] = useState(true);
   const [days, setDays] = useState<DayOfWeek[]>(DAYS.slice(0, 5));
   const [linkedGoalId, setLinkedGoalId] = useState<string | null>(null);
+  const [plannedTime, setPlannedTime] = useState('');
+  const [mirrorToGoogle, setMirrorToGoogle] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isValidTime = isValidHabitTime;
 
   useEffect(() => {
     if (visible) {
@@ -55,25 +102,35 @@ export const HabitFormModal = ({ visible, initialHabit, goals, onSubmit, onCance
           : initialHabit.frequency,
       );
       setLinkedGoalId(initialHabit?.linkedGoalId ?? null);
+      setPlannedTime(initialHabit?.plannedTime ?? '');
+      setMirrorToGoogle(initialHabit?.mirrorToGoogle ?? false);
       setError(null);
     }
   }, [initialHabit, visible]);
 
   const submit = () => {
-    const value = title.trim();
-    if (!value) {
-      setError(t('habitForm.required'));
-      return;
-    }
-    if (!daily && days.length === 0) {
-      setError(t('habitForm.dayRequired'));
-      return;
-    }
-    onSubmit({
-      title: value,
-      frequency: daily ? 'daily' : days,
+    const result = buildHabitDraft({
+      title,
+      daily,
+      days,
       linkedGoalId,
+      plannedTime,
+      mirrorToGoogle,
     });
+    if ('errorKey' in result) {
+      setError(t(result.errorKey));
+      return;
+    }
+    onSubmit(result.draft);
+  };
+
+  const toggleMirror = () => {
+    if (!mirrorToGoogle && !isValidTime(plannedTime)) {
+      setError(t('habitForm.mirrorNeedsTime'));
+      return;
+    }
+    setMirrorToGoogle((current) => !current);
+    setError(null);
   };
 
   return (
@@ -112,6 +169,7 @@ export const HabitFormModal = ({ visible, initialHabit, goals, onSubmit, onCance
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.fieldLabel}>{t('habitForm.question')}</Text>
             <TextInput
+              testID="habit-title-input"
               style={[styles.input, error && styles.inputError]}
               value={title}
               onChangeText={(value) => {
@@ -193,6 +251,42 @@ export const HabitFormModal = ({ visible, initialHabit, goals, onSubmit, onCance
               </View>
             ) : null}
 
+            <Text style={styles.fieldLabel}>{t('habitForm.scheduleTitle')}</Text>
+            <Text style={styles.linkHint}>{t('habitForm.scheduleHint')}</Text>
+            <Text style={styles.timeLabel}>{t('habitForm.timeLabel')}</Text>
+            <TextInput
+              testID="habit-time-input"
+              style={styles.timeInput}
+              value={plannedTime}
+              onChangeText={(value) => {
+                setPlannedTime(value);
+                if (value && !isValidTime(value)) setMirrorToGoogle(false);
+                setError(null);
+              }}
+              placeholder={t('habitForm.timePlaceholder')}
+              placeholderTextColor={colors.onSurfaceVariant}
+              keyboardType="numbers-and-punctuation"
+              maxLength={5}
+              returnKeyType="done"
+              accessibilityLabel={t('habitForm.timeLabel')}
+            />
+            <TouchableOpacity
+              testID="habit-mirror-toggle"
+              style={styles.mirrorRow}
+              onPress={toggleMirror}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: mirrorToGoogle }}
+              accessibilityLabel={t('habitForm.mirrorLabel')}
+            >
+              <View style={[styles.toggle, mirrorToGoogle && styles.toggleOn]}>
+                <View style={[styles.thumb, mirrorToGoogle && styles.thumbOn]} />
+              </View>
+              <View style={styles.mirrorCopy}>
+                <Text style={styles.mirrorLabel}>{t('habitForm.mirrorLabel')}</Text>
+                <Text style={styles.mirrorHint}>{t('habitForm.mirrorHint')}</Text>
+              </View>
+            </TouchableOpacity>
+
             <View style={styles.linkHeading}>
               <Text style={styles.fieldLabel}>{t('habitForm.linkGoal')}</Text>
               <Text style={styles.optional}>{t('habitForm.optional')}</Text>
@@ -254,6 +348,7 @@ export const HabitFormModal = ({ visible, initialHabit, goals, onSubmit, onCance
           </ScrollView>
 
           <TouchableOpacity
+            testID="habit-submit"
             style={styles.submitButton}
             onPress={submit}
             activeOpacity={0.82}
@@ -359,6 +454,45 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       justifyContent: 'center',
     },
     dayText: { ...type.labelSm, color: colors.onSurfaceVariant },
+    timeLabel: { ...type.bodyMd, color: colors.onSurfaceVariant, marginTop: SPACING.sm },
+    timeInput: {
+      ...type.bodyLg,
+      minHeight: 54,
+      color: colors.onSurface,
+      backgroundColor: colors.surfaceContainerLow,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: radius.md,
+      paddingHorizontal: SPACING.md,
+      marginTop: SPACING.xs,
+    },
+    mirrorRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+      marginTop: SPACING.md,
+      paddingVertical: SPACING.xs,
+    },
+    toggle: {
+      width: 52,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: colors.outlineVariant,
+      justifyContent: 'center',
+      paddingHorizontal: 3,
+    },
+    toggleOn: { backgroundColor: colors.primary },
+    thumb: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      alignSelf: 'flex-start',
+    },
+    thumbOn: { alignSelf: 'flex-end' },
+    mirrorCopy: { flex: 1 },
+    mirrorLabel: { ...type.titleSm, color: colors.onSurface },
+    mirrorHint: { ...type.bodySm, color: colors.onSurfaceVariant, marginTop: 1 },
     optionSelected: { borderColor: colors.primary, backgroundColor: colors.primaryContainer },
     optionText: { ...type.labelMd, color: colors.onSurfaceVariant, textAlign: 'center' },
     optionTextSelected: { color: colors.onPrimaryContainer },

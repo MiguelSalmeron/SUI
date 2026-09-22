@@ -16,6 +16,18 @@
     "android": {
       "package": "com.sui.app",
       "versionCode": 1,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": ["DEFAULT", "BROWSABLE"],
+          "data": [
+            {
+              "scheme": "com.googleusercontent.apps.15366859281-nec6dkkoafaqtst8035mut3cebqe6s9t",
+              "path": "/oauth2redirect"
+            }
+          ]
+        }
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#0B132B",
         "foregroundImage": "./assets/android-icon-foreground.png",

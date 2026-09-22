@@ -5,6 +5,13 @@ const API_BASE = process.env.EXPO_PUBLIC_CONNECTIONS_API_URL?.trim().replace(/\/
 
 type ConnectionStatusResponse = { connected: boolean };
 type CalendarEventsResponse = { events: GoogleEvent[]; syncedAt: number };
+type MirrorUpsertResponse = {
+  googleEventId: string;
+  calendarId: string;
+  status: string;
+  unchanged?: boolean;
+  deleted?: boolean;
+};
 
 export class ConnectionApiError extends Error {
   constructor(
@@ -69,5 +76,23 @@ export const disconnectGoogleCalendarConnection = async (): Promise<void> => {
   await request('googleCalendarDisconnect', {
     method: 'POST',
     body: JSON.stringify({}),
+  });
+};
+
+export const mirrorUpsert = async (params: {
+  suiId: string;
+  suiType: 'goal' | 'habit';
+  startDate?: string;
+  timeZone?: string;
+}): Promise<MirrorUpsertResponse> =>
+  request<MirrorUpsertResponse>('googleMirrorUpsert', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+
+export const mirrorDelete = async (suiId: string): Promise<void> => {
+  await request('googleMirrorDelete', {
+    method: 'POST',
+    body: JSON.stringify({ suiId }),
   });
 };

@@ -11,10 +11,28 @@ import {
 } from '@/shared/theme/theme';
 import { ScreenIntro } from '@/shared/ui/ScreenIntro';
 import { SuiDoodle } from '@/shared/ui/SuiDoodle';
-import { isHabitDueToday, localDateKey, useProductivityStore } from '@/shared/domain/productivity/public';
+import {
+  isHabitDueToday,
+  localDateKey,
+  useProductivityStore,
+} from '@/shared/domain/productivity/public';
 import type { Habit } from '@/shared/types/models';
 import { useI18n } from '@/shared/i18n/i18n';
 import type { MainTabParamList } from '@/shared/navigation/types';
+import {
+  enqueueMirror,
+  collectMirrorCandidates,
+  flushMirrorQueue,
+} from '@/features/calendar/public';
+import { getMirrorPreferences } from '@/shared/preferences/useSettingsStore';
+import { PRODUCT_CONFIG } from '@/shared/config/product';
+import {
+  AccountabilitySetupSheet,
+  activateFollowUp,
+  deactivateFollowUp,
+  useAccountabilityStore,
+  type SetupDraft,
+} from '@/features/accountability/public';
 import { HabitFormModal } from '../components/HabitFormModal';
 
 type Filter = 'today' | 'all';
@@ -36,6 +54,14 @@ export const HabitsScreen = () => {
   const [filter, setFilter] = useState<Filter>('today');
   const [formVisible, setFormVisible] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
+  const [followUpHabitId, setFollowUpHabitId] = useState<string | null>(null);
+  const commitments = useAccountabilityStore((state) => state.commitments);
+  const followUpHabit = habits.find((habit) => habit.id === followUpHabitId) ?? null;
+  const followUpCommitment = followUpHabit
+    ? (commitments.find(
+        (item) => item.subjectType === 'habit' && item.subjectId === followUpHabit.id,
+      ) ?? null)
+    : null;
 
   useEffect(() => {
     if (!route.params?.create) return;
@@ -62,15 +88,31 @@ export const HabitsScreen = () => {
   const confirmRemove = (habit: Habit) => {
     Alert.alert(t('habits.delete'), t('habits.deleteBody', { title: habit.title }), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('goals.remove'), style: 'destructive', onPress: () => removeHabit(habit.id) },
+      {
+        text: t('goals.remove'),
+        style: 'destructive',
+        onPress: () => {
+          removeHabit(habit.id);
+          void enqueueMirror({ suiId: habit.id, suiType: 'habit', operation: 'delete' });
+        },
+      },
     ]);
   };
 
   const openActions = (habit: Habit) => {
     const frozen = Boolean(habit.frozenUntil && habit.frozenUntil >= localDateKey());
     Alert.alert(habit.title, t('habits.chooseAction'), [
-      ...(!frozen ? [{ text: t('habits.protectStreak'), onPress: () => freezeStreak(habit.id) }] : []),
-      { text: t('goals.remove'), style: 'destructive' as const, onPress: () => confirmRemove(habit) },
+      ...(!frozen
+        ? [{ text: t('habits.protectStreak'), onPress: () => freezeStreak(habit.id) }]
+        : []),
+      ...(PRODUCT_CONFIG.accountabilityEnabled
+        ? [{ text: t('accountability.setup.cta'), onPress: () => setFollowUpHabitId(habit.id) }]
+        : []),
+      {
+        text: t('goals.remove'),
+        style: 'destructive' as const,
+        onPress: () => confirmRemove(habit),
+      },
       { text: t('common.cancel'), style: 'cancel' as const },
     ]);
   };
@@ -104,7 +146,9 @@ export const HabitsScreen = () => {
           <View style={[styles.progressFill, { width: `${progress}%` }]} />
         </View>
         <Text style={styles.todayNote}>
-          {progress === 100 && todayHabits.length ? t('habits.completeNote') : t('habits.progressNote')}
+          {progress === 100 && todayHabits.length
+            ? t('habits.completeNote')
+            : t('habits.progressNote')}
         </Text>
       </View>
       <View style={styles.filters} accessibilityRole="tablist">
@@ -159,9 +203,10 @@ export const HabitsScreen = () => {
         renderItem={({ item: habit }) => {
           const linkedGoal = goals.find((goal) => goal.id === habit.linkedGoalId);
           const frozen = Boolean(habit.frozenUntil && habit.frozenUntil >= localDateKey());
-          const frequencyLabel = habit.frequency === 'daily'
-            ? t('habits.everyDay')
-            : t('habits.daysPerWeek', { count: habit.frequency.length });
+          const frequencyLabel =
+            habit.frequency === 'daily'
+              ? t('habits.everyDay')
+              : t('habits.daysPerWeek', { count: habit.frequency.length });
           return (
             <View style={styles.habitCard}>
               <TouchableOpacity
@@ -171,7 +216,9 @@ export const HabitsScreen = () => {
                 accessibilityState={{ checked: habit.completed }}
                 accessibilityLabel={habit.title}
               >
-                {habit.completed ? <Ionicons name="checkmark" size={19} color={colors.onSecondary} /> : null}
+                {habit.completed ? (
+                  <Ionicons name="checkmark" size={19} color={colors.onSecondary} />
+                ) : null}
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.habitCopy}
@@ -183,7 +230,12 @@ export const HabitsScreen = () => {
                 accessibilityLabel={t('habits.editLabel', { title: habit.title })}
                 accessibilityHint={t('habits.editHint')}
               >
-                <Text style={[styles.habitTitle, habit.completed && styles.habitDone]} numberOfLines={2}>{habit.title}</Text>
+                <Text
+                  style={[styles.habitTitle, habit.completed && styles.habitDone]}
+                  numberOfLines={2}
+                >
+                  {habit.title}
+                </Text>
                 <View style={styles.metadataRow}>
                   <Ionicons name="calendar-outline" size={13} color={colors.onSurfaceVariant} />
                   <Text style={styles.metadataText}>{frequencyLabel}</Text>
@@ -191,14 +243,22 @@ export const HabitsScreen = () => {
                 {linkedGoal ? (
                   <View style={styles.goalLink}>
                     <Ionicons name="flag-outline" size={13} color={colors.primary} />
-                    <Text style={styles.goalLinkText} numberOfLines={1}>{t('habits.drivesGoal', { title: linkedGoal.title })}</Text>
+                    <Text style={styles.goalLinkText} numberOfLines={1}>
+                      {t('habits.drivesGoal', { title: linkedGoal.title })}
+                    </Text>
                   </View>
                 ) : null}
               </TouchableOpacity>
               <View style={styles.trailing}>
                 <View style={[styles.streakPill, frozen && styles.frozenPill]}>
-                  <Ionicons name={frozen ? 'snow-outline' : 'flame'} size={15} color={frozen ? colors.primary : colors.flame} />
-                  <Text style={[styles.streakText, frozen && { color: colors.primary }]}>{habit.streak}</Text>
+                  <Ionicons
+                    name={frozen ? 'snow-outline' : 'flame'}
+                    size={15}
+                    color={frozen ? colors.primary : colors.flame}
+                  />
+                  <Text style={[styles.streakText, frozen && { color: colors.primary }]}>
+                    {habit.streak}
+                  </Text>
                 </View>
                 <TouchableOpacity
                   style={styles.menuButton}
@@ -223,12 +283,55 @@ export const HabitsScreen = () => {
           setFormVisible(false);
           setEditingHabit(null);
           setFilter('today');
+          void (async () => {
+            const state = useProductivityStore.getState();
+            for (const job of collectMirrorCandidates(
+              state.goals,
+              state.habits,
+              getMirrorPreferences(),
+            )) {
+              await enqueueMirror(job);
+            }
+            await flushMirrorQueue();
+          })();
         }}
         onCancel={() => {
           setFormVisible(false);
           setEditingHabit(null);
         }}
       />
+      {PRODUCT_CONFIG.accountabilityEnabled ? (
+        <AccountabilitySetupSheet
+          visible={followUpHabitId !== null && Boolean(followUpHabit)}
+          subjectType="habit"
+          subjectTitle={followUpHabit?.title ?? ''}
+          existing={followUpCommitment}
+          onSubmit={(draft: SetupDraft) => {
+            if (followUpHabit) {
+              void activateFollowUp({
+                subjectType: 'habit',
+                subjectId: followUpHabit.id,
+                nextAction: draft.nextAction,
+                ...(draft.minimumAction ? { minimumAction: draft.minimumAction } : {}),
+                ...(draft.durationMinutes ? { durationMinutes: draft.durationMinutes } : {}),
+                intensity: draft.intensity,
+                escalation: draft.escalation,
+                schedule: draft.schedule,
+              });
+            }
+            setFollowUpHabitId(null);
+          }}
+          onDisable={
+            followUpHabit && followUpCommitment
+              ? () => {
+                  void deactivateFollowUp('habit', followUpHabit.id);
+                  setFollowUpHabitId(null);
+                }
+              : undefined
+          }
+          onCancel={() => setFollowUpHabitId(null)}
+        />
+      ) : null}
     </View>
   );
 };
@@ -237,33 +340,127 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
   const { colors, radius, type } = theme;
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
-    content: { width: '100%', maxWidth: SCREEN_MAX_CONTENT_WIDTH, alignSelf: 'center', paddingHorizontal: SPACING.lg, paddingTop: SPACING.sm, paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING, gap: SPACING.sm },
-    todayCard: { backgroundColor: colors.secondaryContainer, borderRadius: radius.xl, padding: SPACING.lg, marginBottom: SPACING.sm },
-    todayTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.md },
+    content: {
+      width: '100%',
+      maxWidth: SCREEN_MAX_CONTENT_WIDTH,
+      alignSelf: 'center',
+      paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.sm,
+      paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING,
+      gap: SPACING.sm,
+    },
+    todayCard: {
+      backgroundColor: colors.secondaryContainer,
+      borderRadius: radius.xl,
+      padding: SPACING.lg,
+      marginBottom: SPACING.sm,
+    },
+    todayTopRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: SPACING.md,
+    },
     todayCopy: { flex: 1 },
     todayLabel: { ...type.titleMd, color: colors.onSecondaryContainer },
     todayCount: { ...type.bodySm, color: colors.onSecondaryContainer, opacity: 0.75, marginTop: 1 },
-    percentCircle: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+    percentCircle: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     percentText: { ...type.labelLg, color: colors.secondary },
-    progressTrack: { height: 8, borderRadius: radius.full, backgroundColor: colors.surface, overflow: 'hidden' },
+    progressTrack: {
+      height: 8,
+      borderRadius: radius.full,
+      backgroundColor: colors.surface,
+      overflow: 'hidden',
+    },
     progressFill: { height: '100%', borderRadius: radius.full, backgroundColor: colors.flame },
-    todayNote: { ...type.bodySm, color: colors.onSecondaryContainer, opacity: 0.8, marginTop: SPACING.sm },
-    filters: { flexDirection: 'row', gap: SPACING.xs, backgroundColor: colors.surfaceContainer, borderRadius: radius.lg, padding: SPACING.xs, marginBottom: SPACING.xs },
-    filter: { flex: 1, minHeight: 44, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+    todayNote: {
+      ...type.bodySm,
+      color: colors.onSecondaryContainer,
+      opacity: 0.8,
+      marginTop: SPACING.sm,
+    },
+    filters: {
+      flexDirection: 'row',
+      gap: SPACING.xs,
+      backgroundColor: colors.surfaceContainer,
+      borderRadius: radius.lg,
+      padding: SPACING.xs,
+      marginBottom: SPACING.xs,
+    },
+    filter: {
+      flex: 1,
+      minHeight: 44,
+      borderRadius: radius.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+    },
     filterActive: { backgroundColor: colors.surface },
     filterText: { ...type.labelMd, color: colors.onSurfaceVariant },
     filterTextActive: { color: colors.onSurface },
-    countBadge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.surfaceContainerHighest, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+    countBadge: {
+      minWidth: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: colors.surfaceContainerHighest,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 5,
+    },
     countBadgeActive: { backgroundColor: colors.secondaryContainer },
     countText: { ...type.labelSm, color: colors.onSurfaceVariant },
     countTextActive: { color: colors.onSecondaryContainer },
-    emptyCard: { minHeight: 260, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceContainerLow, borderRadius: radius.xl, padding: SPACING.xl },
+    emptyCard: {
+      minHeight: 260,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surfaceContainerLow,
+      borderRadius: radius.xl,
+      padding: SPACING.xl,
+    },
     emptyTitle: { ...type.titleMd, color: colors.onSurface, textAlign: 'center' },
-    emptyText: { ...type.bodyMd, color: colors.onSurfaceVariant, textAlign: 'center', marginTop: SPACING.xs },
-    emptyAction: { minHeight: 44, borderRadius: 22, backgroundColor: colors.secondary, justifyContent: 'center', paddingHorizontal: SPACING.lg, marginTop: SPACING.lg },
+    emptyText: {
+      ...type.bodyMd,
+      color: colors.onSurfaceVariant,
+      textAlign: 'center',
+      marginTop: SPACING.xs,
+    },
+    emptyAction: {
+      minHeight: 44,
+      borderRadius: 22,
+      backgroundColor: colors.secondary,
+      justifyContent: 'center',
+      paddingHorizontal: SPACING.lg,
+      marginTop: SPACING.lg,
+    },
     emptyActionText: { ...type.labelLg, color: colors.onSecondary },
-    habitCard: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.outlineVariant, borderRadius: radius.lg, padding: SPACING.md },
-    checkButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: colors.outline, alignItems: 'center', justifyContent: 'center' },
+    habitCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: radius.lg,
+      padding: SPACING.md,
+    },
+    checkButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      borderWidth: 1.5,
+      borderColor: colors.outline,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     checkButtonDone: { backgroundColor: colors.secondary, borderColor: colors.secondary },
     habitCopy: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: 'center' },
     habitTitle: { ...type.titleMd, color: colors.onSurface },
@@ -273,7 +470,17 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     goalLink: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
     goalLinkText: { ...type.bodySm, color: colors.primary, flex: 1 },
     trailing: { alignItems: 'center' },
-    streakPill: { minWidth: 40, height: 28, borderRadius: 14, backgroundColor: colors.flameContainer, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, paddingHorizontal: 7 },
+    streakPill: {
+      minWidth: 40,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: colors.flameContainer,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 3,
+      paddingHorizontal: 7,
+    },
     frozenPill: { backgroundColor: colors.primaryContainer },
     streakText: { ...type.labelMd, color: colors.flame },
     menuButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

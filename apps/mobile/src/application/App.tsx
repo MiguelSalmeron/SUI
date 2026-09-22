@@ -1,8 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, signInAnon } from '@/features/auth/public';
 import { useIntroStore } from '@/features/onboarding/public';
@@ -12,6 +11,8 @@ import { AppNavigator } from './navigation/AppNavigator';
 import { recordTelemetry, wrapApplication } from '@/shared/observability/telemetry';
 import { useProductivityEventEffects } from '@/shared/events/useProductivityEventEffects';
 import { useSettingsStore } from '@/shared/preferences/useSettingsStore';
+import { RootErrorBoundary } from './components/RootErrorBoundary';
+import { useFontsReady } from './components/useFontsReady';
 
 /**
  * PWA: html/body/#root default white → raya blanca bajo UI dark.
@@ -102,29 +103,32 @@ const useReconcileNotifications = () => {
 };
 
 function App() {
+  const [boundaryKey, setBoundaryKey] = useState(0);
+
+  return (
+    <RootErrorBoundary
+      key={boundaryKey}
+      onRetry={() => setBoundaryKey((value) => value + 1)}
+    >
+      <Boot />
+    </RootErrorBoundary>
+  );
+}
+
+function Boot() {
   useRetryPendingAuth();
   useProductivityEventEffects();
   useReconcileNotifications();
 
-  // Preload desde assets/ (no node_modules). En PWA, Firebase ignoraba
-  // **/node_modules/** → .ttf 404 → rewrite devolvía index.html → OTS fail
-  // → @expo/vector-icons deja <Text /> vacío (badge sí, icono no).
-  const [fontsLoaded, fontError] = useFonts({
-    ionicons: require('../../assets/fonts/Ionicons.ttf'),
-    'Poppins-Regular': require('../../assets/fonts/Poppins-Regular.ttf'),
-    'Poppins-Medium': require('../../assets/fonts/Poppins-Medium.ttf'),
-    'Poppins-SemiBold': require('../../assets/fonts/Poppins-SemiBold.ttf'),
-    'Poppins-Bold': require('../../assets/fonts/Poppins-Bold.ttf'),
-    'FredokaOne-Regular': require('../../assets/fonts/FredokaOne-Regular.ttf'),
-  });
+  const { ready, status } = useFontsReady();
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      recordTelemetry('app.start', { fonts: fontError ? 'error' : 'loaded' });
+    if (ready) {
+      recordTelemetry('app.start', { fonts: status });
     }
-  }, [fontError, fontsLoaded]);
+  }, [ready, status]);
 
-  if (!fontsLoaded) {
+  if (!ready) {
     return null;
   }
 

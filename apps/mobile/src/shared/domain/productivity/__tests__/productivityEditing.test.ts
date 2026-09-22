@@ -47,6 +47,7 @@ describe('productivity editing', () => {
       deadline: '2026-09-15',
       gravity: 'high',
       impactDays: ['2026-09-08', '2026-09-15', '2026-09-20'],
+      mirrorToGoogle: true,
     });
   });
 
@@ -64,6 +65,8 @@ describe('productivity editing', () => {
       title: 'Updated habit',
       frequency: ['mon', 'wed'],
       linkedGoalId: null,
+      plannedTime: undefined,
+      mirrorToGoogle: false,
     });
   });
 

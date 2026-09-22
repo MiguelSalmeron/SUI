@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { UserPreferences } from '@sui/contracts';
+import type { MirrorPreferences, UserPreferences } from '@sui/contracts';
+import { DEFAULT_MIRROR_PREFS } from '@sui/contracts';
 
 export type FontSize = 'small' | 'medium' | 'large';
 export type LanguagePreference = 'system' | 'es' | 'en';
@@ -17,11 +18,18 @@ export interface SettingsState {
   /** Modo de tema; system sigue configuración del dispositivo. */
   theme: ThemePreference;
 
+  /** Espejo Google: metas con fecha (default on). */
+  mirrorGoalsEnabled: boolean;
+  /** Espejo Google: hábitos con horario (default off). */
+  mirrorHabitsEnabled: boolean;
+
   // Actions
   setNotificationsEnabled: (enabled: boolean) => void;
   setFontSize: (size: FontSize) => void;
   setLanguage: (lang: LanguagePreference) => void;
   setTheme: (theme: ThemePreference) => void;
+  setMirrorGoalsEnabled: (enabled: boolean) => void;
+  setMirrorHabitsEnabled: (enabled: boolean) => void;
 }
 
 const SETTINGS_STORAGE_KEY = '@sui/settings-v1';
@@ -34,10 +42,14 @@ export const useSettingsStore = create<SettingsState>()(
       fontSize: 'medium',
       language: 'system',
       theme: 'system',
+      mirrorGoalsEnabled: DEFAULT_MIRROR_PREFS.goalsEnabled,
+      mirrorHabitsEnabled: DEFAULT_MIRROR_PREFS.habitsEnabled,
 
       setNotificationsEnabled: (enabled) => set({ notificationsEnabled: enabled }),
       setFontSize: (fontSize) => set({ fontSize }),
       setLanguage: (language) => set({ language }),
+      setMirrorGoalsEnabled: (mirrorGoalsEnabled) => set({ mirrorGoalsEnabled }),
+      setMirrorHabitsEnabled: (mirrorHabitsEnabled) => set({ mirrorHabitsEnabled }),
       setTheme: (theme) => {
         set({ theme });
         void AsyncStorage.setItem(THEME_MODE_KEY, theme);
@@ -49,6 +61,14 @@ export const useSettingsStore = create<SettingsState>()(
     },
   ),
 );
+
+export const getMirrorPreferences = (): MirrorPreferences => {
+  const current = useSettingsStore.getState();
+  return {
+    goalsEnabled: current.mirrorGoalsEnabled,
+    habitsEnabled: current.mirrorHabitsEnabled,
+  };
+};
 
 export const getCurrentPreferences = (): UserPreferences => {
   const current = useSettingsStore.getState();

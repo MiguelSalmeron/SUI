@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useGoogleCalendar } from '@/features/calendar/public';
+import { getMirrorQueueLength, useGoogleCalendar } from '@/features/calendar/public';
 import type { RootStackParamList } from '@/shared/navigation/types';
 import { useI18n } from '@/shared/i18n/i18n';
 import {
@@ -31,6 +31,30 @@ export const ConnectionsScreen = (_props: Props) => {
     calendar.status === 'syncing' ||
     calendar.status === 'connecting' ||
     calendar.syncStatus === 'loading-cache';
+  const needsReauth = calendar.connectionStatus === 'reauthRequired';
+  const [mirrorPending, setMirrorPending] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    if (!calendar.connected) {
+      setMirrorPending(0);
+      return;
+    }
+    void getMirrorQueueLength()
+      .then((count) => {
+        if (active) setMirrorPending(count);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [calendar.connected, calendar.status]);
+
+  const actionLabel = needsReauth
+    ? t('connections.reconnect')
+    : calendar.connected
+      ? t('connections.sync')
+      : t('connections.connect');
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -43,8 +67,13 @@ export const ConnectionsScreen = (_props: Props) => {
           <Text style={styles.title}>{t('connections.googleCalendar')}</Text>
           <Text style={styles.meta}>
             {calendar.connected ? t('connections.connected') : t('connections.notConnected')} ·{' '}
-            {t('connections.readOnly')}
+            {t('connections.mirrorActive')}
           </Text>
+          {calendar.connected && mirrorPending > 0 ? (
+            <Text style={styles.detail}>
+              {t('connections.mirrorPending', { count: mirrorPending })}
+            </Text>
+          ) : null}
           {calendar.lastSyncedAt ? (
             <Text style={styles.detail}>
               {formatDate(new Date(calendar.lastSyncedAt), {
@@ -53,19 +82,24 @@ export const ConnectionsScreen = (_props: Props) => {
               })}
             </Text>
           ) : null}
-          {calendar.error ? <Text style={styles.error}>{calendar.error}</Text> : null}
+          {needsReauth ? <Text style={styles.error}>{t('connections.reauthHint')}</Text> : null}
+          {calendar.platformHint ? (
+            <Text style={styles.detail}>{calendar.platformHint}</Text>
+          ) : null}
+          {calendar.error && !needsReauth ? (
+            <Text style={styles.error}>{calendar.error}</Text>
+          ) : null}
         </View>
         {busy ? (
           <ActivityIndicator color={theme.colors.primary} />
         ) : (
           <TouchableOpacity
             style={styles.action}
-            onPress={() => void (calendar.connected ? calendar.sync() : calendar.connect())}
+            onPress={() => void (calendar.connected && !needsReauth ? calendar.sync() : calendar.connect())}
             accessibilityRole="button"
+            accessibilityLabel={actionLabel}
           >
-            <Text style={styles.actionText}>
-              {calendar.connected ? t('connections.sync') : t('connections.connect')}
-            </Text>
+            <Text style={styles.actionText}>{actionLabel}</Text>
           </TouchableOpacity>
         )}
       </View>
