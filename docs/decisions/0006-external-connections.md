@@ -11,7 +11,7 @@ Usar identidad Google como permiso de Calendar mezcla dos consentimientos. Guard
 
 Autenticación y conexiones son flujos independientes. `Ajustes → Conexiones` aloja integraciones; Agenda sólo muestra CTA contextual.
 
-`ConnectionProvider` define estado, capacidades, conexión, sincronización y desconexión. Google Calendar v1 es sólo lectura.
+`ConnectionProvider` define estado, capacidades, conexión, sincronización y desconexión. Google Calendar v1 lee la agenda y espeja metas/hábitos en el calendario primario del usuario (scope `calendar.events`).
 
 OAuth usa Authorization Code + PKCE. Cliente recibe código temporal; backend intercambia y renueva tokens. Refresh token vive exclusivamente en almacenamiento servidor. Cliente guarda eventos normalizados, nunca tokens. Desconectar revoca acceso y borra caché.
 

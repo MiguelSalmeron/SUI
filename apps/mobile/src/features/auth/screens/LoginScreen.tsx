@@ -26,6 +26,7 @@ import {
 import { recordTelemetry } from '@/shared/observability/telemetry';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
 import { Ionicons } from '@/shared/ui/Ionicons';
+import { migrateAccountabilityGuestToUser } from '@/features/accountability/public';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -58,6 +59,9 @@ export const LoginScreen = ({ navigation }: Props) => {
       const localState = useProductivityStore.getState();
       const hasLocalData = hasMeaningfulProductivityData(localState);
       const current = auth.currentUser;
+      if (current?.uid) {
+        await migrateAccountabilityGuestToUser(current.uid, previousAnonymousUid);
+      }
       if (linked && current?.uid) {
         await migrateLocalGuestToUser(current.uid, previousAnonymousUid);
       }
@@ -102,6 +106,7 @@ export const LoginScreen = ({ navigation }: Props) => {
     if (password.length < 8) return setError(t('auth.shortPassword'));
     setBusy(true);
     try {
+      const previousAnonymousUid = auth.currentUser?.isAnonymous ? auth.currentUser.uid : undefined;
       const result = await signInEmailAccount(email, password);
       recordTelemetry('auth.completed', {
         provider: 'password',
@@ -112,7 +117,7 @@ export const LoginScreen = ({ navigation }: Props) => {
         setBusy(false);
         return setError(mapError(result.error));
       }
-      await finish(false, 'password');
+      await finish(false, 'password', previousAnonymousUid);
     } catch {
       setBusy(false);
       setError(t('auth.genericError'));

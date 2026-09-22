@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { localDateKey } from '@/shared/domain/productivity/public';
+import { localDateKey } from '@/shared/domain/productivity/pure';
 
 export const POMODORO_STORAGE_KEY = '@sui/pomodoro-v1';
 export const DEFAULT_POMODORO_MINUTES = 25;

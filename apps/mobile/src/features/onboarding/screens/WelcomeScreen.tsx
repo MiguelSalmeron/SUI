@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import {
+  Animated,
   BackHandler,
   ScrollView,
   StyleSheet,
@@ -107,7 +108,7 @@ export const WelcomeScreen = ({ navigation }: Props) => {
           <View style={styles.stepContainer}>
             <AnimatedMosaic compact={compact} />
 
-            <View style={[styles.welcomeCard, heroEntrance.animatedStyle]}>
+            <Animated.View style={[styles.welcomeCard, heroEntrance.animatedStyle]}>
               <View style={styles.brandBlock}>
                 <SuiMark variant="isologo" size={compact ? 64 : 76} accessible />
                 <Text style={styles.title}>{t('brand.tagline')}</Text>
@@ -153,7 +154,7 @@ export const WelcomeScreen = ({ navigation }: Props) => {
                   </Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </Animated.View>
           </View>
         )}
 

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { isPlannedTime } from '@sui/contracts';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
 import {
   applyDailyReset,
@@ -45,10 +46,11 @@ export type ProductivityState = {
     deadline: string;
     gravity?: GoalGravity;
     milestones?: string[];
+    mirrorToGoogle?: boolean;
   }) => boolean;
   updateGoal: (
     id: string,
-    payload: { title: string; deadline: string; gravity: GoalGravity },
+    payload: { title: string; deadline: string; gravity: GoalGravity; mirrorToGoogle?: boolean },
   ) => boolean;
   toggleGoal: (id: string) => void;
   addMilestone: (goalId: string, title: string) => void;
@@ -59,10 +61,18 @@ export type ProductivityState = {
     title: string;
     frequency?: 'daily' | DayOfWeek[];
     linkedGoalId?: string | null;
+    plannedTime?: string;
+    mirrorToGoogle?: boolean;
   }) => boolean;
   updateHabit: (
     id: string,
-    payload: { title: string; frequency: 'daily' | DayOfWeek[]; linkedGoalId: string | null },
+    payload: {
+      title: string;
+      frequency: 'daily' | DayOfWeek[];
+      linkedGoalId: string | null;
+      plannedTime?: string;
+      mirrorToGoogle?: boolean;
+    },
   ) => boolean;
   toggleHabit: (id: string) => void;
   freezeStreak: (habitId: string) => void;
@@ -71,6 +81,7 @@ export type ProductivityState = {
   bumpStreak: () => void;
   loadState: () => Promise<void>;
   reloadState: () => Promise<void>;
+  handleAuthUserChanged: (uid: string | null) => void;
   saveState: () => Promise<void>;
   syncNow: () => Promise<void>;
   resolveCloudMerge: (strategy: 'combine' | 'cloud') => Promise<void>;
@@ -81,6 +92,23 @@ let saveInFlight = false;
 let saveQueued = false;
 let syncInFlight = false;
 let syncQueued = false;
+let loadedForUid: string | null = null;
+
+const AUTH_READY_TIMEOUT_MS = 4000;
+
+// La sesión persistida se restaura de forma asíncrona; sin esta espera
+// loadState leería la clave base (sin uid) y quedaría stateLoaded=true con
+// los datos del usuario invisibles hasta reiniciar la app.
+const waitForAuthReady = async (): Promise<void> => {
+  try {
+    await Promise.race([
+      auth.authStateReady?.() ?? Promise.resolve(),
+      new Promise((resolve) => setTimeout(resolve, AUTH_READY_TIMEOUT_MS)),
+    ]);
+  } catch {
+    // Local-first: un SDK de auth que no responde no debe bloquear la carga.
+  }
+};
 
 const toProductivityData = (state: ProductivityState): ProductivityData => ({
   goals: state.goals,
@@ -96,13 +124,19 @@ const toProductivityData = (state: ProductivityState): ProductivityData => ({
 const normalizeLoadedData = (data: ProductivityData): ProductivityData => {
   let weeklyHistory = [...data.weeklyHistory];
   const todayKey = localDateKey();
+  const goals = data.goals.map((goal) => ({
+    ...goal,
+    mirrorToGoogle: goal.mirrorToGoogle ?? true,
+  }));
+  const habits = data.habits.map((habit) => ({
+    ...habit,
+    plannedTime: isPlannedTime(habit.plannedTime) ? habit.plannedTime : undefined,
+    mirrorToGoogle: habit.mirrorToGoogle ?? false,
+  }));
   if (data.lastResetDate && data.lastResetDate !== todayKey) {
-    weeklyHistory = upsertSnapshot(
-      weeklyHistory,
-      makeSnapshot(data.goals, data.habits, data.lastResetDate),
-    );
+    weeklyHistory = upsertSnapshot(weeklyHistory, makeSnapshot(goals, habits, data.lastResetDate));
   }
-  const reset = applyDailyReset(data.goals, data.habits, data.lastResetDate);
+  const reset = applyDailyReset(goals, habits, data.lastResetDate);
   weeklyHistory = upsertSnapshot(weeklyHistory, makeSnapshot(reset.goals, reset.habits, todayKey));
   const explicitXp = typeof data.totalXp === 'number' ? data.totalXp : 0;
   const totalXp = explicitXp > 0 ? explicitXp : computeTotalXp(weeklyHistory);
@@ -142,7 +176,7 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
   syncStatus: 'local',
   lastSyncedAt: null,
 
-  addGoal: ({ title, deadline, gravity = 'low', milestones = [] }) => {
+  addGoal: ({ title, deadline, gravity = 'low', milestones = [], mirrorToGoogle = true }) => {
     const trimmed = title.trim();
     if (!trimmed) return false;
 
@@ -160,13 +194,14 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
       completed: false,
       gravity,
       createdAt: localDateKey(),
+      mirrorToGoogle,
     };
 
     set((s) => ({ goals: [newGoal, ...s.goals] }));
     return true;
   },
 
-  updateGoal: (id, { title, deadline, gravity }) => {
+  updateGoal: (id, { title, deadline, gravity, mirrorToGoogle }) => {
     const trimmed = title.trim();
     const current = get().goals.find((goal) => goal.id === id);
     if (!trimmed || !current) return false;
@@ -180,7 +215,16 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
     if (!impactDays.includes(deadline)) impactDays.push(deadline);
     set((state) => ({
       goals: state.goals.map((goal) =>
-        goal.id === id ? { ...goal, title: trimmed, deadline, gravity, impactDays } : goal,
+        goal.id === id
+          ? {
+              ...goal,
+              title: trimmed,
+              deadline,
+              gravity,
+              impactDays,
+              mirrorToGoogle: mirrorToGoogle ?? goal.mirrorToGoogle ?? true,
+            }
+          : goal,
       ),
     }));
     return true;
@@ -262,9 +306,10 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
       ),
     })),
 
-  addHabit: ({ title, frequency = 'daily', linkedGoalId = null }) => {
+  addHabit: ({ title, frequency = 'daily', linkedGoalId = null, plannedTime, mirrorToGoogle = false }) => {
     const trimmed = title.trim();
     if (!trimmed) return false;
+    const validTime = isPlannedTime(plannedTime) ? plannedTime : undefined;
 
     const newHabit: Habit = {
       id: `habit-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -274,19 +319,32 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
       streak: 0,
       linkedGoalId,
       createdAt: localDateKey(),
+      ...(validTime ? { plannedTime: validTime } : {}),
+      mirrorToGoogle,
     };
 
     set((s) => ({ habits: [newHabit, ...s.habits] }));
     return true;
   },
 
-  updateHabit: (id, { title, frequency, linkedGoalId }) => {
+  updateHabit: (id, { title, frequency, linkedGoalId, plannedTime, mirrorToGoogle }) => {
     const trimmed = title.trim();
     const current = get().habits.find((habit) => habit.id === id);
     if (!trimmed || !current || (frequency !== 'daily' && frequency.length === 0)) return false;
+    const validTime =
+      plannedTime === undefined ? current.plannedTime : isPlannedTime(plannedTime) ? plannedTime : undefined;
     set((state) => ({
       habits: state.habits.map((habit) =>
-        habit.id === id ? { ...habit, title: trimmed, frequency, linkedGoalId } : habit,
+        habit.id === id
+          ? {
+              ...habit,
+              title: trimmed,
+              frequency,
+              linkedGoalId,
+              plannedTime: validTime,
+              mirrorToGoogle: mirrorToGoogle ?? habit.mirrorToGoogle ?? false,
+            }
+          : habit,
       ),
     }));
     return true;
@@ -359,9 +417,11 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
   loadState: async () => {
     if (get().stateLoaded) return;
     try {
+      await waitForAuthReady();
       const user = auth.currentUser;
       const currentUid = user?.uid;
       const envelope = await loadLocalProductivity(currentUid);
+      loadedForUid = currentUid ?? null;
       if (envelope.data.preferences) {
         applyUserPreferences(envelope.data.preferences);
       }
@@ -404,7 +464,15 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
     await get().loadState();
   },
 
+  handleAuthUserChanged: (uid) => {
+    if (!get().stateLoaded || uid === loadedForUid) return;
+    void get().reloadState();
+  },
+
   saveState: async () => {
+    // Un guardado encolado tras clearState (logout/borrado) no debe escribir:
+    // con la sesión ya cerrada persistiría en la clave base sin uid.
+    if (!get().stateLoaded) return;
     if (saveInFlight) {
       saveQueued = true;
       return;
@@ -593,6 +661,7 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
         useIntroStore.getState().setPreviousAnonymousUid(null);
       }
       useIntroStore.getState().registerAccount(true);
+      loadedForUid = user.uid;
       set({
         ...statePatch(normalized),
         stateLoaded: true,
@@ -610,6 +679,7 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
       const currentUid = auth.currentUser?.uid;
       await clearLocalProductivity(currentUid);
     }
+    loadedForUid = null;
     set({
       goals: [],
       habits: [],

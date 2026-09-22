@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { GoogleEvent, TimelineItem, Goal, Habit } from '@/shared/types/models';
-import { isHabitDueToday } from '@/shared/domain/productivity/public';
+import { isHabitDueToday } from '@/shared/domain/productivity/pure';
 
 export const GOOGLE_CALENDAR_READONLY_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
+export const GOOGLE_CALENDAR_WRITE_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
 
 const GOOGLE_EVENTS_CACHE_KEY = '@sui/google-events-v2';
 const LEGACY_GOOGLE_EVENTS_CACHE_KEY = '@sui/google-events-v1';
@@ -19,6 +20,8 @@ export type CalendarSyncStatus =
 export interface GoogleCalendarCache {
   events: GoogleEvent[];
   lastSyncedAt: number | null;
+  /** uid dueño de la caché; evita mostrar eventos de otra cuenta. */
+  ownerUid?: string;
 }
 
 const EMPTY_CACHE: GoogleCalendarCache = {
@@ -48,17 +51,33 @@ const parseCache = (raw: string | null): GoogleCalendarCache => {
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return EMPTY_CACHE;
 
-    const value = parsed as { events?: unknown; lastSyncedAt?: unknown };
+    const value = parsed as { events?: unknown; lastSyncedAt?: unknown; ownerUid?: unknown };
+    // Sin ownerUid la caché es legado (v2 antigua): se descarta para no
+    // mostrar nunca eventos de otra cuenta.
+    if (typeof value.ownerUid !== 'string' || !value.ownerUid) return EMPTY_CACHE;
     const events = Array.isArray(value.events) ? value.events.filter(isGoogleEvent) : [];
     const lastSyncedAt =
       typeof value.lastSyncedAt === 'number' && Number.isFinite(value.lastSyncedAt)
         ? value.lastSyncedAt
         : null;
 
-    return { events, lastSyncedAt };
+    return { events, lastSyncedAt, ownerUid: value.ownerUid };
   } catch {
     return EMPTY_CACHE;
   }
+};
+
+/**
+ * Descarta la caché si pertenece a otra cuenta o si no tiene dueño conocido
+ * (legado) y ya hay sesión resuelta. `currentUid` vacío (sesión no resuelta
+ * aún) no descarta: la validación fuerte ocurre al guardar/sincronizar.
+ */
+export const resolveLoadedCache = (
+  stored: GoogleCalendarCache,
+  currentUid: string,
+): GoogleCalendarCache => {
+  if (!currentUid) return stored;
+  return stored.ownerUid === currentUid ? stored : EMPTY_CACHE;
 };
 
 /** Carga solo la última caché real; nunca crea eventos falsos. */
@@ -77,8 +96,9 @@ export const loadCachedGoogleEvents = async (): Promise<GoogleEvent[]> =>
 export const saveGoogleEventsCache = async (
   events: GoogleEvent[],
   lastSyncedAt: number = Date.now(),
+  ownerUid?: string,
 ): Promise<void> => {
-  const cache: GoogleCalendarCache = { events, lastSyncedAt };
+  const cache: GoogleCalendarCache = { events, lastSyncedAt, ownerUid };
   await AsyncStorage.setItem(GOOGLE_EVENTS_CACHE_KEY, JSON.stringify(cache));
 };
 

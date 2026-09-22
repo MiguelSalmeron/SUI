@@ -10,6 +10,7 @@
 
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import type { NotificationResponse } from 'expo-notifications';
 
 export type NotificationPermissionStatus = 'granted' | 'denied' | 'blocked';
 
@@ -71,6 +72,43 @@ export const requestNotificationPermission = async (): Promise<NotificationPermi
 /** Cancela una notificación programada; no-op silencioso si no existe. */
 export const cancelScheduledNotification = async (identifier: string): Promise<void> => {
   await Notifications.cancelScheduledNotificationAsync(identifier).catch(() => undefined);
+};
+
+/**
+ * Identificadores actualmente programados en el sistema. Primitiva genérica
+ * para reconciliación: el caller decide qué subconjunto le importa.
+ * Nunca lanza; en error devuelve lista vacía.
+ */
+export const getScheduledNotificationIdentifiers = async (): Promise<string[]> => {
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    return scheduled.map((item) => item.identifier).filter((id): id is string => typeof id === 'string');
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Respuesta a la notificación que abrió la app (cold start), o `null`.
+ * Primitiva genérica: el caller decide el enrutamiento por payload.
+ */
+export const getLastNotificationResponseAsync = async (): Promise<NotificationResponse | null> => {
+  try {
+    return (await Notifications.getLastNotificationResponseAsync()) ?? null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Suscripción a toques de notificaciones con la app abierta (warm start).
+ * Devuelve la función de desuscripción. Primitiva genérica.
+ */
+export const addNotificationResponseListener = (
+  listener: (response: NotificationResponse) => void,
+): (() => void) => {
+  const subscription = Notifications.addNotificationResponseReceivedListener(listener);
+  return () => subscription.remove();
 };
 
 const buildExpoTrigger = (

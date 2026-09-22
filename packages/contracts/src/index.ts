@@ -20,6 +20,7 @@ export interface Goal {
   completed: boolean;
   gravity: GoalGravity;
   createdAt: string;
+  mirrorToGoogle?: boolean;
 }
 
 export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
@@ -34,6 +35,8 @@ export interface Habit {
   frozenUntil?: string;
   linkedGoalId?: string | null;
   createdAt: string;
+  plannedTime?: string;
+  mirrorToGoogle?: boolean;
 }
 
 export interface DailySnapshot {
@@ -172,6 +175,11 @@ const onlyKeys = (value: Record<string, unknown>, allowed: string[]): boolean =>
 const optionalString = (value: unknown, max = 64): boolean =>
   value === undefined || value === null || (typeof value === 'string' && value.length <= max);
 
+const isPlannedTime = (value: unknown): value is string =>
+  typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+
+export { isPlannedTime };
+
 const documentId = (value: unknown): value is string =>
   nonEmptyString(value, 240) && value !== '.' && value !== '..' && !value.includes('/');
 
@@ -199,6 +207,7 @@ const isGoal = (value: unknown, entityId?: string): value is Goal =>
     'completed',
     'gravity',
     'createdAt',
+    'mirrorToGoogle',
   ]) &&
   (!entityId || value.id === entityId) &&
   nonEmptyString(value.id, 240) &&
@@ -222,7 +231,8 @@ const isGoal = (value: unknown, entityId?: string): value is Goal =>
       value.impactDays.every((item) => nonEmptyString(item, 64)))) &&
   typeof value.completed === 'boolean' &&
   (value.gravity === 'low' || value.gravity === 'high') &&
-  nonEmptyString(value.createdAt, 64);
+  nonEmptyString(value.createdAt, 64) &&
+  (value.mirrorToGoogle === undefined || typeof value.mirrorToGoogle === 'boolean');
 
 const isHabit = (value: unknown, entityId?: string): value is Habit =>
   isRecord(value) &&
@@ -236,6 +246,8 @@ const isHabit = (value: unknown, entityId?: string): value is Habit =>
     'frozenUntil',
     'linkedGoalId',
     'createdAt',
+    'plannedTime',
+    'mirrorToGoogle',
   ]) &&
   (!entityId || value.id === entityId) &&
   nonEmptyString(value.id, 240) &&
@@ -248,7 +260,9 @@ const isHabit = (value: unknown, entityId?: string): value is Habit =>
   optionalString(value.lastCompletedDate) &&
   optionalString(value.frozenUntil) &&
   optionalString(value.linkedGoalId, 240) &&
-  nonEmptyString(value.createdAt, 64);
+  nonEmptyString(value.createdAt, 64) &&
+  (value.plannedTime === undefined || isPlannedTime(value.plannedTime)) &&
+  (value.mirrorToGoogle === undefined || typeof value.mirrorToGoogle === 'boolean');
 
 const isSnapshot = (value: unknown, entityId?: string): value is DailySnapshot =>
   isRecord(value) &&
@@ -534,3 +548,50 @@ export interface ActionableNotificationPayload {
   goalId?: string;
   scheduledTime?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Google Calendar Mirror Contracts (Fase 1: dominio local, sin escritura)
+// Sui es fuente de verdad. Google es espejo selectivo de solo-lectura.
+// ---------------------------------------------------------------------------
+export type MirrorStatus = 'pending' | 'mirrored' | 'diverged' | 'error';
+export type MirrorEntityType = 'goal' | 'habit';
+
+export interface MirrorState {
+  suiId: string;
+  suiType: MirrorEntityType;
+  googleCalendarId?: string;
+  googleEventId?: string;
+  lastMirroredAt?: string;
+  status: MirrorStatus;
+}
+
+export interface MirrorPreferences {
+  goalsEnabled: boolean;
+  habitsEnabled: boolean;
+}
+
+export const DEFAULT_MIRROR_PREFS: MirrorPreferences = {
+  goalsEnabled: true,
+  habitsEnabled: false,
+};
+
+export const DEFAULT_GOAL_MIRROR = true as const;
+export const DEFAULT_HABIT_MIRROR = false as const;
+
+export const shouldMirrorGoal = (
+  goal: Pick<Goal, 'deadline' | 'mirrorToGoogle'>,
+  prefs: MirrorPreferences = DEFAULT_MIRROR_PREFS,
+): boolean => {
+  if (!prefs.goalsEnabled) return false;
+  if (goal.mirrorToGoogle === false) return false;
+  return typeof goal.deadline === 'string' && goal.deadline.length > 0;
+};
+
+export const shouldMirrorHabit = (
+  habit: Pick<Habit, 'plannedTime' | 'mirrorToGoogle'>,
+  prefs: MirrorPreferences = DEFAULT_MIRROR_PREFS,
+): boolean => {
+  if (!prefs.habitsEnabled) return false;
+  if (habit.mirrorToGoogle !== true) return false;
+  return isPlannedTime(habit.plannedTime);
+};

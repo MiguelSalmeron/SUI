@@ -10,6 +10,7 @@ module.exports = {
     '^expo-haptics$': '<rootDir>/__mocks__/expo-haptics.js',
     '^expo-localization$': '<rootDir>/__mocks__/expo-localization.js',
     '^react-native-safe-area-context$': '<rootDir>/__mocks__/react-native-safe-area-context.js',
+    '\\.(ttf|otf|png|jpg|jpeg|gif|webp|svg|mp3|mp4)$': '<rootDir>/__mocks__/assetMock.js',
   },
   transform: {
     '^.+\\.(js|jsx|tsx)$': [

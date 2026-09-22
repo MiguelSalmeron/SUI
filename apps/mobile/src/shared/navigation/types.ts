@@ -19,6 +19,7 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   MergeData: undefined;
   Connections: undefined;
+  AccountabilitySettings: undefined;
 };
 
 export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>;

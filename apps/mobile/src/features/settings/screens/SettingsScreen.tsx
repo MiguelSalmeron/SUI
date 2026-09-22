@@ -20,6 +20,13 @@ import { clearGoogleEventsCache } from '@/features/calendar/public';
 import { useIntroStore } from '@/features/onboarding/public';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
 import { clearLocalProductivity, useProductivityStore } from '@/shared/domain/productivity/public';
+import { PRODUCT_CONFIG } from '@/shared/config/product';
+import {
+  cancelAllAccountabilityNotifications,
+  clearAccountability,
+  exportAccountability,
+  useAccountabilityStore,
+} from '@/features/accountability/public';
 import type { RootStackParamList } from '@/shared/navigation/types';
 import { useI18n } from '@/shared/i18n/i18n';
 import {
@@ -188,13 +195,15 @@ export const SettingsScreen = ({ navigation }: Props) => {
         : t('common.english');
 
   const exportData = async () => {
+    const accountability = await exportAccountability(user?.uid ?? null);
     const payload = JSON.stringify(
       {
         exportedAt: new Date().toISOString(),
-        schemaVersion: 7,
+        schemaVersion: 8,
         goals: home.goals,
         habits: home.habits,
         weeklyHistory: home.weeklyHistory,
+        accountability,
       },
       null,
       2,
@@ -207,6 +216,8 @@ export const SettingsScreen = ({ navigation }: Props) => {
     setLogoutBusy(true);
     try {
       await signOut(auth);
+      await cancelAllAccountabilityNotifications();
+      await useAccountabilityStore.getState().handleAuthUserChanged(null);
       await clearGoogleEventsCache();
       await home.clearState({ preserveStorage: true });
       resetIntro();
@@ -232,6 +243,8 @@ export const SettingsScreen = ({ navigation }: Props) => {
       await deleteUser(current);
     }
     await clearGoogleEventsCache();
+    await cancelAllAccountabilityNotifications();
+    await clearAccountability(currentUid ?? null);
     if (currentUid) {
       await clearLocalProductivity(currentUid);
     }
@@ -339,6 +352,38 @@ export const SettingsScreen = ({ navigation }: Props) => {
             label={t('settings.connections')}
             description={t('settings.connectionsDescription')}
             onPress={() => navigation.navigate('Connections')}
+          />
+          {PRODUCT_CONFIG.accountabilityEnabled ? (
+            <SettingsRow
+              icon="flag-outline"
+              label={t('accountability.settings.title')}
+              description={t('accountability.settings.enabledBody')}
+              onPress={() => navigation.navigate('AccountabilitySettings')}
+            />
+          ) : null}
+          <SettingsRow
+            icon="calendar-outline"
+            label={t('settings.mirrorGoals')}
+            description={t('settings.mirrorGoalsDescription')}
+            right={
+              <Switch
+                value={settings.mirrorGoalsEnabled}
+                onValueChange={settings.setMirrorGoalsEnabled}
+                accessibilityLabel={t('settings.mirrorGoals')}
+              />
+            }
+          />
+          <SettingsRow
+            icon="repeat-outline"
+            label={t('settings.mirrorHabits')}
+            description={t('settings.mirrorHabitsDescription')}
+            right={
+              <Switch
+                value={settings.mirrorHabitsEnabled}
+                onValueChange={settings.setMirrorHabitsEnabled}
+                accessibilityLabel={t('settings.mirrorHabits')}
+              />
+            }
           />
         </Section>
 

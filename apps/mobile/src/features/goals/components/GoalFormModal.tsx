@@ -13,7 +13,7 @@ import {
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import { SCREEN_MAX_CONTENT_WIDTH, SPACING, useAppTheme } from '@/shared/theme/theme';
-import { localDateKey } from '@/shared/domain/productivity/public';
+import { localDateKey } from '@/shared/domain/productivity/pure';
 import type { Goal, GoalGravity } from '@/shared/types/models';
 import { useI18n } from '@/shared/i18n/i18n';
 
@@ -21,6 +21,7 @@ type GoalDraft = {
   title: string;
   deadline: string;
   gravity: GoalGravity;
+  mirrorToGoogle?: boolean;
 };
 
 type Props = {
@@ -36,6 +37,47 @@ const deadlineFromToday = (days: number) => {
   return localDateKey(date);
 };
 
+export type GoalDraftErrorKey = 'goalForm.required' | 'goalForm.invalidDate' | 'goalForm.pastDate';
+
+export interface GoalDraftInput {
+  title: string;
+  deadline: string;
+  gravity: GoalGravity;
+  mirrorToGoogle: boolean;
+  today: string;
+  /** false al editar sin tocar la fecha (permite deadlines pasados heredados). */
+  enforceNotPast: boolean;
+}
+
+/**
+ * Valida y construye el draft. Lógica pura para poder testearse sin render.
+ */
+export const buildGoalDraft = (
+  input: GoalDraftInput,
+): { draft: GoalDraft } | { errorKey: GoalDraftErrorKey } => {
+  const title = input.title.trim();
+  if (!title) return { errorKey: 'goalForm.required' };
+  const parsed = new Date(`${input.deadline}T12:00:00`);
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(input.deadline) ||
+    Number.isNaN(parsed.getTime()) ||
+    localDateKey(parsed) !== input.deadline
+  ) {
+    return { errorKey: 'goalForm.invalidDate' };
+  }
+  if (input.enforceNotPast && input.deadline < input.today) {
+    return { errorKey: 'goalForm.pastDate' };
+  }
+  return {
+    draft: {
+      title,
+      deadline: input.deadline,
+      gravity: input.gravity,
+      mirrorToGoogle: input.mirrorToGoogle,
+    },
+  };
+};
+
 export const GoalFormModal = ({ visible, initialGoal, onSubmit, onCancel }: Props) => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -45,6 +87,8 @@ export const GoalFormModal = ({ visible, initialGoal, onSubmit, onCancel }: Prop
   const [deadline, setDeadline] = useState(deadlineFromToday(7));
   const [deadlineTouched, setDeadlineTouched] = useState(false);
   const [gravity, setGravity] = useState<GoalGravity>('low');
+  const [mirrorToGoogle, setMirrorToGoogle] = useState(true);
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,30 +97,26 @@ export const GoalFormModal = ({ visible, initialGoal, onSubmit, onCancel }: Prop
       setDeadline(initialGoal?.deadline ?? deadlineFromToday(7));
       setDeadlineTouched(false);
       setGravity(initialGoal?.gravity ?? 'low');
+      setMirrorToGoogle(initialGoal?.mirrorToGoogle ?? true);
+      setDatePickerVisible(false);
       setError(null);
     }
   }, [initialGoal, visible]);
 
   const submit = () => {
-    const value = title.trim();
-    if (!value) {
-      setError(t('goalForm.required'));
+    const result = buildGoalDraft({
+      title,
+      deadline,
+      gravity,
+      mirrorToGoogle,
+      today: localDateKey(),
+      enforceNotPast: !initialGoal || deadlineTouched,
+    });
+    if ('errorKey' in result) {
+      setError(t(result.errorKey));
       return;
     }
-    const parsed = new Date(`${deadline}T12:00:00`);
-    if (
-      !/^\d{4}-\d{2}-\d{2}$/.test(deadline) ||
-      Number.isNaN(parsed.getTime()) ||
-      localDateKey(parsed) !== deadline
-    ) {
-      setError(t('goalForm.invalidDate'));
-      return;
-    }
-    if ((!initialGoal || deadlineTouched) && deadline < localDateKey()) {
-      setError(t('goalForm.pastDate'));
-      return;
-    }
-    onSubmit({ title: value, deadline, gravity });
+    onSubmit(result.draft);
   };
 
   return (
@@ -181,14 +221,48 @@ export const GoalFormModal = ({ visible, initialGoal, onSubmit, onCancel }: Prop
                 placeholder="YYYY-MM-DD"
                 accessibilityLabel={t('goalForm.exactDate')}
               />
+            ) : Platform.OS === 'android' ? (
+              <>
+                <TouchableOpacity
+                  testID="goal-date-picker-trigger"
+                  style={styles.dateButton}
+                  onPress={() => setDatePickerVisible(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('goalForm.exactDate')}
+                >
+                  <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+                  <Text style={styles.dateButtonText}>
+                    {formatDate(new Date(`${deadline}T12:00:00`), {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </Text>
+                </TouchableOpacity>
+                {datePickerVisible ? (
+                  <DateTimePicker
+                    testID="goal-date-picker"
+                    value={new Date(`${deadline}T12:00:00`)}
+                    mode="date"
+                    presentation="dialog"
+                    minimumDate={new Date(`${localDateKey()}T00:00:00`)}
+                    onValueChange={(_, value) => {
+                      setDatePickerVisible(false);
+                      setDeadline(localDateKey(value));
+                      setDeadlineTouched(true);
+                      setError(null);
+                    }}
+                    onDismiss={() => setDatePickerVisible(false)}
+                  />
+                ) : null}
+              </>
             ) : (
               <View style={styles.datePicker}>
                 <DateTimePicker
                   value={new Date(`${deadline}T12:00:00`)}
                   mode="date"
                   minimumDate={new Date(`${localDateKey()}T00:00:00`)}
-                  onChange={(_, value) => {
-                    if (!value) return;
+                  onValueChange={(_, value) => {
                     setDeadline(localDateKey(value));
                     setDeadlineTouched(true);
                     setError(null);
@@ -238,6 +312,23 @@ export const GoalFormModal = ({ visible, initialGoal, onSubmit, onCancel }: Prop
                 </View>
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+              testID="goal-mirror-toggle"
+              style={styles.mirrorRow}
+              onPress={() => setMirrorToGoogle((current) => !current)}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: mirrorToGoogle }}
+              accessibilityLabel={t('goalForm.mirrorLabel')}
+            >
+              <View style={[styles.toggle, mirrorToGoogle && styles.toggleOn]}>
+                <View style={[styles.thumb, mirrorToGoogle && styles.thumbOn]} />
+              </View>
+              <View style={styles.mirrorCopy}>
+                <Text style={styles.mirrorLabel}>{t('goalForm.mirrorLabel')}</Text>
+                <Text style={styles.mirrorHint}>{t('goalForm.mirrorHint')}</Text>
+              </View>
+            </TouchableOpacity>
           </ScrollView>
 
           <TouchableOpacity
@@ -348,6 +439,18 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       marginTop: SPACING.sm,
     },
     datePicker: { minHeight: 48, justifyContent: 'center', marginTop: SPACING.xs },
+    dateButton: {
+      minHeight: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: radius.md,
+      paddingHorizontal: SPACING.md,
+      marginTop: SPACING.sm,
+    },
+    dateButtonText: { ...type.bodyMd, color: colors.onSurface },
     priorityRow: { gap: SPACING.sm, marginBottom: SPACING.md },
     priorityOption: {
       minHeight: 64,
@@ -365,6 +468,34 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     priorityTitle: { ...type.titleSm, color: colors.onSurface },
     importantText: { color: colors.onFlameContainer },
     priorityDescription: { ...type.bodySm, color: colors.onSurfaceVariant, marginTop: 1 },
+    mirrorRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      marginTop: SPACING.sm,
+      marginBottom: SPACING.md,
+      paddingVertical: SPACING.xs,
+    },
+    toggle: {
+      width: 52,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: colors.outlineVariant,
+      justifyContent: 'center',
+      paddingHorizontal: 3,
+    },
+    toggleOn: { backgroundColor: colors.primary },
+    thumb: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      alignSelf: 'flex-start',
+    },
+    thumbOn: { alignSelf: 'flex-end' },
+    mirrorCopy: { flex: 1 },
+    mirrorLabel: { ...type.titleSm, color: colors.onSurface },
+    mirrorHint: { ...type.bodySm, color: colors.onSurfaceVariant, marginTop: 1 },
     submitButton: {
       minHeight: 52,
       borderRadius: radius.lg,

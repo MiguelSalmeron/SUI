@@ -14,7 +14,7 @@ Alcance: [PRD](product/PRD.md). UX/UI: [sistema de diseño](product/DESIGN_SYSTE
 - [x] Fusión explícita de datos locales/cloud.
 - [x] Repositorio local-first v9, outbox, CAS servidor y tombstones de 90 días.
 - [x] Sync batch por Cloud Function, pull incremental y compactación por epoch.
-- [x] Centro de Conexiones y Google Calendar PKCE sólo lectura.
+- [x] Centro de Conexiones y Google Calendar PKCE (lectura + espejo de metas/hábitos con `calendar.events`).
 - [x] Exportación, logout y eliminación completa.
 - [x] Reglas Firestore con pruebas Emulator Suite.
 - [x] Perfiles EAS, CORS, App Check web/monitor y telemetría privada en código.
@@ -22,6 +22,29 @@ Alcance: [PRD](product/PRD.md). UX/UI: [sistema de diseño](product/DESIGN_SYSTE
 - [x] Permiso de notificaciones contextual, recordatorio local y reconciliación sin prompt.
 - [x] Preferencias con radios, contenido responsive y targets accesibles.
 - [x] Sugerencias de Chat controladas y listas principales virtualizadas.
+
+## Próxima iniciativa de producto: Accountability
+
+Plan completo: [seguimiento personalizado y exigente](product/ACCOUNTABILITY_PLAN.md).
+Decisión arquitectónica: [ADR-0008](decisions/0008-accountability-follow-up.md).
+
+Estado: planificación aprobada; no implementado. El MVP será local-only y no
+modificará productividad v9, el outbox ni la sincronización Firebase.
+
+Decisiones congeladas:
+
+- [x] Estado de Accountability en `sui-accountability-v1` independiente.
+- [x] Sin sincronización cloud en el MVP.
+- [x] Ownership separado del agente de datos.
+- [x] Sync futuro sólo después de validar uso real.
+
+Gates iniciales:
+
+- [x] Definir contrato local y fixtures de migración.
+- [ ] Ejecutar spike de scheduling Android/iOS/Web.
+- [x] Validar límites de frecuencia, quiet hours y copy ES/EN.
+- [x] Integrar limpieza con logout, eliminación y exportación.
+- [x] Activar sólo detrás de `EXPO_PUBLIC_ACCOUNTABILITY_ENABLED` hasta completar UAT.
 
 ## Bloqueos externos antes de staging
 

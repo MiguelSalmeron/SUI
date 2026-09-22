@@ -8,7 +8,8 @@ type TelemetryEvent =
   | 'sync.completed'
   | 'productivity.completed'
   | 'pomodoro.completed'
-  | 'connection.completed';
+  | 'connection.completed'
+  | 'mirror.completed';
 
 type TelemetryAttributes = Record<string, string | number | boolean>;
 
@@ -81,6 +82,15 @@ export const withTelemetry = async <T>(
     recordTelemetry(event, { ...attributes, result: 'error' }, Date.now() - startedAt);
     throw error;
   }
+};
+
+/**
+ * Reporta un error de render/runtime a Sentry. Sin DSN es no-op
+ * (builds locales y ambientes sin monitoreo configurado).
+ */
+export const reportError = (error: unknown): void => {
+  if (!dsn) return;
+  Sentry.captureException(error);
 };
 
 export const wrapApplication = Sentry.wrap;

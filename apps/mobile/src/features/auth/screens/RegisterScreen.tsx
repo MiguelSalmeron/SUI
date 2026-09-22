@@ -26,6 +26,7 @@ import {
 import { recordTelemetry } from '@/shared/observability/telemetry';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
 import { Ionicons } from '@/shared/ui/Ionicons';
+import { migrateAccountabilityGuestToUser } from '@/features/accountability/public';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
@@ -57,6 +58,9 @@ export const RegisterScreen = ({ navigation }: Props) => {
       const localState = useProductivityStore.getState();
       const hasLocalData = hasMeaningfulProductivityData(localState);
       const current = auth.currentUser;
+      if (current?.uid) {
+        await migrateAccountabilityGuestToUser(current.uid, previousAnonymousUid);
+      }
       if (linked && current?.uid) {
         await migrateLocalGuestToUser(current.uid, previousAnonymousUid);
       }
@@ -100,6 +104,9 @@ export const RegisterScreen = ({ navigation }: Props) => {
       if (!result.ok) {
         setBusy(false);
         return setError(mapRegisterError(result.error));
+      }
+      if (result.uid) {
+        await migrateAccountabilityGuestToUser(result.uid, null);
       }
       setNotice(t('auth.verify'));
       setPendingCloudMerge(false);

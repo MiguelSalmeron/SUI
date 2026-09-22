@@ -190,9 +190,12 @@ for (const file of files) {
       }
     }
     if (targetIsProductivity) {
-      const expectedPublicApi = '@/shared/domain/productivity/public';
-      if (!sourceIsProductivity && specifier !== expectedPublicApi) {
-        failures.push(`${projectPath}: import productivity through ${expectedPublicApi}`);
+      const expectedPublicApis = new Set([
+        '@/shared/domain/productivity/public',
+        '@/shared/domain/productivity/pure',
+      ]);
+      if (!sourceIsProductivity && !expectedPublicApis.has(specifier)) {
+        failures.push(`${projectPath}: import productivity through public or pure`);
       }
       if (sourceIsProductivity && specifier.startsWith('@/shared/domain/productivity/')) {
         failures.push(`${projectPath}: use relative imports inside productivity domain`);

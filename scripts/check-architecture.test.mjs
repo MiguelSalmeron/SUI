@@ -93,5 +93,14 @@ test('rejects deep productivity imports', () =>
         "import '@/shared/domain/productivity/store/useProductivityStore';",
       'shared/domain/productivity/store/useProductivityStore.ts': '',
     },
-    /import productivity through @\/shared\/domain\/productivity\/public/,
+    /import productivity through public or pure/,
+  ));
+
+test('accepts productivity pure imports', () =>
+  runFixture(
+    {
+      'features/alpha/internal.ts': "import '@/shared/domain/productivity/pure';",
+      'shared/domain/productivity/pure.ts': '',
+    },
+    null,
   ));

@@ -5,7 +5,9 @@ import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import {
   clearGoogleEventsCache,
+  GOOGLE_CALENDAR_WRITE_SCOPE,
   loadGoogleCalendarCache,
+  resolveLoadedCache,
   saveGoogleEventsCache,
   type CalendarSyncStatus,
   type GoogleCalendarCache,
@@ -23,7 +25,12 @@ import type { ConnectionProvider, ConnectionStatus } from '@/features/connection
 import { recordTelemetry } from '@/shared/observability/telemetry';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
 import { useI18n } from '@/shared/i18n/i18n';
-import type { TranslationKey } from '@/shared/i18n/translations';
+import {
+  androidReverseRedirectUri,
+  calendarPromptParams,
+  connectionErrorReason as errorReason,
+  translateConnectionError as getCalendarError,
+} from '../services/calendarAuth';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -32,6 +39,12 @@ const androidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim()
 const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() || undefined;
 const PLACEHOLDER_CLIENT_ID = 'missing.apps.googleusercontent.com';
 
+const androidRedirectUri = androidReverseRedirectUri(
+  Platform.OS,
+  webClientId,
+  androidClientId,
+);
+
 const EMPTY_CACHE: GoogleCalendarCache = {
   events: [],
   lastSyncedAt: null,
@@ -39,8 +52,6 @@ const EMPTY_CACHE: GoogleCalendarCache = {
 
 const cancelled = (result: { type: string }): boolean =>
   result.type === 'cancel' || result.type === 'dismiss';
-
-type Translate = (key: TranslationKey, values?: Record<string, string | number>) => string;
 
 const isAuthError = (error: unknown): boolean => {
   if (error instanceof ConnectionApiError && error.status === 401) return true;
@@ -60,8 +71,6 @@ const isAuthError = (error: unknown): boolean => {
   }
   return false;
 };
-
-const getCalendarError = (_error: unknown, t: Translate): string => t('connections.errorSync');
 
 /**
  * OAuth independiente para leer Google Calendar.
@@ -86,15 +95,16 @@ export const useGoogleCalendar = () => {
 
   const [request, , promptAsync] = Google.useAuthRequest({
     clientId: effectiveWebId,
+    redirectUri: androidRedirectUri,
     webClientId: effectiveWebId,
     androidClientId: configured ? androidClientId || effectiveWebId : PLACEHOLDER_CLIENT_ID,
     iosClientId: configured ? iosClientId || effectiveWebId : PLACEHOLDER_CLIENT_ID,
-    scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
+    scopes: [GOOGLE_CALENDAR_WRITE_SCOPE],
     responseType: ResponseType.Code,
     shouldAutoExchangeCode: false,
     usePKCE: true,
-    selectAccount: true,
-    extraParams: { access_type: 'offline', prompt: 'consent' },
+    selectAccount: false,
+    extraParams: calendarPromptParams(),
   });
 
   const sync = useCallback(async (): Promise<boolean> => {
@@ -109,8 +119,8 @@ export const useGoogleCalendar = () => {
     setError(null);
     try {
       const result = await syncGoogleCalendarConnection();
-      await saveGoogleEventsCache(result.events, result.syncedAt);
-      setCache({ events: result.events, lastSyncedAt: result.syncedAt });
+      await saveGoogleEventsCache(result.events, result.syncedAt, currentUser.uid);
+      setCache({ events: result.events, lastSyncedAt: result.syncedAt, ownerUid: currentUser.uid });
       setConnected(true);
       setStatus('synced');
       recordTelemetry(
@@ -130,7 +140,12 @@ export const useGoogleCalendar = () => {
       }
       recordTelemetry(
         'connection.completed',
-        { provider: 'google_calendar', action: 'sync', result: 'error' },
+        {
+          provider: 'google_calendar',
+          action: 'sync',
+          result: 'error',
+          reason: errorReason(syncError),
+        },
         Date.now() - startedAt,
       );
       return false;
@@ -149,13 +164,17 @@ export const useGoogleCalendar = () => {
     loadGoogleCalendarCache()
       .then(async (stored) => {
         if (!active) return;
-        setCache(stored);
-        setStatus(stored.lastSyncedAt ? 'offline' : 'idle');
-        if (!configured) return;
         const currentUser = auth.currentUser;
+        const cache = resolveLoadedCache(
+          stored,
+          currentUser && !currentUser.isAnonymous ? currentUser.uid : '',
+        );
+        setCache(cache);
+        setStatus(cache.lastSyncedAt ? 'offline' : 'idle');
+        if (!configured) return;
         if (!currentUser || currentUser.isAnonymous) {
           setConnected(false);
-          setStatus(stored.lastSyncedAt ? 'offline' : 'idle');
+          setStatus(cache.lastSyncedAt ? 'offline' : 'idle');
           return;
         }
         let remoteConnected = false;
@@ -169,7 +188,7 @@ export const useGoogleCalendar = () => {
             setError(t('connections.reauthRequired'));
             return;
           }
-          setStatus(stored.lastSyncedAt ? 'offline' : 'error');
+          setStatus(cache.lastSyncedAt ? 'offline' : 'error');
           return;
         }
         if (!active) return;
@@ -177,7 +196,7 @@ export const useGoogleCalendar = () => {
         if (remoteConnected) {
           void syncRef.current();
         } else {
-          setStatus(stored.lastSyncedAt ? 'offline' : 'idle');
+          setStatus(cache.lastSyncedAt ? 'offline' : 'idle');
         }
       })
       .catch((err) => {
@@ -265,6 +284,12 @@ export const useGoogleCalendar = () => {
         setError(getCalendarError(syncError, t));
         setStatus(cacheRef.current.lastSyncedAt ? 'offline' : 'error');
       }
+      recordTelemetry('connection.completed', {
+        provider: 'google_calendar',
+        action: 'connect',
+        result: 'error',
+        reason: errorReason(syncError),
+      });
       return false;
     } finally {
       inFlightRef.current = false;
@@ -272,7 +297,11 @@ export const useGoogleCalendar = () => {
   }, [configured, promptAsync, request, sync, t]);
 
   const disconnect = useCallback(async (): Promise<void> => {
-    if (configured) await disconnectGoogleCalendarConnection();
+    // Best-effort: un fallo de red no debe dejar la caché local viva ni la UI
+    // en estado "conectado fantasma".
+    if (configured) {
+      await disconnectGoogleCalendarConnection().catch(() => undefined);
+    }
     await clearGoogleEventsCache().catch(() => undefined);
     setCache(EMPTY_CACHE);
     setConnected(false);

@@ -18,6 +18,7 @@
       "environment": "preview",
       "distribution": "internal",
       "channel": "staging",
+      "autoIncrement": true,
       "android": { "buildType": "apk" },
       "env": {
         "EXPO_PUBLIC_APP_ENV": "staging"

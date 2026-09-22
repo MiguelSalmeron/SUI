@@ -24,6 +24,8 @@
     "deps:check": "npm run deps:check --workspace @sui/mobile",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
     "check:production": "node scripts/check-production-config.mjs",
+    "check:functions-config": "node scripts/check-functions-config.mjs",
+    "check:functions-config:test": "node --test scripts/check-functions-config.test.mjs",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:mobile": "npm run test --workspace @sui/mobile",
