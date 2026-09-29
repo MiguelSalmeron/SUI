@@ -21,8 +21,9 @@ yarn-error.log*
 .expo-shared/
 .metro/
 /*.pdf
-# --- AI助手工具目录 / AI assistant tool directories ---
+# --- Local tooling (untracked) ---
 .zcode/
+.zcode/plans/
 .claude/
 .opencode/
 .commandcode/
@@ -46,7 +47,7 @@ yarn-error.log*
 .agents/
 .gemini/
 
-# AI config/rule files
+# Local assistant configs (untracked)
 .cursorrules
 .clinerules
 .windsurfrules
