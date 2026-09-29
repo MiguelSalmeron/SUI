@@ -57,12 +57,19 @@ Configurar reCAPTCHA Enterprise para web, Play Integrity para Android y App Atte
 1. `APP_CHECK_MODE=monitor` en Functions.
 2. Observar tráfico legítimo de staging.
 3. Confirmar tokens en web y builds nativos.
-4. Activar enforcement en Firestore, Functions y Chat.
+4. Activar enforcement en Functions y Chat.
 5. Cambiar `APP_CHECK_MODE=enforce`.
 
 No activar enforcement nativo hasta instalar proveedores nativos; cliente actual
 inicializa proveedor web cuando existe
 `EXPO_PUBLIC_FIREBASE_APP_CHECK_SITE_KEY`.
+
+**No activar enforcement de App Check en Firestore ni en Auth.** El cliente usa el SDK JS,
+que no tiene proveedor nativo: esas plataformas no podrían adjuntar tokens y perderían
+Firestore y Auth. La protección de Firestore son sus reglas.
+
+Detalle paso a paso y el agujero que conviene cerrar antes:
+[habilitar App Check nativo](habilitar-app-check-nativo.md).
 
 ## 5. Privacidad y observabilidad
 
