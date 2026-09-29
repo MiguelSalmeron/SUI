@@ -2,19 +2,11 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["scripts/*.mjs", "test/**/*.mjs"],
   "project": ["scripts/*.mjs", "test/**/*.mjs"],
-  "ignore": [
-    "apps/mobile/src/features/home/components/DailyProgress.tsx",
-    "apps/mobile/src/features/home/components/HomeListSection.tsx",
-    "apps/mobile/src/features/home/components/NightlyReportModal.tsx",
-    "apps/mobile/src/features/home/components/StreakBadge.tsx",
-    "apps/mobile/src/shared/billing/**"
-  ],
+  "ignore": ["apps/mobile/src/features/home/components/NightlyReportModal.tsx"],
   "ignoreDependencies": [
     "@react-native/jest-preset",
     "@testing-library/react-native",
-    "ci-audit",
     "expo-secure-store",
-    "expo-system-ui",
     "expo-updates",
     "react-test-renderer"
   ],
@@ -25,9 +17,7 @@
       "ignoreDependencies": [
         "@react-native/jest-preset",
         "@testing-library/react-native",
-        "ci-audit",
         "expo-secure-store",
-        "expo-system-ui",
         "expo-updates",
         "react-test-renderer"
       ]
