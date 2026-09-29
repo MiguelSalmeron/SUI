@@ -13,9 +13,15 @@ import {
 import { Ionicons } from '@/shared/ui/Ionicons';
 import { ConfirmModal } from '@/shared/ui/ConfirmModal';
 import { SelectionModal } from '@/shared/ui/SelectionModal';
-import { deleteUser, sendEmailVerification, sendPasswordResetEmail, signOut } from 'firebase/auth';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AuthContext, deleteRegisteredAccount } from '@/features/auth/public';
+import {
+  AuthContext,
+  deleteAnonymousUser,
+  deleteRegisteredAccount,
+  requestPasswordResetForCurrentUser,
+  resendVerificationEmail,
+  signOutCurrentUser,
+} from '@/features/auth/public';
 import { clearGoogleEventsCache } from '@/features/calendar/public';
 import { useIntroStore } from '@/features/onboarding/public';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
@@ -215,7 +221,7 @@ export const SettingsScreen = ({ navigation }: Props) => {
     setLogoutError('');
     setLogoutBusy(true);
     try {
-      await signOut(auth);
+      await signOutCurrentUser();
       await cancelAllAccountabilityNotifications();
       await useAccountabilityStore.getState().handleAuthUserChanged(null);
       await clearGoogleEventsCache();
@@ -240,7 +246,7 @@ export const SettingsScreen = ({ navigation }: Props) => {
     if (current && !current.isAnonymous) {
       await deleteRegisteredAccount();
     } else if (current) {
-      await deleteUser(current);
+      await deleteAnonymousUser();
     }
     await clearGoogleEventsCache();
     await cancelAllAccountabilityNotifications();
@@ -283,7 +289,7 @@ export const SettingsScreen = ({ navigation }: Props) => {
         Alert.alert(t('settings.verifyEmail'), t('settings.verificationActive'));
         return;
       }
-      await sendEmailVerification(current);
+      await resendVerificationEmail();
       Alert.alert(t('settings.verifyEmail'), t('settings.verificationSent'));
     } catch {
       Alert.alert(t('settings.verifyEmail'), t('auth.genericError'));
@@ -293,7 +299,7 @@ export const SettingsScreen = ({ navigation }: Props) => {
   const requestPasswordChange = async () => {
     if (!user?.email) return;
     try {
-      await sendPasswordResetEmail(auth, user.email);
+      await requestPasswordResetForCurrentUser();
       Alert.alert(t('settings.changePassword'), t('settings.passwordResetSent'));
     } catch {
       Alert.alert(t('settings.changePassword'), t('auth.genericError'));

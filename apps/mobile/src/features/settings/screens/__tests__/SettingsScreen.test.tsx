@@ -1,8 +1,10 @@
 import { Alert, Share } from 'react-native';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
-const mockSignOut = jest.fn(async (_auth?: unknown) => undefined);
-const mockDeleteUser = jest.fn(async (_user?: unknown) => undefined);
+const mockSignOutCurrentUser = jest.fn(async () => undefined);
+const mockDeleteAnonymousUser = jest.fn(async () => undefined);
+const mockResendVerificationEmail = jest.fn(async () => undefined);
+const mockRequestPasswordReset = jest.fn(async () => undefined);
 const mockDeleteRegisteredAccount = jest.fn(async () => undefined);
 const mockClearGoogleEventsCache = jest.fn(async () => undefined);
 const mockClearLocalProductivity = jest.fn(async (_uid?: string | null) => undefined);
@@ -26,18 +28,15 @@ const mockUser = {
   providerData: [{ providerId: 'password' }],
 };
 
-jest.mock('firebase/auth', () => ({
-  signOut: (auth: unknown) => mockSignOut(auth),
-  deleteUser: (user: unknown) => mockDeleteUser(user),
-  sendEmailVerification: jest.fn(async () => undefined),
-  sendPasswordResetEmail: jest.fn(async () => undefined),
-}));
-
 jest.mock('@/features/auth/public', () => {
   const React = require('react');
   return {
     AuthContext: React.createContext({ user: mockUser, loading: false }),
     deleteRegisteredAccount: () => mockDeleteRegisteredAccount(),
+    signOutCurrentUser: () => mockSignOutCurrentUser(),
+    deleteAnonymousUser: () => mockDeleteAnonymousUser(),
+    resendVerificationEmail: () => mockResendVerificationEmail(),
+    requestPasswordResetForCurrentUser: () => mockRequestPasswordReset(),
   };
 });
 
@@ -170,7 +169,7 @@ describe('SettingsScreen accountability lifecycle', () => {
     await fireEvent.press(screen.getByText('settings.logout'));
     await fireEvent.press(screen.getByTestId('confirm-modal'));
 
-    await waitFor(() => expect(mockSignOut).toHaveBeenCalled());
+    await waitFor(() => expect(mockSignOutCurrentUser).toHaveBeenCalled());
     expect(mockCancelAccountability).toHaveBeenCalled();
     expect(mockHandleAuthUserChanged).toHaveBeenCalledWith(null);
     expect(mockClearAccountability).not.toHaveBeenCalled();

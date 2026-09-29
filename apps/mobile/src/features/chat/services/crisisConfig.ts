@@ -11,8 +11,7 @@
  * (debe ser legible públicamente o por usuarios autenticados — ver reglas).
  */
 
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/shared/infrastructure/firebase/firebase';
+import { readDocument } from '@/shared/infrastructure/firebase/firestore';
 import type { Locale } from '@/shared/i18n/translations';
 
 export interface EmergencyContact {
@@ -100,19 +99,17 @@ export const fetchCrisisConfig = async (
 ): Promise<CrisisConfig> => {
   const fallback = fallbackFor(locale);
   try {
-    const regionalRef = doc(
-      db,
+    // Se prefiere el documento regional; si no existe, el diccionario base.
+    const regional = await readDocument(
       'app_config',
       'crisis',
       'regions',
       `${countryCode.toUpperCase()}-${locale}`,
     );
-    const baseRef = doc(db, 'app_config', 'crisis');
-    const regional = await getDoc(regionalRef);
-    const snap = regional.exists() ? regional : await getDoc(baseRef);
-    if (!snap.exists()) return fallback;
+    const data = (regional ??
+      (await readDocument('app_config', 'crisis'))) as Partial<CrisisConfig> | null;
+    if (!data) return fallback;
 
-    const data = snap.data() as Partial<CrisisConfig>;
     return {
       version: data.version ?? fallback.version,
       keywords:

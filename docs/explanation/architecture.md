@@ -66,11 +66,24 @@ src/
 8. Contratos React Navigation viven en `shared/navigation/types`.
 9. Consumidores externos del dominio productividad usan únicamente `@/shared/domain/productivity/public`.
 10. Imports internos de productividad son relativos.
+11. El SDK de Firebase se consume desde `shared/infrastructure`. Sólo
+    `features/auth` puede importar `firebase/auth`, porque es dueña de las
+    sesiones y credenciales. Los imports de sólo tipo quedan exentos: se borran
+    al compilar y no acoplan nada en runtime.
 
 `scripts/check-architecture.mjs` aplica estas reglas mediante AST TypeScript,
 resuelve aliases e imports relativos y verifica todas las APIs públicas.
 
 Sui conserva React Navigation con Native Stack y Bottom Tabs. Se evita `src/app` porque Expo la reserva para Expo Router.
+
+### Internacionalización
+
+Las cadenas ES/EN viven en `shared/i18n/messages/`, un módulo por namespace
+(`auth`, `goals`, `accountability`…). Cada módulo declara `es` y `en` juntos,
+para que agregar una clave en un idioma sin el otro sea evidente en el diff.
+`shared/i18n/translations.ts` sólo compone los namespaces y publica los tipos
+`Locale` y `TranslationKey`; ningún consumidor importa los módulos directamente.
+El test `i18n.test.ts` verifica que ambos idiomas tengan claves idénticas.
 
 ## Dominio de productividad
 
