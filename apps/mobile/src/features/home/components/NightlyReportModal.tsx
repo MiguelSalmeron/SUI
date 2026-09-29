@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SuiLoader } from '@/shared/ui/SuiLoader';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import {
   buildEmotionalProfile,
@@ -112,7 +105,7 @@ export const NightlyReportModal = ({ visible, stats, onClose }: Props) => {
           <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
             {busy ? (
               <View style={styles.loadingRow}>
-                <ActivityIndicator color={colors.primary} />
+                <SuiLoader color={colors.primary} />
                 <Text style={styles.loadingText}>{t('nightly.loading')}</Text>
               </View>
             ) : (

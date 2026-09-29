@@ -1,7 +1,6 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import * as SplashScreen from 'expo-splash-screen';
 import {
   ForgotPasswordScreen,
   LoginScreen,
@@ -23,8 +22,6 @@ import { PRODUCT_CONFIG } from '@/shared/config/product';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const AppNavigator = () => {
-  const hydrated = useIntroStore((state) => state.hydrated);
-  const setHydrated = useIntroStore((state) => state.setHydrated);
   const introComplete = useIntroStore((state) => state.introComplete);
   const theme = useAppTheme();
   const { t } = useI18n();
@@ -45,18 +42,6 @@ export const AppNavigator = () => {
     }),
     [theme],
   );
-
-  useEffect(() => {
-    if (hydrated) return;
-    const timer = setTimeout(() => setHydrated(true), 4000);
-    return () => clearTimeout(timer);
-  }, [hydrated, setHydrated]);
-
-  useEffect(() => {
-    if (hydrated) SplashScreen.hideAsync().catch(() => undefined);
-  }, [hydrated]);
-
-  if (!hydrated) return null;
 
   const standardHeader = {
     headerShown: true,

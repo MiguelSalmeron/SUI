@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { SuiLoader } from '@/shared/ui/SuiLoader';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { ChatMessage as ChatMessageType } from '../types/chat';
 import { useI18n } from '@/shared/i18n/i18n';
@@ -27,7 +28,7 @@ export const ChatMessage = React.memo(function ChatMessage({ message }: Props) {
       </Text>
 
       {showThinking ? (
-        <ActivityIndicator size="small" color={colors.secondary} style={styles.thinking} />
+        <SuiLoader color={colors.secondary} style={styles.thinking} />
       ) : (
         <Text style={isUser ? styles.textUser : styles.textBot}>
           {message.content}

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
+import { SuiLoader } from '@/shared/ui/SuiLoader';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/shared/navigation/types';
 import { AuthScaffold } from '../components/AuthScaffold';
@@ -51,9 +52,12 @@ export const ForgotPasswordScreen = ({ navigation }: Props) => {
         style={[styles.primary, busy && styles.primaryDisabled]}
         onPress={() => void submit()}
         disabled={busy}
+        accessibilityRole="button"
+        accessibilityLabel={t('auth.reset')}
+        accessibilityState={{ busy, disabled: busy }}
       >
         {busy ? (
-          <ActivityIndicator color={theme.colors.onPrimary} />
+          <SuiLoader color={theme.colors.onPrimary} />
         ) : (
           <Text style={styles.primaryText}>{t('auth.reset')}</Text>
         )}

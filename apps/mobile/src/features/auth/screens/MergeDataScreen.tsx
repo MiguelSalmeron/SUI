@@ -1,13 +1,6 @@
 import { useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SuiLoader } from '@/shared/ui/SuiLoader';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import { signOut } from 'firebase/auth';
@@ -77,9 +70,12 @@ export const MergeDataScreen = ({ navigation }: Props) => {
           style={styles.primary}
           onPress={() => void resolve('combine')}
           disabled={busy !== null}
+          accessibilityRole="button"
+          accessibilityLabel={t('merge.combine')}
+          accessibilityState={{ busy: busy === 'combine', disabled: busy !== null }}
         >
           {busy === 'combine' ? (
-            <ActivityIndicator color={theme.colors.onPrimary} />
+            <SuiLoader color={theme.colors.onPrimary} />
           ) : (
             <Ionicons name="git-merge-outline" size={21} color={theme.colors.onPrimary} />
           )}
@@ -88,9 +84,16 @@ export const MergeDataScreen = ({ navigation }: Props) => {
             <Text style={styles.primaryHint}>{t('merge.combineHint')}</Text>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.secondary} onPress={confirmCloud} disabled={busy !== null}>
+        <TouchableOpacity
+          style={styles.secondary}
+          onPress={confirmCloud}
+          disabled={busy !== null}
+          accessibilityRole="button"
+          accessibilityLabel={t('merge.cloud')}
+          accessibilityState={{ busy: busy === 'cloud', disabled: busy !== null }}
+        >
           {busy === 'cloud' ? (
-            <ActivityIndicator color={theme.colors.primary} />
+            <SuiLoader color={theme.colors.primary} />
           ) : (
             <Ionicons name="cloud-download-outline" size={21} color={theme.colors.primary} />
           )}

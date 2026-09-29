@@ -6,7 +6,8 @@
  */
 
 import React, { useMemo } from 'react';
-import { ActivityIndicator, Modal, StyleSheet, Text, View } from 'react-native';
+import { Modal, StyleSheet, Text, View } from 'react-native';
+import { SuiLoader } from '@/shared/ui/SuiLoader';
 import { ColorScheme, MD3_RADIUS, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { PressableCard } from './PressableCard';
 
@@ -84,7 +85,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               accessibilityLabel={confirmLabel}
             >
               {busy ? (
-                <ActivityIndicator color={confirmForeground} />
+                <SuiLoader color={confirmForeground} />
               ) : (
                 <Text style={[type.labelLg, { color: confirmForeground }]}>{confirmLabel}</Text>
               )}

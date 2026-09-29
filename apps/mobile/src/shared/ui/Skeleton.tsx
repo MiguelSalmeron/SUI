@@ -1,7 +1,8 @@
 /**
  * Skeleton — placeholder con shimmer para estados de carga.
  *
- * Sin dependencias: usa Animated.loop con native driver.
+ * Sin dependencias: usa Animated.loop con native driver. Con reducción de
+ * movimiento (§15) queda estático; el indicador no anima a ciegas.
  * Uso:
  *   <Skeleton width="100%" height={120} radius="lg" />
  */
@@ -9,6 +10,11 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, DimensionValue, Platform, StyleSheet, View, ViewStyle } from 'react-native';
 import { MD3_RADIUS, useAppTheme } from '@/shared/theme/theme';
+import { useReduceMotion } from './motion/useReduceMotion';
+
+/** Opacidad base del brillo; con reducción de movimiento el indicador queda acá. */
+const BASE_OPACITY = 0.55;
+const PEAK_OPACITY = 1;
 
 export type SkeletonProps = {
   width?: DimensionValue;
@@ -23,27 +29,34 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   radius = 'md',
   style,
 }) => {
-  const { colors } = useAppTheme();
-  const opacity = useRef(new Animated.Value(0.55)).current;
+  const { colors, motion } = useAppTheme();
+  const shimmer = motion.indeterminate.shimmer;
+  const reduceMotion = useReduceMotion();
+  const opacity = useRef(new Animated.Value(BASE_OPACITY)).current;
 
   useEffect(() => {
+    if (reduceMotion === null) return;
+    if (reduceMotion) {
+      opacity.setValue(BASE_OPACITY);
+      return;
+    }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
-          toValue: 1,
-          duration: 800,
+          toValue: PEAK_OPACITY,
+          duration: shimmer,
           useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(opacity, {
-          toValue: 0.55,
-          duration: 800,
+          toValue: BASE_OPACITY,
+          duration: shimmer,
           useNativeDriver: Platform.OS !== 'web',
         }),
       ]),
     );
     loop.start();
     return () => loop.stop();
-  }, [opacity]);
+  }, [opacity, shimmer, reduceMotion]);
 
   const containerStyle = useMemo<ViewStyle>(
     () => ({
