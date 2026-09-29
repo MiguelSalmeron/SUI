@@ -38,6 +38,12 @@ export type ProductivityState = {
   weeklyHistory: DailySnapshot[];
   totalXp: number;
   stateLoaded: boolean;
+  /**
+   * Lectura local terminada y aplicada al store. Es la señal que usan las
+   * vistas para decidir su esqueleto: `stateLoaded` espera además al bootstrap
+   * de nube, así que no sirve para eso sin ocultar datos que ya existen (§12).
+   */
+  localLoaded: boolean;
   syncStatus: SyncStatus;
   lastSyncedAt: string | null;
 
@@ -173,6 +179,7 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
   weeklyHistory: [],
   totalXp: 0,
   stateLoaded: false,
+  localLoaded: false,
   syncStatus: 'local',
   lastSyncedAt: null,
 
@@ -306,7 +313,13 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
       ),
     })),
 
-  addHabit: ({ title, frequency = 'daily', linkedGoalId = null, plannedTime, mirrorToGoogle = false }) => {
+  addHabit: ({
+    title,
+    frequency = 'daily',
+    linkedGoalId = null,
+    plannedTime,
+    mirrorToGoogle = false,
+  }) => {
     const trimmed = title.trim();
     if (!trimmed) return false;
     const validTime = isPlannedTime(plannedTime) ? plannedTime : undefined;
@@ -332,7 +345,11 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
     const current = get().habits.find((habit) => habit.id === id);
     if (!trimmed || !current || (frequency !== 'daily' && frequency.length === 0)) return false;
     const validTime =
-      plannedTime === undefined ? current.plannedTime : isPlannedTime(plannedTime) ? plannedTime : undefined;
+      plannedTime === undefined
+        ? current.plannedTime
+        : isPlannedTime(plannedTime)
+          ? plannedTime
+          : undefined;
     set((state) => ({
       habits: state.habits.map((habit) =>
         habit.id === id
@@ -437,6 +454,7 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
       if (canSync && needsBootstrap) {
         set({
           ...statePatch(normalized),
+          localLoaded: true,
           syncStatus: 'syncing',
           lastSyncedAt: envelope.lastSyncedAt,
         });
@@ -448,6 +466,7 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
       } else {
         set({
           ...statePatch(normalized),
+          localLoaded: true,
           stateLoaded: true,
           syncStatus: envelope.outbox.length ? 'pending' : 'local',
           lastSyncedAt: envelope.lastSyncedAt,
@@ -455,12 +474,14 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
         if (canSync) void get().syncNow();
       }
     } catch {
-      set({ stateLoaded: true, syncStatus: 'error' });
+      // La lectura local falló: no hay nada que mostrar, así que la vista no
+      // debe quedarse esperando un esqueleto eterno.
+      set({ localLoaded: true, stateLoaded: true, syncStatus: 'error' });
     }
   },
 
   reloadState: async () => {
-    set({ stateLoaded: false });
+    set({ localLoaded: false, stateLoaded: false });
     await get().loadState();
   },
 
@@ -664,6 +685,7 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
       loadedForUid = user.uid;
       set({
         ...statePatch(normalized),
+        localLoaded: true,
         stateLoaded: true,
         syncStatus: 'synced',
         lastSyncedAt,
@@ -689,6 +711,7 @@ export const useProductivityStore = create<ProductivityState>((set, get) => ({
       weeklyHistory: [],
       totalXp: 0,
       stateLoaded: false,
+      localLoaded: false,
       syncStatus: 'local',
       lastSyncedAt: null,
     });

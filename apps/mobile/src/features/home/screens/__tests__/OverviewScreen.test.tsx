@@ -9,7 +9,7 @@ jest.mock('@/features/pomodoro/public', () => {
 
 const mockNavigation = { navigate: jest.fn() };
 const mockState = {
-  stateLoaded: true,
+  localLoaded: true,
   goals: [],
   habits: [],
   streak: 0,
