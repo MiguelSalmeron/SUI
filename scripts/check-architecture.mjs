@@ -31,6 +31,23 @@ const rawTypographyPatterns = [
 
 const normalizePath = (path) => path.replaceAll('\\', '/');
 const productivityPrefix = 'shared/domain/productivity/';
+const firebasePrefix = 'firebase/';
+const authFirebasePrefix = 'firebase/auth';
+
+/**
+ * El SDK de Firebase sólo se consume desde `shared/infrastructure`, que es
+ * donde viven la configuración y las lecturas. La única excepción es
+ * `firebase/auth` dentro de `features/auth`, que es dueña de las sesiones y
+ * credenciales.
+ *
+ * Los imports de sólo tipo no cuentan: se borran al compilar y no acoplan
+ * nada en runtime.
+ */
+const isFirebaseSdkImportAllowed = ({ source, specifier, typeOnly }) => {
+  if (typeOnly || !specifier.startsWith(firebasePrefix)) return true;
+  if (source.path.startsWith('shared/infrastructure/')) return true;
+  return source.feature === 'auth' && specifier.startsWith(authFirebasePrefix);
+};
 
 async function collectFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -83,7 +100,10 @@ const collectSpecifiers = (content, file) => {
       node.moduleSpecifier &&
       ts.isStringLiteral(node.moduleSpecifier)
     ) {
-      specifiers.push(node.moduleSpecifier.text);
+      const typeOnly = ts.isImportDeclaration(node)
+        ? node.importClause?.isTypeOnly === true
+        : node.isTypeOnly === true;
+      specifiers.push({ text: node.moduleSpecifier.text, typeOnly });
     }
     if (
       ts.isCallExpression(node) &&
@@ -92,7 +112,7 @@ const collectSpecifiers = (content, file) => {
       (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
         (ts.isIdentifier(node.expression) && node.expression.text === 'require'))
     ) {
-      specifiers.push(node.arguments[0].text);
+      specifiers.push({ text: node.arguments[0].text, typeOnly: false });
     }
     ts.forEachChild(node, visit);
   };
@@ -159,7 +179,12 @@ for (const file of files) {
     failures.push(`${projectPath}: source remains in legacy technical-layer folder`);
   }
 
-  for (const specifier of collectSpecifiers(content, file)) {
+  for (const { text: specifier, typeOnly } of collectSpecifiers(content, file)) {
+    if (!isFirebaseSdkImportAllowed({ source, specifier, typeOnly })) {
+      failures.push(
+        `${projectPath}: import ${specifier} directamente; usa shared/infrastructure (sólo features/auth puede usar firebase/auth)`,
+      );
+    }
     const targetFile = resolveImport(file, specifier);
     if (specifier.startsWith('@/') && !targetFile) {
       failures.push(`${projectPath}: unresolved internal import ${specifier}`);

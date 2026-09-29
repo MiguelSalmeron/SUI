@@ -104,3 +104,43 @@ test('accepts productivity pure imports', () =>
     },
     null,
   ));
+
+test('rejects direct Firestore imports from features', () =>
+  runFixture(
+    {
+      'features/alpha/internal.ts': "import { doc } from 'firebase/firestore';",
+    },
+    /import firebase\/firestore directamente/,
+  ));
+
+test('rejects firebase/auth outside the auth feature', () =>
+  runFixture(
+    {
+      'features/alpha/internal.ts': "import { signOut } from 'firebase/auth';",
+    },
+    /sólo features\/auth puede usar firebase\/auth/,
+  ));
+
+test('accepts firebase/auth inside the auth feature', () =>
+  runFixture(
+    {
+      'features/auth/public.ts': "import { signOut } from 'firebase/auth';",
+    },
+    null,
+  ));
+
+test('accepts Firebase SDK imports from shared infrastructure', () =>
+  runFixture(
+    {
+      'shared/infrastructure/firebase/firestore.ts': "import { doc } from 'firebase/firestore';",
+    },
+    null,
+  ));
+
+test('accepts type-only Firebase imports outside infrastructure', () =>
+  runFixture(
+    {
+      'shared/lib.ts': "import type { User } from 'firebase/auth';",
+    },
+    null,
+  ));
