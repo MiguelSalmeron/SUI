@@ -1,0 +1,26 @@
+export const common = {
+  es: {
+    'common.cancel': 'Cancelar',
+    'common.close': 'Cerrar',
+    'common.dark': 'Oscuro',
+    'common.light': 'Claro',
+    'common.small': 'Pequeño',
+    'common.medium': 'Mediano',
+    'common.large': 'Grande',
+    'common.system': 'Sistema',
+    'common.spanish': 'Español',
+    'common.english': 'English',
+  },
+  en: {
+    'common.cancel': 'Cancel',
+    'common.close': 'Close',
+    'common.dark': 'Dark',
+    'common.light': 'Light',
+    'common.small': 'Small',
+    'common.medium': 'Medium',
+    'common.large': 'Large',
+    'common.system': 'System',
+    'common.spanish': 'Español',
+    'common.english': 'English',
+  },
+} as const;

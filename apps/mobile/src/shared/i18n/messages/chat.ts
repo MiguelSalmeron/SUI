@@ -1,0 +1,38 @@
+export const chat = {
+  es: {
+    'chat.clearTitle': 'Borrar conversación',
+    'chat.clearBody': '¿Seguro que quieres limpiar el chat?',
+    'chat.clear': 'Limpiar',
+    'chat.delete': 'Borrar',
+    'chat.hello': 'Hola',
+    'chat.empty': 'Estoy aquí para escucharte. Cuéntame cómo te sientes hoy.',
+    'chat.localTtl':
+      'Tu conversación se guarda sólo en este dispositivo y se borra automáticamente a las 48 horas.',
+    'chat.inputPlaceholder': 'Escribe lo que sientes…',
+    'chat.send': 'Enviar mensaje',
+    'chat.suggestionPrioritize': 'Priorizar mi día',
+    'chat.suggestionSplitGoal': 'Dividir una meta',
+    'chat.suggestionResumeHabit': 'Retomar un hábito',
+    'chat.suggestionFirstStep': 'Elegir primer paso',
+    'chat.you': 'Tú',
+    'chat.failed': ' (no se pudo enviar)',
+  },
+  en: {
+    'chat.clearTitle': 'Delete conversation',
+    'chat.clearBody': 'Are you sure you want to clear this chat?',
+    'chat.clear': 'Clear',
+    'chat.delete': 'Delete',
+    'chat.hello': 'Hello',
+    'chat.empty': 'I’m here to listen. Tell me how you feel today.',
+    'chat.localTtl':
+      'Your conversation stays only on this device and is deleted automatically after 48 hours.',
+    'chat.inputPlaceholder': 'Write what you feel…',
+    'chat.send': 'Send message',
+    'chat.suggestionPrioritize': 'Prioritize my day',
+    'chat.suggestionSplitGoal': 'Break down a goal',
+    'chat.suggestionResumeHabit': 'Resume a habit',
+    'chat.suggestionFirstStep': 'Choose a first step',
+    'chat.you': 'You',
+    'chat.failed': ' (could not send)',
+  },
+} as const;
