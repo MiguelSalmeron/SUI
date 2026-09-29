@@ -15,3 +15,11 @@ export const MAX_OUTPUT_TOKENS = 600;
 export const UPSTREAM_TIMEOUT_MS = 90_000;
 export const RATE_LIMIT_WINDOW_MIN = 60;
 export const RATE_LIMIT_MAX_REQUESTS = 30;
+/**
+ * Cupo por IP. Es la dimensión que sí acota a un cliente que fabrica cuentas
+ * anónimas nuevas: el `uid` es gratuito de obtener, la IP no. Más alto que el
+ * del usuario porque una IP puede compartirse (NAT de oficina o domicilio).
+ */
+export const RATE_LIMIT_MAX_REQUESTS_PER_IP = defineInt('RATE_LIMIT_MAX_REQUESTS_PER_IP', {
+  default: 120,
+});
