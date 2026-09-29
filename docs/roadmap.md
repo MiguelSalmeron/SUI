@@ -46,6 +46,18 @@ Gates iniciales:
 - [x] Integrar limpieza con logout, eliminación y exportación.
 - [x] Activar sólo detrás de `EXPO_PUBLIC_ACCOUNTABILITY_ENABLED` hasta completar UAT.
 
+## Deuda técnica conocida
+
+- [ ] `expo-system-ui`: añadido a `package.json` (lo exige `userInterfaceStyle: automatic`),
+      pero requiere rebuild nativo; `android/` es prebuilt y está gitignored.
+- [ ] `deps:check` ya fallaba en `main` con 14 paquetes Expo desactualizados (`expo`,
+      `@expo/ui`, `@expo/metro-runtime`, `expo-notifications`, `expo-web-browser`…). No lo
+      introdujo el refactor; abordar en un PR aparte con rebuild y prueba en dispositivo.
+- [ ] Archivos grandes pendientes de partir: `OverviewScreen.tsx`, `useProductivityStore.ts`,
+      `productivityRepository.ts`, `theme.ts`.
+- [ ] `NightlyReportModal.tsx` está sin referencias y se conserva como WIP; knip lo ignora
+      de forma explícita mientras siga en uso.
+
 ## Bloqueos externos antes de staging
 
 - [ ] Publicar Términos y Privacidad ES/EN.
