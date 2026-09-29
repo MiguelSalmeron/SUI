@@ -8,11 +8,11 @@ import { useIntroStore } from '@/features/onboarding/public';
 import { configureNotificationHandler, reconcileNightlyReport } from '@/features/settings/public';
 import { ThemeProvider, useAppTheme } from '@/shared/theme/theme';
 import { AppNavigator } from './navigation/AppNavigator';
-import { recordTelemetry, wrapApplication } from '@/shared/observability/telemetry';
+import { wrapApplication } from '@/shared/observability/telemetry';
 import { useProductivityEventEffects } from '@/shared/events/useProductivityEventEffects';
 import { useSettingsStore } from '@/shared/preferences/useSettingsStore';
+import { BootGate } from './components/BootGate';
 import { RootErrorBoundary } from './components/RootErrorBoundary';
-import { useFontsReady } from './components/useFontsReady';
 
 /**
  * PWA: html/body/#root default white → raya blanca bajo UI dark.
@@ -106,10 +106,7 @@ function App() {
   const [boundaryKey, setBoundaryKey] = useState(0);
 
   return (
-    <RootErrorBoundary
-      key={boundaryKey}
-      onRetry={() => setBoundaryKey((value) => value + 1)}
-    >
+    <RootErrorBoundary key={boundaryKey} onRetry={() => setBoundaryKey((value) => value + 1)}>
       <Boot />
     </RootErrorBoundary>
   );
@@ -120,23 +117,13 @@ function Boot() {
   useProductivityEventEffects();
   useReconcileNotifications();
 
-  const { ready, status } = useFontsReady();
-
-  useEffect(() => {
-    if (ready) {
-      recordTelemetry('app.start', { fonts: status });
-    }
-  }, [ready, status]);
-
-  if (!ready) {
-    return null;
-  }
-
   return (
     <SafeAreaProvider>
       <ThemeProvider>
         <AuthProvider>
-          <AppShell />
+          <BootGate>
+            <AppShell />
+          </BootGate>
         </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>

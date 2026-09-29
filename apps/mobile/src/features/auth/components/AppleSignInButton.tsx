@@ -1,4 +1,5 @@
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { SuiLoader } from '@/shared/ui/SuiLoader';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import { SPACING, useAppTheme } from '@/shared/theme/theme';
 
@@ -22,10 +23,11 @@ export const AppleSignInButton = ({ label, busy = false, disabled = false, onPre
       onPress={onPress}
       disabled={isDisabled}
       accessibilityRole="button"
-      accessibilityState={{ disabled: isDisabled }}
+      accessibilityLabel={label}
+      accessibilityState={{ busy, disabled: isDisabled }}
     >
       {busy ? (
-        <ActivityIndicator color={colors.onSurface} />
+        <SuiLoader color={colors.onSurface} />
       ) : (
         <Ionicons name="logo-apple" size={21} color={colors.onSurface} />
       )}

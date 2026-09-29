@@ -1,5 +1,6 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
+import { SuiLoader } from '@/shared/ui/SuiLoader';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 
@@ -37,7 +38,7 @@ export const GoogleSignInButton = React.memo(function GoogleSignInButton({
       accessibilityState={{ busy, disabled: isDisabled }}
     >
       {busy ? (
-        <ActivityIndicator size="small" color={colors.primary} />
+        <SuiLoader color={colors.primary} />
       ) : (
         <Ionicons name="logo-google" size={18} color={colors.primary} />
       )}

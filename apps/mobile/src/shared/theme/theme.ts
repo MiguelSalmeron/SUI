@@ -362,6 +362,16 @@ export const MD3_MOTION = {
     accelerate: { duration: 200, easing: 'cubic-bezier(0.3, 0, 1, 1)' },
     linear: { duration: 200, easing: 'linear' },
   },
+  /**
+   * Indicadores indeterminados: repiten hasta que termina el trabajo real.
+   * No son duraciones de transición, por eso no viven en `duration`.
+   */
+  indeterminate: {
+    /** Vuelta completa del indicador de carga (`SuiLoader`). */
+    rotate: 1100,
+    /** Ciclo de brillo del esqueleto (`Skeleton`). */
+    shimmer: 800,
+  },
   duration: {
     short1: 50,
     short2: 100,

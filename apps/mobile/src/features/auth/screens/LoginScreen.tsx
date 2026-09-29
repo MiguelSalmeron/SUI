@@ -1,12 +1,6 @@
 import { useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SuiLoader } from '@/shared/ui/SuiLoader';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/shared/navigation/types';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
@@ -209,9 +203,12 @@ export const LoginScreen = ({ navigation }: Props) => {
         style={[styles.primary, isSubmitting && styles.primaryDisabled]}
         onPress={() => void submitEmail()}
         disabled={isSubmitting}
+        accessibilityRole="button"
+        accessibilityLabel={t('auth.signIn')}
+        accessibilityState={{ busy, disabled: isSubmitting }}
       >
         {busy ? (
-          <ActivityIndicator color={theme.colors.onPrimary} />
+          <SuiLoader color={theme.colors.onPrimary} />
         ) : (
           <Text style={styles.primaryText}>{t('auth.signIn')}</Text>
         )}

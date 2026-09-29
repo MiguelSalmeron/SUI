@@ -1,8 +1,8 @@
 # Sistema de diseño de producto — Sui
 
 - **Estado:** fuente canónica de UX/UI
-- **Versión:** 2.1
-- **Actualizado:** 1 de septiembre de 2026
+- **Versión:** 2.2
+- **Actualizado:** 22 de septiembre de 2026
 
 ## 1. Dirección
 
@@ -261,7 +261,130 @@ Cada superficie con datos remotos define:
 Skeleton sólo para primera lectura real. Nunca ocultar datos locales por sync.
 Errores explican impacto y siguiente acción.
 
-## 13. Responsive y accesibilidad
+### Familia de carga
+
+Cinco familias; cada una tiene un solo indicador válido.
+
+- **Bloqueo de arranque** → `SuiLoader` a pantalla completa (§13). Fuentes,
+  hidratación de entrada y sesión. Nunca pantalla vacía.
+- **Primera lectura de una superficie** → `Skeleton` con la forma real del
+  contenido. Nunca spinner: el esqueleto conserva geometría y evita salto. Con
+  reducción de movimiento, queda estático.
+- **Lectura de fondo o sincronización** → sin indicador bloqueante. Datos
+  locales a la vista y estado en texto.
+- **Acción en curso** → indicador de 20 dp dentro del control que se activó,
+  resto de controles deshabilitados. Nunca pantalla completa ni esqueleto.
+- **Flujo conversacional** → indicador dentro del hilo, atado a su mensaje.
+
+Se elige por lo que hizo el usuario: si acaba de tocar un control, indicador en
+ese control; si está entrando, pantalla de carga; si espera contenido que no
+pidió, esqueleto; si el trabajo no le exige esperar, estado en texto.
+Un indicador por pantalla.
+
+Prohibido: indicador hecho con glifo de fuente, pantalla vacía como estado de
+carga y giro decorativo sin trabajo real detrás.
+
+## 13. Pantalla de carga
+
+Única superficie de marca a pantalla completa fuera de Bienvenida. Cubre trabajo
+real de arranque, autenticación y cambio a Inicio; nunca aparece por decisión
+estética. No reemplaza a `Skeleton`: el esqueleto pertenece a superficies con
+datos remotos. Carga falsa sigue retirada: si el trabajo real dura 250 ms, se ve
+250 ms.
+
+### Anatomía
+
+```text
+Isologo      220 × 160 dp, centrado
+Aire         mínimo 22 % de la altura; recomendado ≈ 0,3 ×
+Indicador    arco de 20 dp, centrado en el eje del isologo
+Estado       una línea, sólo a partir de 3 s
+```
+
+Isologo inmóvil: la marca nunca gira, se deforma ni se recorta. El indicador va
+debajo y no orbitando, así el logo queda protagonista y quieto y el movimiento
+no compite con el wordmark.
+
+### Indicador
+
+- Arco de 280° con separación de 80°, caja de 20 dp (la misma de la familia
+  acción en curso), `stroke` 3 dp, extremos redondos, radio `(caja − stroke)/2`.
+- Vuelta completa por `motion.indeterminate.rotate` (1,1 s actual), lineal,
+  mientras dure la carga real. Los indicadores indeterminados tienen su propio
+  token porque no son duraciones de transición.
+- Color `colors.primary`, no azul de marca: el indicador comunica estado, así
+  que usa token semántico y se resuelve por esquema. Claro `#1677A6` sobre
+  `#F6FAFC` (4,7:1); oscuro `#62C4F2` sobre `#0B132B` (9,4:1), contra 5,1:1 del
+  azul de marca, apagado a 22 dp.
+- Geometría, nunca glifo de fuente: `Ionicons.ttf` se carga junto a Poppins, y un
+  indicador basado en iconfont sería invisible justo en la pantalla que espera a
+  que existan las fuentes.
+
+### Continuidad con el splash nativo
+
+El splash nativo mide ≈ 220 × 160 dp (`imageWidth 220`, `contain`, maestro
+1024/745, fondo `#0B132B`). La pantalla de carga replica esa geometría para que
+el fade de 350 ms entregue el isologo ya en su lugar: una sola pantalla que
+cobra vida, no dos encadenadas.
+
+### Tema
+
+- Fondo del tema activo (`colors.background`).
+- Isologo `brand` en ambos esquemas. El splash nativo ya muestra el azul sobre
+  `#0B132B`, así que invertirlo a blanco en oscuro rompería la continuidad justo
+  en el relevo que esta pantalla existe para proteger.
+- El splash nativo usa la variante `dark` del plugin, que sigue al sistema
+  operativo y no a la preferencia in-app. Un cruce entre ambos es aceptable; un
+  salto no.
+- Mientras la preferencia no hidrató, usar el mismo fallback que el tema, para
+  que el fondo no cambie dos veces.
+
+### Alcances
+
+- Arranque: pantalla completa. Cubre fuentes (timeout 8 s), hidratación (timeout
+  4 s) y alta anónima.
+- Registro, Acceso y Recuperación: indicador de 20 dp dentro del botón ya
+  pulsado, campos deshabilitados. Sin pantalla completa, que borraría el
+  contexto de quien está a mitad de tarea.
+- MergeData: indicador dentro del control pulsado, con el resto de la pantalla
+  deshabilitada. Fusiona datos locales en la nube, pero lo inició el usuario.
+- Bienvenida → Inicio: indicador chico centrado, sin isologo grande. Un isologo
+  de 220 dp para 400 ms se lee como parpadeo.
+
+### Estado y voz
+
+- 0–1,5 s: sin texto.
+- Desde 3 s: una línea que describe el estado. `Preparando tus datos locales`.
+- Sin piso de duración ni espera decorativa.
+
+Ambas compuertas tienen salida garantizada (fuentes a los 8 s con las del
+sistema, hidratación de entrada a los 4 s), así que esta pantalla no sobrevive a
+8 s ni expone estado de error propio: un fallo real lo maneja el límite de
+errores de la aplicación.
+
+### Accesibilidad
+
+- Isologo identificador con etiqueta `Sui`; indicador decorativo, fuera del
+  árbol accesible.
+- La línea de estado anuncia con `accessibilityLiveRegion` en su propio
+  `Text` (Android) y con anuncio explícito en iOS, para que el lector de
+  pantalla no quede en silencio. La live region nunca va en un `View`
+  contenedor: Android anuncia el nodo que cambió y un `View` sin texto propio
+  no tiene qué anunciar. Nunca ambos mecanismos en la misma plataforma:
+  duplicaría la línea.
+- Con reducción de movimiento: indicador estático y estado por texto; sin giro
+  lento ni pulso. `SuiLoader` y `Skeleton` comparten la preferencia vía
+  `useReduceMotion`, para que la familia de carga sea coherente.
+
+### Implementación
+
+- `SuiLoader` expone sólo el arco y vive junto a `SuiMark`; la composición de
+  pantalla completa vive junto al arranque. Ambos sin texto y sin dependencia de
+  fuentes o i18n.
+- La marca sale siempre de `SuiMark`. El SVG directo sería una segunda
+  implementación de marca; a 220 dp con maestro de 1024 px hay 4,6× de densidad.
+
+## 14. Responsive y accesibilidad
 
 - Referencias: 320, 375, 430 dp; tablet; web.
 - Contenido mantiene ancho legible en superficies grandes.
@@ -274,7 +397,7 @@ Errores explican impacto y siguiente acción.
 - Logo decorativo no se anuncia; logo identificador usa etiqueta `Sui`.
 - Color nunca único indicador.
 
-## 14. Movimiento
+## 15. Movimiento
 
 - 150–300 ms para feedback/transición común.
 - Celebración breve después de acción confirmada.
@@ -282,7 +405,7 @@ Errores explican impacto y siguiente acción.
 - Respetar reducción de movimiento cuando plataforma exponga preferencia.
 - Sin espera, autoplay decorativo largo ni loop distractor.
 
-## 15. Componentes vigentes
+## 16. Componentes vigentes
 
 Mantener:
 
@@ -309,7 +432,7 @@ Retirado; no reintroducir:
 - fotografías o datos personales en mosaico de bienvenida;
 - patrón repetitivo dentro de superficies productivas.
 
-## 16. Fuente de implementación
+## 17. Fuente de implementación
 
 ```text
 src/shared/theme/theme.ts

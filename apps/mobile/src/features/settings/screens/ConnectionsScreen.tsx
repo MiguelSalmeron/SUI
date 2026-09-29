@@ -1,13 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@/shared/ui/Ionicons';
+import { SuiLoader } from '@/shared/ui/SuiLoader';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { getMirrorQueueLength, useGoogleCalendar } from '@/features/calendar/public';
 import type { RootStackParamList } from '@/shared/navigation/types';
@@ -27,10 +21,10 @@ export const ConnectionsScreen = (_props: Props) => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { t, formatDate } = useI18n();
   const calendar = useGoogleCalendar();
-  const busy =
-    calendar.status === 'syncing' ||
-    calendar.status === 'connecting' ||
-    calendar.syncStatus === 'loading-cache';
+  // Familia 4: sólo la acción que el usuario acaba de iniciar muestra indicador.
+  const connecting = calendar.status === 'connecting';
+  // Familia 3: sincronizar nunca bloquea ni esconde el control; el estado va en texto.
+  const syncing = calendar.status === 'syncing';
   const needsReauth = calendar.connectionStatus === 'reauthRequired';
   const [mirrorPending, setMirrorPending] = useState(0);
 
@@ -69,6 +63,7 @@ export const ConnectionsScreen = (_props: Props) => {
             {calendar.connected ? t('connections.connected') : t('connections.notConnected')} ·{' '}
             {t('connections.mirrorActive')}
           </Text>
+          {syncing ? <Text style={styles.detail}>{t('connections.syncing')}</Text> : null}
           {calendar.connected && mirrorPending > 0 ? (
             <Text style={styles.detail}>
               {t('connections.mirrorPending', { count: mirrorPending })}
@@ -90,14 +85,18 @@ export const ConnectionsScreen = (_props: Props) => {
             <Text style={styles.error}>{calendar.error}</Text>
           ) : null}
         </View>
-        {busy ? (
-          <ActivityIndicator color={theme.colors.primary} />
+        {connecting ? (
+          <SuiLoader color={theme.colors.onPrimaryContainer} />
         ) : (
           <TouchableOpacity
-            style={styles.action}
-            onPress={() => void (calendar.connected && !needsReauth ? calendar.sync() : calendar.connect())}
+            style={[styles.action, syncing && styles.actionDisabled]}
+            onPress={() =>
+              void (calendar.connected && !needsReauth ? calendar.sync() : calendar.connect())
+            }
+            disabled={syncing}
             accessibilityRole="button"
             accessibilityLabel={actionLabel}
+            accessibilityState={{ busy: syncing, disabled: syncing }}
           >
             <Text style={styles.actionText}>{actionLabel}</Text>
           </TouchableOpacity>
@@ -147,6 +146,7 @@ const createStyles = ({ colors, radius, type }: AppTheme) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
+    actionDisabled: { opacity: 0.55 },
     actionText: { ...type.labelMd, color: colors.onPrimaryContainer },
     disconnect: { alignSelf: 'center', marginTop: SPACING.lg, padding: SPACING.md },
     disconnectText: { ...type.labelLg, color: colors.error },
