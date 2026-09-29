@@ -46,6 +46,13 @@ yarn-error.log*
 .freebuff/
 .agents/
 .gemini/
+.augment/
+.supermaven/
+.void/
+.warp/
+.zed/
+.kiro/
+.trae/
 
 # Local assistant configs (untracked)
 .cursorrules
