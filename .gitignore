@@ -42,6 +42,9 @@ yarn-error.log*
 .genie/
 .ai/
 .llm/
+.freebuff/
+.agents/
+.gemini/
 
 # AI config/rule files
 .cursorrules
@@ -52,13 +55,22 @@ yarn-error.log*
 AGENTS.md
 CLAUDE.md
 CLAUDE.local.md
+GEMINI.md
 
 # --- Hardening secrets / cache (auditoría prioridad 2, 4) ---
 apps/functions/.env
 apps/functions/.env.*
 !apps/functions/.env.example
-!apps/functions/.env.xsui-nica
 *.azure-backup-*
 .firebase/
 google-service-account.json
 eas-cache.json
+
+# --- Artefactos de firma y credenciales de build (nunca publicar) ---
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
