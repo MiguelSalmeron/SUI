@@ -35,6 +35,45 @@
 
 ## Convenciones de código
 
+### Idioma
+
+Todo lo escrito en el repo va en **español con vocabulario nica**, sin
+vulgaridad. Aplica a commits, comentarios de código y documentación.
+
+- **Commits**: asunto y cuerpo en español; el prefijo y el scope se quedan en
+  inglés por convención de Conventional Commits.
+
+  ```text
+  fix(chat): añade cupo por IP y corrige la lectura del cliente
+  ```
+
+- **Comentarios**: docblocks, comentarios inline, TODO/FIXME y comentarios de
+  tests. Prioriza el _por qué_ — la decisión, la premisa, lo que se descartó y
+  por qué — en vez de repetir lo que el código ya dice.
+- **Un solo idioma por comentario**: no mezcles un encabezado en español con el
+  cuerpo en inglés.
+
+El registro es español neutro con voseo y giros nica suaves (_acá_, _fijate
+que_, _en vez de_, _dale_, _ahorita_, _de choto_). Que se entienda en cualquier
+país hispanohablante: el sabor nica sazona el texto, no lo estorba. Si un giro
+nica sólo funciona siendo vulgar, se descarta; quedan fuera groserías, albures
+e insultos, incluso en citas o ejemplos.
+
+No se traducen identificadores (variables, funciones, tipos, archivos), nombres
+de librerías y APIs, valores de configuración, ni el texto que ve el usuario
+final — ese último lo resuelve el sistema i18n ES/EN de la app.
+
+Ejemplo:
+
+```typescript
+// Mal: mezcla y no explica nada.
+// Loop through goals and filter done ones
+
+// Bien: dice la premisa que justifica el filtro.
+// Acá se descartan las metas cumplidas: la vista de pendientes ya las excluye,
+// así que contarlas otra vez inflaba el resumen nocturno.
+```
+
 ### Ubicación
 
 - Composición global y navegación: `src/application`.

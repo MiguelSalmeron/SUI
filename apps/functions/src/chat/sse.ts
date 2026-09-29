@@ -33,7 +33,9 @@ export async function relayAzureSse(upstream: Response, response: StreamResponse
             const delta: string | undefined = json?.choices?.[0]?.delta?.content;
             if (delta) send(JSON.stringify({ content: delta }));
           } catch {
-            // Ignore malformed or keep-alive events without terminating stream.
+            // Evento malformado o keep-alive: se ignora sin cortar el stream.
+            // Abortar acá tiraría la respuesta completa por un keep-alive que el
+            // upstream manda a propósito.
           }
         }
       }

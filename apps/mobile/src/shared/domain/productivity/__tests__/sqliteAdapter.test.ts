@@ -106,7 +106,7 @@ describe('SQLiteProductivityAdapter & Migration', () => {
     const loaded = await adapter.loadEnvelope();
     expect(loaded?.data.habits[0]?.id).toBe('h-migrate');
 
-    // Second run should detect already migrated
+    // Segunda corrida: acá tiene que detectar que ya se migró y no repetirlo.
     const secondRun = await migrateV9ToSQLite(adapter);
     expect(secondRun.migrated).toBe(false);
     expect(secondRun.reason).toBe('already_migrated');

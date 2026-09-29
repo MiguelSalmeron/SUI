@@ -274,7 +274,7 @@ if (!process.env.FIRESTORE_EMULATOR_HOST) {
   });
 
   test('cold bootstrap pull retrieves cloud data without destructive empty summary write', async () => {
-    // Populate server with existing cloud data
+    // Llena el servidor con datos que ya existían en la nube antes del pull.
     const summary = mutation({
       mutationId: 'server-summary',
       entityType: 'summary',

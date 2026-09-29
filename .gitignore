@@ -58,6 +58,11 @@ CLAUDE.md
 CLAUDE.local.md
 GEMINI.md
 
+# Excepción: AGENTS.md sí se versiona. Fija la regla de idioma (español con
+# vocabulario nica, sin vulgaridad) que toda IA y cualquier colaborador debe
+# leer antes de tocar código. No lleva secretos ni configuración de entorno.
+!AGENTS.md
+
 # --- Hardening secrets / cache (auditoría prioridad 2, 4) ---
 apps/functions/.env
 apps/functions/.env.*
