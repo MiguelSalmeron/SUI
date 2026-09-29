@@ -25,9 +25,12 @@ define interfaz; ADR más reciente define decisión técnica.
 - [Completar configuración cloud](how-to/complete-cloud-configuration.md)
 - [Desplegar proxy de Chat](how-to/deploy-chat-proxy.md)
 - [Preparar lanzamiento](how-to/production-rollout.md)
+- [Habilitar App Check nativo](how-to/habilitar-app-check-nativo.md)
 
 ## Seguridad y comportamiento
 
+- [Seguridad](explanation/seguridad.md): secretos, rules, App Check, CORS y cabeceras.
+- [Triagear hallazgos de secretos](how-to/triage-de-secretos.md)
 - [Chat](explanation/chatbot.md)
 - [Privacidad y crisis](explanation/privacy-and-crisis.md)
 - [Ejemplo crisis config NI-ES](reference/examples/crisis-config.json)
@@ -40,5 +43,8 @@ define interfaz; ADR más reciente define decisión técnica.
 - [ADR-0004: cuenta local y auth opcional](decisions/0004-local-account-and-auth.md)
 - [ADR-0005: local-first versionado](decisions/0005-versioned-local-first-sync.md)
 - [ADR-0006: conexiones aisladas](decisions/0006-external-connections.md)
+- [ADR-0007: FTUX y estabilidad de sistema](decisions/0007-onboarding-ftux-and-system-remediation.md)
+- [ADR-0008: seguimiento personalizado de objetivos](decisions/0008-accountability-follow-up.md)
+- [ADR-0009: configuración no versionada y secretos](decisions/0009-config-no-versionada-y-secretos.md)
 
 Material descartado no se conserva en árbol activo. Git mantiene historial.
