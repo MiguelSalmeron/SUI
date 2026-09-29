@@ -8,6 +8,7 @@ import { relayAzureSse } from './chat/sse';
 import { sanitizeMessages } from './chat/validation';
 import { setCorsHeaders } from './http/cors';
 import { verifyAppCheckHeader } from './http/appCheck';
+import { clientIp } from './http/clientIp';
 
 export {
   googleCalendarConnect,
@@ -89,10 +90,14 @@ export const chatProxy = onRequest(
     }
 
     logger.info('ID token verified ok', { uid: authentication.uid });
-    const rateLimit = await checkRateLimit(authentication.uid);
+    const rateLimit = await checkRateLimit({
+      uid: authentication.uid,
+      clientIp: clientIp(request),
+    });
     if (!rateLimit.allowed) {
       logger.warn('429 rate limited', {
         uid: authentication.uid,
+        scope: rateLimit.scope,
         retryAfterSec: rateLimit.retryAfterSec,
       });
       response.set('Retry-After', String(rateLimit.retryAfterSec));
