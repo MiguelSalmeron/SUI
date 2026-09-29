@@ -1,12 +1,13 @@
 /**
- * Ambient augmentation: `getReactNativePersistence` is shipped by `@firebase/auth`
- * under the `react-native` export condition (dist/rn/index.rn.d.ts), but the
- * package's top-level unconditional `types` entry hides it from TypeScript's
- * default resolution. Metro loads the `react-native` condition at runtime, so
- * the symbol exists in the bundle. This declaration restores type visibility
- * without disabling type-checking.
+ * Aumento de módulo ambiental: `getReactNativePersistence` lo publica `@firebase/auth`
+ * bajo la condición de exportación `react-native` (dist/rn/index.rn.d.ts),
+ * pero la entrada `types` incondicional de nivel superior del paquete se lo
+ * esconde a la resolución por defecto de TypeScript. Metro sí carga la
+ * condición `react-native` en runtime, así que el símbolo existe en el bundle.
  *
- * If `@firebase/auth` fixes its exports map, this file can be deleted.
+ * Esta declaración devuelve la visibilidad de tipos sin apagar el chequeo. Si
+ * algún día `@firebase/auth` arregla su mapa de exportaciones, el archivo se
+ * borra.
  */
 export {};
 declare module 'firebase/auth' {

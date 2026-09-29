@@ -30,12 +30,13 @@ if (missingConfigKeys.length > 0) {
   );
 }
 
-// Initialize Firebase
+// Una sola app de Firebase: si ya hay una registrada, se reutiliza.
 export const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Persist the auth session to AsyncStorage so the anonymous user survives
-// app restarts. initializeAuth throws if auth was already initialized on this
-// app (happens on Fast Refresh), so fall back to the existing instance.
+// La sesión de auth se persiste en AsyncStorage para que el usuario anónimo
+// sobreviva a los reinicios de la app. `initializeAuth` revienta si la auth ya
+// se inicializó en esta app (pasa con Fast Refresh), así que en ese caso se
+// cae al respaldo: la instancia que ya existía.
 export const auth = (() => {
   try {
     return initializeAuth(firebaseApp, {

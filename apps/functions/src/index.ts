@@ -22,9 +22,12 @@ export { deleteAccount } from './account/deleteAccount';
 export { syncProductivity } from './productivity/endpoint';
 
 /**
- * Authenticated Firebase proxy for Azure OpenAI streaming chat completions.
- * Secrets remain server-side; validation, rate limiting, upstream access, and
- * SSE normalization are isolated under the chat module.
+ * Proxy autenticado de Firebase para las respuestas de chat en streaming de
+ * Azure OpenAI.
+ *
+ * Los secretos se quedan del lado del servidor: la validación, el límite de
+ * peticiones, el acceso al upstream y la normalización de SSE viven aislados
+ * bajo el módulo `chat`.
  */
 export const chatProxy = onRequest(
   {
