@@ -1,0 +1,26 @@
+export const achievement = {
+  es: {
+    'achievement.first_goal.title': 'Primer paso',
+    'achievement.first_goal.body': 'Completa tu primera meta',
+    'achievement.streak_3.title': 'Constancia',
+    'achievement.streak_3.body': '3 días de racha',
+    'achievement.streak_7.title': 'En fuego',
+    'achievement.streak_7.body': '7 días de racha',
+    'achievement.perfect_day.title': 'Día completo',
+    'achievement.perfect_day.body': '100% de cumplimiento',
+    'achievement.week_active.title': 'Semana fuerte',
+    'achievement.week_active.body': '5 días activos esta semana',
+  },
+  en: {
+    'achievement.first_goal.title': 'First step',
+    'achievement.first_goal.body': 'Complete your first goal',
+    'achievement.streak_3.title': 'Consistency',
+    'achievement.streak_3.body': '3-day streak',
+    'achievement.streak_7.title': 'On fire',
+    'achievement.streak_7.body': '7-day streak',
+    'achievement.perfect_day.title': 'Complete day',
+    'achievement.perfect_day.body': '100% completion',
+    'achievement.week_active.title': 'Strong week',
+    'achievement.week_active.body': '5 active days this week',
+  },
+} as const;
