@@ -31,6 +31,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Scan for secrets
+        run: |
+          docker run --rm -v "$PWD:/repo" \
+            ghcr.io/gitleaks/gitleaks:v8.21.2 detect \
+            --source=/repo \
+            --config=/repo/.gitleaks.toml \
+            --redact \
+            --verbose
+
       - name: Check formatting of changed files
         env:
           FORMAT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}

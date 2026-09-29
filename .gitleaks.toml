@@ -1,0 +1,21 @@
+# Configuración de gitleaks para SUI.
+#
+# Local:  gitleaks detect --redact
+# CI:     .github/workflows/ci.yml
+#
+# Notas verificadas con gitleaks 8.21.2:
+# - Sin `useDefault = true`, un archivo de configuración REEMPLAZA las reglas
+#   integradas en lugar de extenderlas, y no se detectaría nada.
+# - La sección `[allowlist]` (singular) es la que aplica; `[[allowlists]]` se
+#   ignora silenciosamente en esta versión.
+
+[extend]
+useDefault = true
+
+# La API key de Firebase es pública por diseño: viaja en el bundle de la app y su
+# protección real son las reglas de Firestore, App Check y Auth. Ver
+# docs/explanation/seguridad.md. La excepción se acota a la ruta histórica para no
+# silenciar el patrón en el resto del repositorio.
+[allowlist]
+description = "API key de Firebase en un documento de trabajo ya retirado"
+paths = ['''work/ANOMALIAS_Y_MEJORAS\.md''']
