@@ -38,6 +38,7 @@ describe('productivity store hydration lifecycle', () => {
   beforeEach(() => {
     useProductivityStore.setState({
       stateLoaded: false,
+      localLoaded: false,
       goals: [],
       habits: [],
       streak: 0,
@@ -56,6 +57,10 @@ describe('productivity store hydration lifecycle', () => {
 
     // Mientras el sync/bootstrap está en vuelo, stateLoaded NO debe ser true
     expect(useProductivityStore.getState().stateLoaded).toBe(false);
+
+    // Pero la lectura local ya terminó: la vista puede mostrar datos locales en
+    // lugar de un esqueleto que los tape (§12).
+    expect(useProductivityStore.getState().localLoaded).toBe(true);
 
     // Resolver el bootstrap de la nube
     resolveSync({
@@ -77,7 +82,12 @@ describe('productivity store hydration lifecycle', () => {
       },
       metadata: {},
       summaryMeta: null,
-      pullState: { syncEpoch: 1, cursors: { goals: null, habits: null, snapshots: null }, needsBootstrap: false, needsRebase: false },
+      pullState: {
+        syncEpoch: 1,
+        cursors: { goals: null, habits: null, snapshots: null },
+        needsBootstrap: false,
+        needsRebase: false,
+      },
       lastSyncedAt: '2026-09-01T12:00:00.000Z',
       pending: 0,
       accepted: 0,
