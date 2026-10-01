@@ -379,4 +379,56 @@ describe('productivity repository v9', () => {
     expect(userEnvelope.data.streakCount).toBe(5);
     expect(userEnvelope.data.totalXp).toBe(120);
   });
+  it('UID idéntico conserva datos y la clave base independiente', async () => {
+    await persistLocalProductivity({ ...emptyData(), habits: [habit()] }, 'same');
+    await persistLocalProductivity(emptyData());
+    const before = await AsyncStorage.getItem(getProductivityStorageKey('same'));
+    await migrateLocalGuestToUser('same', 'same');
+    expect(await AsyncStorage.getItem(getProductivityStorageKey('same'))).toBe(before);
+    expect(await AsyncStorage.getItem(PRODUCTIVITY_STORAGE_KEY)).not.toBeNull();
+  });
+
+  it('merge conserva metadata, summary y outbox únicos tras reintento', async () => {
+    await persistLocalProductivity(
+      { ...emptyData(), habits: [{ ...habit(), id: 'user-habit' }] },
+      'target',
+    );
+    const targetBefore = await loadLocalProductivity('target');
+    const guest = await persistLocalProductivity({
+      ...emptyData(),
+      habits: [habit()],
+      totalXp: 20,
+    });
+    jest.spyOn(AsyncStorage, 'removeItem').mockRejectedValueOnce(new Error('Limpieza fallida'));
+    await expect(migrateLocalGuestToUser('target')).rejects.toThrow('Limpieza fallida');
+    await migrateLocalGuestToUser('target');
+    const merged = await loadLocalProductivity('target');
+    expect(merged.metadata['habit:habit-1']).toEqual(guest.metadata['habit:habit-1']);
+    expect(merged.metadata['habit:user-habit']).toEqual(targetBefore.metadata['habit:user-habit']);
+    expect(merged.summaryMeta).toEqual(guest.summaryMeta);
+    const ids = merged.outbox.map((mutation) => mutation.mutationId);
+    expect(ids.length).toBe(new Set(ids).size);
+    expect(ids).toEqual(
+      expect.arrayContaining(guest.outbox.map((mutation) => mutation.mutationId)),
+    );
+    expect(merged.data.habits).toHaveLength(2);
+    jest.restoreAllMocks();
+  });
+
+  it('destino inválido no elimina invitado válido', async () => {
+    await persistLocalProductivity({ ...emptyData(), habits: [habit()] });
+    const raw = await AsyncStorage.getItem(PRODUCTIVITY_STORAGE_KEY);
+    await AsyncStorage.setItem(getProductivityStorageKey('target'), '{invalid');
+    await expect(migrateLocalGuestToUser('target')).rejects.toThrow('Invalid migration target');
+    expect(await AsyncStorage.getItem(PRODUCTIVITY_STORAGE_KEY)).toBe(raw);
+  });
+
+  it('adopción automática conserva base si falla escritura de destino', async () => {
+    await persistLocalProductivity({ ...emptyData(), habits: [habit()] });
+    const raw = await AsyncStorage.getItem(PRODUCTIVITY_STORAGE_KEY);
+    jest.spyOn(AsyncStorage, 'setItem').mockRejectedValueOnce(new Error('Disco lleno'));
+    await expect(loadLocalProductivity('new-account')).rejects.toThrow('Disco lleno');
+    expect(await AsyncStorage.getItem(PRODUCTIVITY_STORAGE_KEY)).toBe(raw);
+    expect(await AsyncStorage.getItem(getProductivityStorageKey('new-account'))).toBeNull();
+  });
 });
