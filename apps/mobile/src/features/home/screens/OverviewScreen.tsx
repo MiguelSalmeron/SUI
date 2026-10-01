@@ -25,6 +25,7 @@ import { SuiDoodle } from '@/shared/ui/SuiDoodle';
 import { useI18n } from '@/shared/i18n/i18n';
 import type { TranslationKey } from '@/shared/i18n/translations';
 import { FirstRunSpotlight } from '../components/FirstRunSpotlight';
+import { StarterSeedBanner } from '../components/StarterSeedBanner';
 import { useFirstRunSpotlight } from '../hooks/useFirstRunSpotlight';
 
 type OverviewNavigation = CompositeNavigationProp<
@@ -54,6 +55,9 @@ export const OverviewScreen = () => {
   const totalXp = useProductivityStore((s) => s.totalXp);
   const toggleHabit = useProductivityStore((s) => s.toggleHabit);
   const toggleGoal = useProductivityStore((s) => s.toggleGoal);
+  const isSeeded = useProductivityStore((s) => s.isSeeded);
+  const personalizeSeeded = useProductivityStore((s) => s.personalizeSeeded);
+  const dismissSeeded = useProductivityStore((s) => s.dismissSeeded);
 
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
   const todayKey = localDateKey();
@@ -76,6 +80,14 @@ export const OverviewScreen = () => {
     () => buildUnifiedTimeline(todayKey, googleEvents, goals, habits),
     [todayKey, googleEvents, goals, habits],
   );
+  // Sólo se marca el aviso si lo sembrado sigue presente: en cuanto el usuario
+  // personaliza o descarta, deja de tener sentido anunciarlo.
+  const seededItems = useMemo(
+    () => timelineItems.filter((item) => isSeeded(item.originalId)),
+    [timelineItems, isSeeded],
+  );
+  const seededGoal = seededItems.find((item) => item.origin === 'goal');
+  const seededHabit = seededItems.find((item) => item.origin === 'habit');
   const actionableItems = useMemo(
     () => timelineItems.filter((item) => item.origin !== 'google_calendar'),
     [timelineItems],
@@ -122,8 +134,10 @@ export const OverviewScreen = () => {
   const emptyState = goals.length === 0 && habits.length === 0;
 
   const openItem = (item: TimelineItem) => {
-    if (item.origin === 'goal') navigation.navigate('Goals', { editId: item.originalId });
-    if (item.origin === 'habit') navigation.navigate('Habits', { editId: item.originalId });
+    if (item.origin === 'goal')
+      navigation.navigate('Goals', { editId: item.originalId, returnTo: 'Overview' });
+    if (item.origin === 'habit')
+      navigation.navigate('Habits', { editId: item.originalId, returnTo: 'Overview' });
   };
 
   return (
@@ -179,6 +193,33 @@ export const OverviewScreen = () => {
               </View>
             ) : (
               <>
+                {seededItems.length > 0 ? (
+                  <StarterSeedBanner
+                    goalTitle={seededGoal?.title}
+                    habitTitle={seededHabit?.title}
+                    onPersonalize={() => {
+                      const target = seededGoal ?? seededHabit;
+                      if (!target) return;
+                      if (target.origin === 'goal') {
+                        personalizeSeeded(target.originalId);
+                        navigation.navigate('Goals', {
+                          editId: target.originalId,
+                          returnTo: 'Overview',
+                        });
+                      } else if (target.origin === 'habit') {
+                        personalizeSeeded(target.originalId);
+                        navigation.navigate('Habits', {
+                          editId: target.originalId,
+                          returnTo: 'Overview',
+                        });
+                      }
+                    }}
+                    onDismiss={() => {
+                      if (seededGoal) dismissSeeded(seededGoal.originalId);
+                      if (seededHabit) dismissSeeded(seededHabit.originalId);
+                    }}
+                  />
+                ) : null}
                 <View style={styles.focusCard}>
                   {nextItem ? (
                     <>

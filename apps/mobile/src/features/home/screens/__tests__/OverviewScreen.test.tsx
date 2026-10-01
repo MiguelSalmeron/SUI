@@ -16,6 +16,9 @@ const mockState = {
   totalXp: 0,
   toggleHabit: jest.fn(),
   toggleGoal: jest.fn(),
+  isSeeded: jest.fn(() => false),
+  personalizeSeeded: jest.fn(),
+  dismissSeeded: jest.fn(),
 };
 
 jest.mock('@react-navigation/native', () => ({

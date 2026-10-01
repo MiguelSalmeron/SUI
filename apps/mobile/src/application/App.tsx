@@ -9,7 +9,7 @@ import { configureNotificationHandler, reconcileNightlyReport } from '@/features
 import { ThemeProvider, useAppTheme } from '@/shared/theme/theme';
 import { AppNavigator } from './navigation/AppNavigator';
 import { wrapApplication } from '@/shared/observability/telemetry';
-import { useProductivityEventEffects } from '@/shared/events/useProductivityEventEffects';
+import { useProductivityTelemetry } from '@/shared/events/useProductivityEventEffects';
 import { useSettingsStore } from '@/shared/preferences/useSettingsStore';
 import { BootGate } from './components/BootGate';
 import { RootErrorBoundary } from './components/RootErrorBoundary';
@@ -114,7 +114,7 @@ function App() {
 
 function Boot() {
   useRetryPendingAuth();
-  useProductivityEventEffects();
+  useProductivityTelemetry();
   useReconcileNotifications();
 
   return (

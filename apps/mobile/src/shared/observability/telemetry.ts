@@ -3,6 +3,15 @@ import * as Sentry from '@sentry/react-native';
 import { PRODUCT_CONFIG } from '@/shared/config/product';
 
 type TelemetryEvent =
+  | 'onboarding.step_view'
+  | 'onboarding.intention_select'
+  | 'onboarding.account_open'
+  | 'onboarding.local_start'
+  | 'onboarding.complete'
+  | 'onboarding.seed_created'
+  | 'onboarding.seed_personalized'
+  | 'onboarding.seed_dismissed'
+  | 'onboarding.first_action'
   | 'app.start'
   | 'auth.completed'
   | 'sync.completed'
