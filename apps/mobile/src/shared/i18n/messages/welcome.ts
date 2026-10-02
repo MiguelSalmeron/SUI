@@ -1,5 +1,16 @@
 export const welcome = {
   es: {
+    'welcome.step': 'Paso {current} de {total}',
+    'welcome.accountValueTitle': 'Cuidá tu progreso',
+    'welcome.accountValueBody': 'Sincronizá en la nube y seguí en cualquier dispositivo.',
+    'welcome.tryLocalTitle': 'Probar sin cuenta',
+    'welcome.tryLocalSubtitle': 'Empieza ahorita en este dispositivo',
+    'welcome.localWarningTitle': 'Tus datos quedan solo en este dispositivo.',
+    'welcome.localWarningBody':
+      'Si borrás los datos de la app, la desinstalás o perdés el celular, no podremos recuperarlos. La cuenta en la nube sí crea una copia segura.',
+    'welcome.localAcknowledge': 'Entiendo que mis datos son solo locales.',
+    'welcome.localStart': 'Empezar sin cuenta',
+
     'welcome.subtitle': 'Metas, hábitos y tiempo con más claridad.',
     'welcome.create': 'Crear cuenta',
     'welcome.login': 'Ya tengo cuenta',
@@ -23,6 +34,17 @@ export const welcome = {
     'welcome.chipPrivate': '100% Privado',
   },
   en: {
+    'welcome.step': 'Step {current} of {total}',
+    'welcome.accountValueTitle': 'Protect your progress',
+    'welcome.accountValueBody': 'Sync to the cloud and continue on any device.',
+    'welcome.tryLocalTitle': 'Try without an account',
+    'welcome.tryLocalSubtitle': 'Start right now on this device',
+    'welcome.localWarningTitle': 'Your data stays only on this device.',
+    'welcome.localWarningBody':
+      "If you clear app data, uninstall, or lose your phone, we can't recover it. A cloud account keeps a safe copy.",
+    'welcome.localAcknowledge': 'I understand my data is local only.',
+    'welcome.localStart': 'Start without an account',
+
     'welcome.subtitle': 'Goals, habits, and time with greater clarity.',
     'welcome.create': 'Create account',
     'welcome.login': 'I have an account',

@@ -1,10 +1,6 @@
 import type { UserIntention } from '@/shared/account/introTypes';
 
-export type OnboardingStep =
-  | 'welcome'
-  | 'value_goals'
-  | 'value_habits'
-  | 'account';
+export type OnboardingStep = 'welcome' | 'account';
 
 export interface IntentionOption {
   id: UserIntention;

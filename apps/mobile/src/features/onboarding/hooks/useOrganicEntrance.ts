@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { AccessibilityInfo, Animated } from 'react-native';
+import { useCallback, useEffect, useRef } from 'react';
+import { Animated } from 'react-native';
 import { MOTION } from '@/shared/ui/motion/motionTokens';
+import { useReduceMotion } from '@/shared/ui/motion/useReduceMotion';
 
 interface UseOrganicEntranceOptions {
   delay?: number;
@@ -18,85 +19,59 @@ export const useOrganicEntrance = (options: UseOrganicEntranceOptions = {}) => {
     initialScale = 0.96,
     autoPlay = true,
   } = options;
+  const reduceMotion = useReduceMotion();
+  const opacity = useRef(new Animated.Value(1)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(1)).current;
+  const animation = useRef<Animated.CompositeAnimation | null>(null);
 
-  const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(distance)).current;
-  const scale = useRef(new Animated.Value(initialScale)).current;
-
-  const play = () => {
-    AccessibilityInfo.isReduceMotionEnabled().then((reduceMotion) => {
-      if (reduceMotion) {
-        opacity.setValue(1);
-        translateY.setValue(0);
-        scale.setValue(1);
-        return;
-      }
-
-      Animated.parallel([
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration,
-          delay,
-          easing: MOTION.easings.standard,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
-          toValue: 0,
-          duration,
-          delay,
-          easing: MOTION.easings.decelerate,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scale, {
-          toValue: 1,
-          duration,
-          delay,
-          easing: MOTION.easings.gentle,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }).catch(() => {
-      Animated.parallel([
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration,
-          delay,
-          easing: MOTION.easings.standard,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
-          toValue: 0,
-          duration,
-          delay,
-          easing: MOTION.easings.decelerate,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scale, {
-          toValue: 1,
-          duration,
-          delay,
-          easing: MOTION.easings.gentle,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    });
-  };
+  const play = useCallback(() => {
+    animation.current?.stop();
+    if (reduceMotion !== false) {
+      opacity.setValue(1);
+      translateY.setValue(0);
+      scale.setValue(1);
+      return;
+    }
+    opacity.setValue(0);
+    translateY.setValue(distance);
+    scale.setValue(initialScale);
+    animation.current = Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration,
+        delay,
+        easing: MOTION.easings.standard,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration,
+        delay,
+        easing: MOTION.easings.decelerate,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scale, {
+        toValue: 1,
+        duration,
+        delay,
+        easing: MOTION.easings.gentle,
+        useNativeDriver: true,
+      }),
+    ]);
+    animation.current.start();
+  }, [delay, distance, duration, initialScale, opacity, reduceMotion, scale, translateY]);
 
   useEffect(() => {
-    if (autoPlay) {
-      play();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoPlay]);
+    if (autoPlay) play();
+    return () => animation.current?.stop();
+  }, [autoPlay, play]);
 
   return {
     opacity,
     translateY,
     scale,
-    animatedStyle: {
-      opacity,
-      transform: [{ translateY }, { scale }],
-    },
+    animatedStyle: { opacity, transform: [{ translateY }, { scale }] },
     play,
   };
 };
