@@ -33,6 +33,12 @@ import {
   exportAccountability,
   useAccountabilityStore,
 } from '@/features/accountability/public';
+import {
+  cancelAllEngagementNotifications,
+  clearEngagement,
+  EngagementSettingsSection,
+  useEngagementStore,
+} from '@/features/engagement/public';
 import type { RootStackParamList } from '@/shared/navigation/types';
 import { useI18n } from '@/shared/i18n/i18n';
 import {
@@ -129,7 +135,10 @@ export const SettingsScreen = ({ navigation }: Props) => {
   const setSyncEnabled = useIntroStore((state) => state.setSyncEnabled);
   const pendingCloudMerge = useIntroStore((state) => state.pendingCloudMerge);
   const setPendingCloudMerge = useIntroStore((state) => state.setPendingCloudMerge);
-  const resetIntro = useIntroStore((state) => state.resetIntro);
+  // Al salir o borrar la cuenta se va con `resetIntroAndSeeds`: la siembra es
+  // parte del estado de primer ingreso, así que el próximo ingreso arranca
+  // limpio y vuelve a elegir intención.
+  const resetIntro = useIntroStore((state) => state.resetIntroAndSeeds);
   const home = useProductivityStore();
   const [logoutVisible, setLogoutVisible] = useState(false);
   const [logoutBusy, setLogoutBusy] = useState(false);
@@ -224,6 +233,8 @@ export const SettingsScreen = ({ navigation }: Props) => {
       await signOutCurrentUser();
       await cancelAllAccountabilityNotifications();
       await useAccountabilityStore.getState().handleAuthUserChanged(null);
+      await cancelAllEngagementNotifications();
+      await useEngagementStore.getState().handleAuthUserChanged(null);
       await clearGoogleEventsCache();
       await home.clearState({ preserveStorage: true });
       resetIntro();
@@ -251,6 +262,7 @@ export const SettingsScreen = ({ navigation }: Props) => {
     await clearGoogleEventsCache();
     await cancelAllAccountabilityNotifications();
     await clearAccountability(currentUid ?? null);
+    await clearEngagement(currentUid ?? null);
     if (currentUid) {
       await clearLocalProductivity(currentUid);
     }
@@ -392,6 +404,12 @@ export const SettingsScreen = ({ navigation }: Props) => {
             }
           />
         </Section>
+
+        {PRODUCT_CONFIG.engagementEnabled ? (
+          <Section title={t('engagement.settings.title')}>
+            <EngagementSettingsSection />
+          </Section>
+        ) : null}
 
         <Section title={t('settings.account')}>
           <SettingsRow

@@ -10,6 +10,9 @@ const mockClearGoogleEventsCache = jest.fn(async () => undefined);
 const mockClearLocalProductivity = jest.fn(async (_uid?: string | null) => undefined);
 const mockClearAccountability = jest.fn(async (_uid?: string | null) => undefined);
 const mockCancelAccountability = jest.fn(async () => 0);
+const mockClearEngagement = jest.fn(async (_uid?: string | null) => undefined);
+const mockCancelEngagement = jest.fn(async () => 0);
+const mockHandleEngagementAuth = jest.fn(async (_uid?: string | null) => undefined);
 const mockExportAccountability = jest.fn(async (_uid?: string | null) => ({
   schemaVersion: 1,
   commitments: [],
@@ -83,8 +86,19 @@ jest.mock('@/features/accountability/public', () => ({
   },
 }));
 
+jest.mock('@/features/engagement/public', () => ({
+  EngagementSettingsSection: () => null,
+  cancelAllEngagementNotifications: () => mockCancelEngagement(),
+  clearEngagement: (uid?: string | null) => mockClearEngagement(uid),
+  useEngagementStore: {
+    getState: () => ({
+      handleAuthUserChanged: (uid?: string | null) => mockHandleEngagementAuth(uid),
+    }),
+  },
+}));
+
 jest.mock('@/shared/config/product', () => ({
-  PRODUCT_CONFIG: { accountabilityEnabled: true },
+  PRODUCT_CONFIG: { accountabilityEnabled: true, engagementEnabled: false },
 }));
 
 jest.mock('@/shared/i18n/i18n', () => ({

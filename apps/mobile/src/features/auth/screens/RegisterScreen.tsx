@@ -21,6 +21,7 @@ import { recordTelemetry } from '@/shared/observability/telemetry';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import { migrateAccountabilityGuestToUser } from '@/features/accountability/public';
+import { migrateEngagementGuestToUser } from '@/features/engagement/public';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
@@ -54,6 +55,7 @@ export const RegisterScreen = ({ navigation }: Props) => {
       const current = auth.currentUser;
       if (current?.uid) {
         await migrateAccountabilityGuestToUser(current.uid, previousAnonymousUid);
+        await migrateEngagementGuestToUser(current.uid, previousAnonymousUid);
       }
       if (linked && current?.uid) {
         await migrateLocalGuestToUser(current.uid, previousAnonymousUid);
@@ -101,6 +103,7 @@ export const RegisterScreen = ({ navigation }: Props) => {
       }
       if (result.uid) {
         await migrateAccountabilityGuestToUser(result.uid, null);
+        await migrateEngagementGuestToUser(result.uid, null);
       }
       setNotice(t('auth.verify'));
       setPendingCloudMerge(false);

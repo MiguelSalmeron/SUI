@@ -33,6 +33,7 @@ import {
   reconcileAccountability,
   useAccountabilityStore,
 } from '@/features/accountability/public';
+import { useEngagementReconcile } from '@/features/engagement/public';
 import {
   addNotificationResponseListener,
   getLastNotificationResponseAsync,
@@ -297,6 +298,8 @@ export const TabNavigator = () => {
 
   useReconcileAccountability(user?.uid ?? null, PRODUCT_CONFIG.accountabilityEnabled);
   useAccountabilityNotificationRouting(PRODUCT_CONFIG.accountabilityEnabled);
+  // Acompañamiento por franjas: independiente de accountability y detrás de flag.
+  useEngagementReconcile(user?.uid ?? null, PRODUCT_CONFIG.engagementEnabled);
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {

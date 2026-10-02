@@ -16,6 +16,7 @@ import { merge } from './messages/merge';
 import { settings } from './messages/settings';
 import { notifications } from './messages/notifications';
 import { accountability } from './messages/accountability';
+import { engagement } from './messages/engagement';
 import { connections } from './messages/connections';
 import { calendar } from './messages/calendar';
 import { nav } from './messages/nav';
@@ -46,6 +47,7 @@ export const translations = {
     ...settings.es,
     ...notifications.es,
     ...accountability.es,
+    ...engagement.es,
     ...connections.es,
     ...calendar.es,
     ...nav.es,
@@ -75,6 +77,7 @@ export const translations = {
     ...settings.en,
     ...notifications.en,
     ...accountability.en,
+    ...engagement.en,
     ...connections.en,
     ...calendar.en,
     ...nav.en,
