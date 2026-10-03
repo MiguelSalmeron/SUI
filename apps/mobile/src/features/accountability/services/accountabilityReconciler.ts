@@ -133,12 +133,17 @@ export const reconcileAccountability = async (options?: {
   const horizonDays = options?.horizonDays ?? SCHEDULING_HORIZON_DAYS;
   const store = useAccountabilityStore.getState();
   if (!store.stateLoaded) return emptyResult(true);
+  const version = store.sessionVersion;
+  const isCurrent = () => {
+    const current = useAccountabilityStore.getState();
+    return current.stateLoaded && current.sessionVersion === version;
+  };
 
   const today = toLocalDateKey(now);
 
   // --- 1. Perfil desactivado: cancelar la agenda del dominio y salir. ------
   if (!store.profile.enabled) {
-    const cancelled = await cancelAllAccountabilityNotifications();
+    const cancelled = await cancelAllAccountabilityNotifications(isCurrent);
     return { ...emptyResult(), cancelled };
   }
 
@@ -149,6 +154,7 @@ export const reconcileAccountability = async (options?: {
     for (const commitment of store.commitments) {
       if (exists(commitment.subjectType, commitment.subjectId)) continue;
       await store.removeCommitment(commitment.subjectType, commitment.subjectId);
+      if (!isCurrent()) return emptyResult(true);
       commitmentsCleaned += 1;
     }
   }
@@ -174,6 +180,7 @@ export const reconcileAccountability = async (options?: {
         .cycles.some((cycle) => cycle.id === cycleIdFor(item.commitmentId, item.localDate)),
   );
   if (missing.length > 0) await store.ensureCycles(missing);
+  if (!isCurrent()) return emptyResult(true);
   const cyclesCreated = missing.length;
 
   // --- 3. Transiciones temporales por reloj local (un batch). --------------
@@ -197,8 +204,10 @@ export const reconcileAccountability = async (options?: {
   if (events.length > 0) await useAccountabilityStore.getState().applyCycleEvents(events);
 
   // --- 4. Materializar alertas del horizonte. ------------------------------
+  if (!isCurrent()) return emptyResult(true);
   const fresh = useAccountabilityStore.getState();
   const plan = await scheduleAccountabilityNotifications({
+    isCurrent,
     profile: fresh.profile,
     commitments: fresh.commitments,
     cycles: fresh.cycles,
@@ -206,6 +215,7 @@ export const reconcileAccountability = async (options?: {
     horizonDays,
   });
 
+  if (!isCurrent()) return emptyResult(true);
   return {
     skipped: false,
     commitmentsCleaned,

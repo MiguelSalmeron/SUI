@@ -1,3 +1,4 @@
+import { runStorageTask } from '@/shared/infrastructure/storage/storageTasks';
 import { create } from 'zustand';
 import {
   ACCOUNTABILITY_SCHEMA_VERSION,
@@ -22,6 +23,7 @@ import {
 } from '../model/commitmentRules';
 import {
   clearAccountability,
+  getAccountabilityStorageKey,
   enforceRetention,
   loadAccountability,
   writeAccountability,
@@ -58,6 +60,7 @@ interface AccountabilityState {
   cycles: FollowUpCycle[];
   facts: FollowUpFact[];
   stateLoaded: boolean;
+  sessionVersion: number;
 
   loadState: (uid?: string | null) => Promise<void>;
   reloadState: (uid?: string | null) => Promise<void>;
@@ -119,6 +122,7 @@ const fromEnvelope = (envelope: AccountabilityEnvelopeV1) => ({
 
 export const useAccountabilityStore = create<AccountabilityState>((set, get) => {
   let currentUid: string | null = null;
+  let sessionVersion = 0;
 
   const snapshot = (): AccountabilityEnvelopeV1 => {
     const current = get();
@@ -136,11 +140,13 @@ export const useAccountabilityStore = create<AccountabilityState>((set, get) => 
   const persist = async (
     mutate?: (envelope: AccountabilityEnvelopeV1) => AccountabilityEnvelopeV1,
   ): Promise<SaveResult> => {
+    if (!get().stateLoaded) return { outcome: 'storage_error', envelope: snapshot() };
+    const uid = currentUid;
     const base = snapshot();
     const next = mutate ? enforceRetention(mutate(base)) : base;
     set(fromEnvelope(next));
     try {
-      await writeAccountability(next, currentUid);
+      await writeAccountability(next, uid);
       return { outcome: 'saved', envelope: next };
     } catch {
       // Local-first: el fallo de disco no revierte el estado en memoria.
@@ -154,10 +160,25 @@ export const useAccountabilityStore = create<AccountabilityState>((set, get) => 
     cycles: [],
     facts: [],
     stateLoaded: false,
+    sessionVersion: 0,
 
     loadState: async (uid) => {
-      currentUid = uid?.trim() ?? null;
-      const envelope = await loadAccountability(currentUid);
+      const nextUid = uid?.trim() || null;
+      const version = ++sessionVersion;
+      currentUid = nextUid;
+      set({
+        profile: { ...DEFAULT_PROFILE, updatedAt: '' },
+        commitments: [],
+        cycles: [],
+        facts: [],
+        activeCheckIn: null,
+        stateLoaded: false,
+        sessionVersion: version,
+      });
+      const envelope = await runStorageTask([getAccountabilityStorageKey(nextUid)], () =>
+        loadAccountability(nextUid),
+      );
+      if (version !== sessionVersion) return;
       set({ ...fromEnvelope(envelope), stateLoaded: true });
     },
 
@@ -172,14 +193,18 @@ export const useAccountabilityStore = create<AccountabilityState>((set, get) => 
     },
 
     clearLocal: async () => {
+      const uid = currentUid;
+      const version = ++sessionVersion;
       set({
         profile: { ...DEFAULT_PROFILE, updatedAt: '' },
         commitments: [],
         cycles: [],
         facts: [],
-        stateLoaded: get().stateLoaded,
+        activeCheckIn: null,
+        stateLoaded: true,
+        sessionVersion: version,
       });
-      await clearAccountability(currentUid);
+      await clearAccountability(uid);
     },
 
     updateProfile: async (patch) =>

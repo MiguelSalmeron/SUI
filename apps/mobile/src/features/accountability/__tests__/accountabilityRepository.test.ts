@@ -189,12 +189,13 @@ describe('accountability repository', () => {
     expect(merged.commitments[0].id).toBe('acc:goal:g1');
   });
 
-  it('merge con cuenta corrupta: el estado del invitado se adopta', async () => {
+  it('merge con cuenta corrupta conserva origen y destino', async () => {
     await AsyncStorage.setItem(`${ACCOUNTABILITY_STORAGE_KEY}:user-2`, 'nonsense');
     await writeAccountability(validEnvelope(), null);
-    await migrateAccountabilityGuestToUser('user-2', null);
-    await expect(loadAccountability('user-2')).resolves.toMatchObject({
-      commitments: [{ id: 'acc:goal:g1' }],
-    });
+    await expect(migrateAccountabilityGuestToUser('user-2', null)).rejects.toThrow(
+      'Invalid migration target',
+    );
+    expect(await AsyncStorage.getItem(`${ACCOUNTABILITY_STORAGE_KEY}:user-2`)).toBe('nonsense');
+    expect(await AsyncStorage.getItem(ACCOUNTABILITY_STORAGE_KEY)).not.toBeNull();
   });
 });

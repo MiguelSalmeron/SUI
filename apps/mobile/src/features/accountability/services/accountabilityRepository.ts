@@ -7,6 +7,8 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { migrateStoredEnvelope } from '@/shared/infrastructure/storage/migrateStoredEnvelope';
+import { runStorageTask } from '@/shared/infrastructure/storage/storageTasks';
 import {
   ACCOUNTABILITY_SCHEMA_VERSION,
   ACCOUNTABILITY_STORAGE_KEY,
@@ -47,21 +49,14 @@ export const writeAccountability = async (
   envelope: AccountabilityEnvelopeV1,
   uid?: string | null,
 ): Promise<void> => {
-  await AsyncStorage.setItem(
-    getAccountabilityStorageKey(uid),
-    JSON.stringify(envelope),
-  );
+  const key = getAccountabilityStorageKey(uid);
+  await runStorageTask([key], () => AsyncStorage.setItem(key, JSON.stringify(envelope)));
 };
 
 /** Elimina por completo el estado local del espacio indicado. */
 export const clearAccountability = async (uid?: string | null): Promise<void> => {
-  const normalized = uid?.trim();
-  if (normalized) {
-    await AsyncStorage.removeItem(getAccountabilityStorageKey(normalized));
-    return;
-  }
-  // Invitado: sólo la clave base. Las claves por-uid se purgan al eliminar cuenta.
-  await AsyncStorage.removeItem(ACCOUNTABILITY_STORAGE_KEY);
+  const key = getAccountabilityStorageKey(uid);
+  await runStorageTask([key], () => AsyncStorage.removeItem(key));
 };
 
 /**
@@ -69,15 +64,11 @@ export const clearAccountability = async (uid?: string | null): Promise<void> =>
  * Conserva siempre los ciclos más recientes por compromiso (los antiguos son
  * los prescindibles); los hechos cuelgan de ciclos vivos.
  */
-export const enforceRetention = (
-  envelope: AccountabilityEnvelopeV1,
-): AccountabilityEnvelopeV1 => {
+export const enforceRetention = (envelope: AccountabilityEnvelopeV1): AccountabilityEnvelopeV1 => {
   const commitments = new Set(envelope.commitments.map((item) => item.id));
   const validCycles = envelope.cycles
     .filter((cycle) => commitments.has(cycle.commitmentId))
-    .sort(
-      (a, b) => b.localDate.localeCompare(a.localDate) || b.time.localeCompare(a.time),
-    );
+    .sort((a, b) => b.localDate.localeCompare(a.localDate) || b.time.localeCompare(a.time));
   const keptPerCommitment = new Map<string, number>();
   const keptCycles = validCycles.filter((cycle) => {
     const count = keptPerCommitment.get(cycle.commitmentId) ?? 0;
@@ -111,42 +102,28 @@ export const migrateAccountabilityGuestToUser = async (
     : ACCOUNTABILITY_STORAGE_KEY;
   if (guestKey === userKey) return;
 
-  const guestRaw = await AsyncStorage.getItem(guestKey);
-  if (!guestRaw) return;
-  const userRaw = await AsyncStorage.getItem(userKey);
-  await AsyncStorage.removeItem(guestKey);
-
-  const guest = parseAccountabilityEnvelopeV1(guestRaw);
-  if (!guest) return;
-  const user = userRaw ? parseAccountabilityEnvelopeV1(userRaw) : null;
-  if (!user) {
-    // La cuenta no tenía estado válido: el del invitado se convierte en el de la cuenta.
-    await AsyncStorage.setItem(userKey, JSON.stringify(guest));
-    return;
-  }
-
-  const commitments = new Map(user.commitments.map((item) => [item.id, item]));
-  for (const commitment of guest.commitments) {
-    if (!commitments.has(commitment.id)) commitments.set(commitment.id, commitment);
-  }
-  const cycles = new Map(user.cycles.map((item) => [item.id, item]));
-  for (const cycle of guest.cycles) {
-    if (!cycles.has(cycle.id)) cycles.set(cycle.id, cycle);
-  }
-  const facts = new Map(user.facts.map((item) => [item.id, item]));
-  for (const fact of guest.facts) {
-    if (!facts.has(fact.id)) facts.set(fact.id, fact);
-  }
-  const merged: AccountabilityEnvelopeV1 = {
-    schemaVersion: ACCOUNTABILITY_SCHEMA_VERSION,
-    // El perfil de la cuenta manda: es el espacio que persiste.
-    profile: user.profile,
-    commitments: [...commitments.values()],
-    cycles: [...cycles.values()],
-    facts: [...facts.values()],
-    updatedAt: new Date().toISOString(),
-  };
-  await AsyncStorage.setItem(userKey, JSON.stringify(enforceRetention(merged)));
+  await migrateStoredEnvelope({
+    sourceKey: guestKey,
+    targetKey: userKey,
+    parse: parseAccountabilityEnvelopeV1,
+    merge: (guest, user) => {
+      const commitments = new Map(user.commitments.map((item) => [item.id, item]));
+      for (const item of guest.commitments)
+        if (!commitments.has(item.id)) commitments.set(item.id, item);
+      const cycles = new Map(user.cycles.map((item) => [item.id, item]));
+      for (const item of guest.cycles) if (!cycles.has(item.id)) cycles.set(item.id, item);
+      const facts = new Map(user.facts.map((item) => [item.id, item]));
+      for (const item of guest.facts) if (!facts.has(item.id)) facts.set(item.id, item);
+      return enforceRetention({
+        schemaVersion: ACCOUNTABILITY_SCHEMA_VERSION,
+        profile: user.profile,
+        commitments: [...commitments.values()],
+        cycles: [...cycles.values()],
+        facts: [...facts.values()],
+        updatedAt: new Date().toISOString(),
+      });
+    },
+  });
 };
 
 /**

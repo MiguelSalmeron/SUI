@@ -8,6 +8,7 @@
  * identificadores, nunca duplica. Nunca solicita permisos ni lanza.
  */
 
+import { runNotificationTask } from '@/shared/infrastructure/notificationTasks';
 import { useSettingsStore } from '@/shared/preferences/useSettingsStore';
 import { resolveLocale, translate } from '@/shared/i18n/i18n';
 import {
@@ -96,58 +97,83 @@ export type ApplyPlanResult = {
  * la app (plan §12, integración móvil).
  */
 export const scheduleAccountabilityNotifications = async (input: {
+  isCurrent?: () => boolean;
   profile: AccountabilityProfile;
   commitments: AccountabilityCommitment[];
   cycles: FollowUpCycle[];
   now?: Date;
   horizonDays?: number;
-}): Promise<ApplyPlanResult> => {
-  const permission = await getNotificationPermission().catch(() => 'blocked' as const);
-  if (permission !== 'granted') {
-    // Sin permiso: aseguramos limpiar la agenda previa del dominio.
-    const previous = await getScheduledNotificationIdentifiers();
-    const stale = previous.filter((id) => id.startsWith(ACCOUNTABILITY_ID_PREFIX));
-    for (const identifier of stale) await cancelScheduledNotification(identifier);
-    return { scheduled: 0, cancelled: stale.length, permission };
-  }
+}): Promise<ApplyPlanResult> =>
+  runNotificationTask(async () => {
+    const isCurrent = input.isCurrent ?? (() => true);
+    if (!isCurrent()) return { scheduled: 0, cancelled: 0, permission: 'blocked' };
+    const permission = await getNotificationPermission().catch(() => 'blocked' as const);
+    if (!isCurrent()) return { scheduled: 0, cancelled: 0, permission };
+    if (permission !== 'granted') {
+      // Sin permiso: aseguramos limpiar la agenda previa del dominio.
+      const previous = await getScheduledNotificationIdentifiers();
+      const stale = previous.filter((id) => id.startsWith(ACCOUNTABILITY_ID_PREFIX));
+      for (const identifier of stale) {
+        if (!isCurrent()) break;
+        await cancelScheduledNotification(identifier);
+      }
+      return { scheduled: 0, cancelled: stale.length, permission };
+    }
 
-  rememberCommitments(input.commitments);
-  const scheduledIdentifiers = await getScheduledNotificationIdentifiers();
-  const plan = planNotifications({
-    profile: input.profile,
-    commitments: input.commitments,
-    cycles: input.cycles,
-    now: input.now ?? new Date(),
-    permission,
-    scheduledIdentifiers,
-    ...(input.horizonDays !== undefined ? { horizonDays: input.horizonDays } : {}),
+    rememberCommitments(input.commitments);
+    const scheduledIdentifiers = await getScheduledNotificationIdentifiers();
+    if (!isCurrent()) return { scheduled: 0, cancelled: 0, permission };
+    const plan = planNotifications({
+      profile: input.profile,
+      commitments: input.commitments,
+      cycles: input.cycles,
+      now: input.now ?? new Date(),
+      permission,
+      scheduledIdentifiers,
+      ...(input.horizonDays !== undefined ? { horizonDays: input.horizonDays } : {}),
+    });
+
+    let scheduled = 0;
+    for (const alert of plan.alerts) {
+      if (!isCurrent()) break;
+      try {
+        await materializeAlert(alert);
+        if (!isCurrent()) {
+          await cancelScheduledNotification(alert.identifier);
+          break;
+        }
+        scheduled += 1;
+      } catch {
+        // Alerta individual fallida no aborta el resto.
+      }
+    }
+    let cancelled = 0;
+    for (const identifier of plan.cancels) {
+      if (!isCurrent()) break;
+      try {
+        await cancelScheduledNotification(identifier);
+        cancelled += 1;
+      } catch {
+        // idem
+      }
+    }
+    return { scheduled, cancelled, permission };
   });
 
-  let scheduled = 0;
-  for (const alert of plan.alerts) {
-    try {
-      await materializeAlert(alert);
-      scheduled += 1;
-    } catch {
-      // Alerta individual fallida no aborta el resto.
-    }
-  }
-  let cancelled = 0;
-  for (const identifier of plan.cancels) {
-    try {
-      await cancelScheduledNotification(identifier);
-      cancelled += 1;
-    } catch {
-      // idem
-    }
-  }
-  return { scheduled, cancelled, permission };
-};
-
 /** Cancela todas las alertas de accountability actualmente programadas. */
-export const cancelAllAccountabilityNotifications = async (): Promise<number> => {
+const cancelAccountabilityNotifications = async (isCurrent: () => boolean): Promise<number> => {
+  if (!isCurrent()) return 0;
   const scheduled = await getScheduledNotificationIdentifiers();
   const ours = scheduled.filter((id) => id.startsWith(ACCOUNTABILITY_ID_PREFIX));
-  for (const identifier of ours) await cancelScheduledNotification(identifier);
-  return ours.length;
+  let cancelled = 0;
+  for (const identifier of ours) {
+    if (!isCurrent()) break;
+    await cancelScheduledNotification(identifier);
+    cancelled += 1;
+  }
+  return cancelled;
 };
+
+export const cancelAllAccountabilityNotifications = (
+  isCurrent: () => boolean = () => true,
+): Promise<number> => runNotificationTask(() => cancelAccountabilityNotifications(isCurrent));
