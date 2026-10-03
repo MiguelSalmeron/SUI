@@ -22,6 +22,8 @@ export interface SettingsState {
   mirrorGoalsEnabled: boolean;
   /** Espejo Google: hábitos con horario (default off). */
   mirrorHabitsEnabled: boolean;
+  /** Fila fantasma de Calendar descartada (default false). */
+  calendarConnectDismissed: boolean;
 
   // Actions
   setNotificationsEnabled: (enabled: boolean) => void;
@@ -30,6 +32,7 @@ export interface SettingsState {
   setTheme: (theme: ThemePreference) => void;
   setMirrorGoalsEnabled: (enabled: boolean) => void;
   setMirrorHabitsEnabled: (enabled: boolean) => void;
+  setCalendarConnectDismissed: (dismissed: boolean) => void;
 }
 
 const SETTINGS_STORAGE_KEY = '@sui/settings-v1';
@@ -44,12 +47,15 @@ export const useSettingsStore = create<SettingsState>()(
       theme: 'system',
       mirrorGoalsEnabled: DEFAULT_MIRROR_PREFS.goalsEnabled,
       mirrorHabitsEnabled: DEFAULT_MIRROR_PREFS.habitsEnabled,
+      calendarConnectDismissed: false,
 
       setNotificationsEnabled: (enabled) => set({ notificationsEnabled: enabled }),
       setFontSize: (fontSize) => set({ fontSize }),
       setLanguage: (language) => set({ language }),
       setMirrorGoalsEnabled: (mirrorGoalsEnabled) => set({ mirrorGoalsEnabled }),
       setMirrorHabitsEnabled: (mirrorHabitsEnabled) => set({ mirrorHabitsEnabled }),
+      setCalendarConnectDismissed: (calendarConnectDismissed) =>
+        set({ calendarConnectDismissed }),
       setTheme: (theme) => {
         set({ theme });
         void AsyncStorage.setItem(THEME_MODE_KEY, theme);

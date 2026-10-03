@@ -20,6 +20,10 @@ export const calendar = {
     'calendar.newDeliveryPlaceholder': 'Ej. Entregar informe',
     'calendar.titleRequired': 'Escribe un título',
     'calendar.untitledEvent': 'Evento sin título',
+    'calendar.showMonth': 'Ver mes completo',
+    'calendar.showLess': 'Ver menos',
+    'calendar.dismiss': 'Descartar',
+    'calendar.connectGhost': 'Traer eventos de Google',
   },
   en: {
     'calendar.connectTitle': 'Bring in your calendar when you need it',
@@ -42,5 +46,9 @@ export const calendar = {
     'calendar.newDeliveryPlaceholder': 'E.g. Submit report',
     'calendar.titleRequired': 'Enter a title',
     'calendar.untitledEvent': 'Untitled event',
+    'calendar.showMonth': 'Show full month',
+    'calendar.showLess': 'Show less',
+    'calendar.dismiss': 'Dismiss',
+    'calendar.connectGhost': 'Bring Google events',
   },
 } as const;

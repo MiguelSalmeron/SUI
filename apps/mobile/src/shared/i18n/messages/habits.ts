@@ -26,6 +26,8 @@ export const habits = {
     'habits.actionsLabel': 'Acciones para {title}',
     'habits.editLabel': 'Editar {title}',
     'habits.editHint': 'Abre formulario de edición de hábito',
+    'habits.missing': 'Ese hábito ya no existe',
+    'habits.missingBody': 'Probablemente se eliminó antes. La agenda ya está al día.',
   },
   en: {
     'habits.title': 'Habits',
@@ -54,5 +56,7 @@ export const habits = {
     'habits.actionsLabel': 'Actions for {title}',
     'habits.editLabel': 'Edit {title}',
     'habits.editHint': 'Opens habit editing form',
+    'habits.missing': 'That habit no longer exists',
+    'habits.missingBody': 'It was likely deleted earlier. Your agenda is already up to date.',
   },
 } as const;

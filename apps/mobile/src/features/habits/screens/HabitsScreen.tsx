@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -55,6 +55,16 @@ export const HabitsScreen = () => {
   const [formVisible, setFormVisible] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [followUpHabitId, setFollowUpHabitId] = useState<string | null>(null);
+  // Retorno a origen: evita varar al usuario fuera de Agenda/Inicio.
+  const returnToRef = useRef<keyof import('@/shared/navigation/types').MainTabParamList | null>(
+    null,
+  );
+  const closeAndReturn = () => {
+    const destination = returnToRef.current;
+    returnToRef.current = null;
+    if (destination === 'Overview' || destination === 'Calendar')
+      navigation.navigate(destination);
+  };
   const commitments = useAccountabilityStore((state) => state.commitments);
   const followUpHabit = habits.find((habit) => habit.id === followUpHabitId) ?? null;
   const followUpCommitment = followUpHabit
@@ -65,20 +75,29 @@ export const HabitsScreen = () => {
 
   useEffect(() => {
     if (!route.params?.create) return;
+    if (route.params?.returnTo) returnToRef.current = route.params.returnTo;
     setEditingHabit(null);
     setFormVisible(true);
-    navigation.setParams({ create: undefined });
-  }, [navigation, route.params?.create]);
+    navigation.setParams({ create: undefined, returnTo: undefined });
+  }, [navigation, route.params?.create, route.params?.returnTo]);
 
   useEffect(() => {
     const editId = route.params?.editId;
     if (!editId) return;
+    if (route.params?.returnTo) returnToRef.current = route.params.returnTo;
     const habit = habits.find((item) => item.id === editId);
-    navigation.setParams({ editId: undefined });
-    if (!habit) return;
+    navigation.setParams({ editId: undefined, returnTo: undefined });
+    if (!habit) {
+      // Aviso en vez de silencio: el botón en agenda parecía roto si no pasaba nada.
+      Alert.alert(t('habits.missing'), t('habits.missingBody'), [
+        { text: t('common.close') },
+      ]);
+      returnToRef.current = null;
+      return;
+    }
     setEditingHabit(habit);
     setFormVisible(true);
-  }, [habits, navigation, route.params?.editId]);
+  }, [habits, navigation, t, route.params?.editId, route.params?.returnTo]);
 
   const todayHabits = useMemo(() => habits.filter((habit) => isHabitDueToday(habit)), [habits]);
   const completedToday = todayHabits.filter((habit) => habit.completed).length;
@@ -283,6 +302,7 @@ export const HabitsScreen = () => {
           setFormVisible(false);
           setEditingHabit(null);
           setFilter('today');
+          closeAndReturn();
           void (async () => {
             const state = useProductivityStore.getState();
             for (const job of collectMirrorCandidates(
@@ -298,6 +318,7 @@ export const HabitsScreen = () => {
         onCancel={() => {
           setFormVisible(false);
           setEditingHabit(null);
+          closeAndReturn();
         }}
       />
       {PRODUCT_CONFIG.accountabilityEnabled ? (

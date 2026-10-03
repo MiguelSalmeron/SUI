@@ -1,8 +1,9 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { Alert } from 'react-native';
 import type { Goal } from '@/shared/types/models';
 
-const mockNavigation = { setParams: jest.fn() };
-let mockRouteParams: { create?: boolean; editId?: string } | undefined;
+const mockNavigation = { setParams: jest.fn(), navigate: jest.fn() };
+let mockRouteParams: { create?: boolean; editId?: string; returnTo?: string } | undefined;
 let mockFormProps: { visible: boolean; initialGoal: Goal | null } | undefined;
 const mockGoals: Goal[] = Array.from({ length: 250 }, (_, index) => ({
   id: `goal-${index}`,
@@ -63,12 +64,20 @@ jest.mock('@/features/accountability/public', () => ({
     selector({ commitments: [] }),
 }));
 jest.mock('../../components/GoalFormModal', () => ({
-  GoalFormModal: (props: { visible: boolean; initialGoal: Goal | null }) => {
+  GoalFormModal: (props: {
+    visible: boolean;
+    initialGoal: Goal | null;
+    onCancel?: () => void;
+  }) => {
     const React = require('react');
     const { Text } = require('react-native');
     mockFormProps = props;
     return props.visible
-      ? React.createElement(Text, { testID: 'goal-form' }, props.initialGoal?.id ?? 'create')
+      ? React.createElement(
+          Text,
+          { testID: 'goal-form', onPress: props.onCancel },
+          props.initialGoal?.id ?? 'create',
+        )
       : null;
   },
 }));
@@ -95,7 +104,10 @@ describe('GoalsScreen', () => {
 
     await waitFor(() => expect(screen.getByTestId('goal-form').props.children).toBe('goal-42'));
     expect(mockFormProps?.initialGoal?.id).toBe('goal-42');
-    expect(mockNavigation.setParams).toHaveBeenCalledWith({ editId: undefined });
+    expect(mockNavigation.setParams).toHaveBeenCalledWith({
+      editId: undefined,
+      returnTo: undefined,
+    });
   });
 
   it('tap área principal abre edición', async () => {
@@ -103,5 +115,29 @@ describe('GoalsScreen', () => {
     fireEvent.press(screen.getAllByRole('button', { name: 'goals.editLabel' })[0]);
     await waitFor(() => expect(screen.getByTestId('goal-form')).toBeTruthy());
     expect(mockFormProps?.initialGoal?.id).toBe('goal-0');
+  });
+
+  it('retorna a Calendar al cerrar con returnTo', async () => {
+    mockRouteParams = { editId: 'goal-7', returnTo: 'Calendar' };
+    const screen = await render(<GoalsScreen />);
+    await waitFor(() => expect(screen.getByTestId('goal-form')).toBeTruthy());
+    fireEvent.press(screen.getByTestId('goal-form'));
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('Calendar');
+  });
+
+  it('limpia retorno si editId no existe', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    mockRouteParams = { editId: 'goal-fantasma', returnTo: 'Calendar' };
+    const screen = await render(<GoalsScreen />);
+    await waitFor(() =>
+      expect(mockNavigation.setParams).toHaveBeenCalledWith({
+        editId: undefined,
+        returnTo: undefined,
+      }),
+    );
+    expect(screen.queryByTestId('goal-form')).toBeNull();
+    expect(mockNavigation.navigate).not.toHaveBeenCalledWith('Calendar');
+    expect(alertSpy).toHaveBeenCalledWith('goals.missing', 'goals.missingBody', expect.anything());
+    alertSpy.mockRestore();
   });
 });

@@ -32,6 +32,8 @@ export const goals = {
     'goals.actionsLabel': 'Acciones para {title}',
     'goals.editLabel': 'Editar {title}',
     'goals.editHint': 'Abre formulario de edición de meta',
+    'goals.missing': 'Esa meta ya no existe',
+    'goals.missingBody': 'Probablemente se eliminó antes. La agenda ya está al día.',
   },
   en: {
     'goals.title': 'Goals',
@@ -66,5 +68,7 @@ export const goals = {
     'goals.actionsLabel': 'Actions for {title}',
     'goals.editLabel': 'Edit {title}',
     'goals.editHint': 'Opens goal editing form',
+    'goals.missing': 'That goal no longer exists',
+    'goals.missingBody': 'It was likely deleted earlier. Your agenda is already up to date.',
   },
 } as const;

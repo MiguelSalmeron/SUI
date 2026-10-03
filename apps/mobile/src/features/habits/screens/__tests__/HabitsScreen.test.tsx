@@ -1,8 +1,9 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { Alert } from 'react-native';
 import type { Habit } from '@/shared/types/models';
 
-const mockNavigation = { setParams: jest.fn() };
-let mockRouteParams: { create?: boolean; editId?: string } | undefined;
+const mockNavigation = { setParams: jest.fn(), navigate: jest.fn() };
+let mockRouteParams: { create?: boolean; editId?: string; returnTo?: string } | undefined;
 let mockFormProps: { visible: boolean; initialHabit: Habit | null } | undefined;
 const mockHabits: Habit[] = Array.from({ length: 250 }, (_, index) => ({
   id: `habit-${index}`,
@@ -62,12 +63,20 @@ jest.mock('@/features/accountability/public', () => ({
     selector({ commitments: [] }),
 }));
 jest.mock('../../components/HabitFormModal', () => ({
-  HabitFormModal: (props: { visible: boolean; initialHabit: Habit | null }) => {
+  HabitFormModal: (props: {
+    visible: boolean;
+    initialHabit: Habit | null;
+    onCancel?: () => void;
+  }) => {
     const React = require('react');
     const { Text } = require('react-native');
     mockFormProps = props;
     return props.visible
-      ? React.createElement(Text, { testID: 'habit-form' }, props.initialHabit?.id ?? 'create')
+      ? React.createElement(
+          Text,
+          { testID: 'habit-form', onPress: props.onCancel },
+          props.initialHabit?.id ?? 'create',
+        )
       : null;
   },
 }));
@@ -94,7 +103,10 @@ describe('HabitsScreen', () => {
 
     await waitFor(() => expect(screen.getByTestId('habit-form').props.children).toBe('habit-42'));
     expect(mockFormProps?.initialHabit?.id).toBe('habit-42');
-    expect(mockNavigation.setParams).toHaveBeenCalledWith({ editId: undefined });
+    expect(mockNavigation.setParams).toHaveBeenCalledWith({
+      editId: undefined,
+      returnTo: undefined,
+    });
   });
 
   it('checkbox conserva acción sin abrir edición', async () => {
@@ -109,5 +121,33 @@ describe('HabitsScreen', () => {
     fireEvent.press(screen.getAllByRole('button', { name: 'habits.editLabel' })[0]);
     await waitFor(() => expect(screen.getByTestId('habit-form')).toBeTruthy());
     expect(mockFormProps?.initialHabit?.id).toBe('habit-0');
+  });
+
+  it('retorna a Calendar al cerrar con returnTo', async () => {
+    mockRouteParams = { editId: 'habit-7', returnTo: 'Calendar' };
+    const screen = await render(<HabitsScreen />);
+    await waitFor(() => expect(screen.getByTestId('habit-form')).toBeTruthy());
+    fireEvent.press(screen.getByTestId('habit-form'));
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('Calendar');
+  });
+
+  it('limpia retorno si editId no existe', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    mockRouteParams = { editId: 'habit-fantasma', returnTo: 'Calendar' };
+    const screen = await render(<HabitsScreen />);
+    await waitFor(() =>
+      expect(mockNavigation.setParams).toHaveBeenCalledWith({
+        editId: undefined,
+        returnTo: undefined,
+      }),
+    );
+    expect(screen.queryByTestId('habit-form')).toBeNull();
+    expect(mockNavigation.navigate).not.toHaveBeenCalledWith('Calendar');
+    expect(alertSpy).toHaveBeenCalledWith(
+      'habits.missing',
+      'habits.missingBody',
+      expect.anything(),
+    );
+    alertSpy.mockRestore();
   });
 });

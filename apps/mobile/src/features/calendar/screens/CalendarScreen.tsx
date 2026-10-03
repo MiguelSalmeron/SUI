@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Animated, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import {
   SCREEN_CONTENT_BOTTOM_PADDING,
@@ -23,6 +23,8 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { MainTabParamList, RootStackParamList } from '@/shared/navigation/types';
 import { useI18n } from '@/shared/i18n/i18n';
+import { useSettingsStore } from '@/shared/preferences/useSettingsStore';
+import { useReduceMotion } from '@/shared/ui/motion/useReduceMotion';
 
 export const CalendarScreen = () => {
   const theme = useAppTheme();
@@ -52,7 +54,34 @@ export const CalendarScreen = () => {
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
   const [addGoalModalVisible, setAddGoalModalVisible] = useState(false);
-  const [goalGravity] = useState<GoalGravity>('low');
+  // La entrega rápida nace siempre normal: la importancia se ajusta en Metas,
+  // no en la hoja de creación. Constante a propósito, no estado.
+  const goalGravity: GoalGravity = 'low';
+  // Agenda primero: 2 semanas por defecto, mes bajo demanda. Liviano en 320dp.
+  const [expanded, setExpanded] = useState(false);
+  // Descarte persistido: si el usuario la oculta, no vuelve al volver a la tab.
+  const connectDismissed = useSettingsStore((s) => s.calendarConnectDismissed);
+  const setConnectDismissed = useSettingsStore((s) => s.setCalendarConnectDismissed);
+  const reduceMotion = useReduceMotion();
+  const gridFade = useRef(new Animated.Value(1)).current;
+  const listFade = useRef(new Animated.Value(1)).current;
+
+  // Continuidad visual: fundido corto solo ante acción real (cambiar ventana,
+  // día o expandir). Nunca al montar: movimiento sin causa se lee como parpadeo.
+  const pulseContinuity = (target: Animated.Value) => {
+    if (reduceMotion) return;
+    target.setValue(0.35);
+    Animated.timing(target, {
+      toValue: 1,
+      duration: theme.motion.duration.short4,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const toggleExpanded = () => {
+    setExpanded((value) => !value);
+    pulseContinuity(gridFade);
+  };
 
   const calendarDays = useMemo(() => {
     const first = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
@@ -67,18 +96,29 @@ export const CalendarScreen = () => {
       const dayGoals = goals.filter(
         (goal) => goal.deadline === key || goal.impactDays?.includes(key),
       );
+      const dayGoogle = googleEvents.filter((event) => event.date === key);
+      const total = dayGoals.length + dayGoogle.length;
       return {
         date,
         key,
         number: date.getDate(),
         inMonth: date.getMonth() === visibleMonth.getMonth(),
         isToday: key === todayKey,
-        hasGoal: dayGoals.length > 0,
-        hasImportantGoal: dayGoals.some((goal) => goal.gravity === 'high'),
-        hasGoogleEvent: googleEvents.some((event) => event.date === key),
+        total,
+        important: dayGoals.some((goal) => goal.gravity === 'high'),
       };
     });
   }, [visibleMonth, goals, googleEvents, todayKey]);
+
+  // Solo 2 semanas alrededor del día seleccionado por defecto. Menos ruido,
+  // celdas tocables en 320dp. Mes completo solo bajo demanda.
+  const visibleDays = useMemo(() => {
+    if (expanded) return calendarDays;
+    const selectedIndex = calendarDays.findIndex((day) => day.key === selectedDate);
+    const anchor = selectedIndex < 0 ? 0 : selectedIndex;
+    const weekStart = Math.floor(anchor / 7) * 7;
+    return calendarDays.slice(weekStart, weekStart + 14);
+  }, [calendarDays, expanded, selectedDate]);
 
   const selectedDayInfo = useMemo(() => {
     const parts = selectedDate.split('-').map(Number);
@@ -94,8 +134,16 @@ export const CalendarScreen = () => {
 
   const moveMonth = (delta: number) => {
     const next = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + delta, 1);
+    // Conservar ancla: mismo número de día, no salto al día 1. Evita desorientar.
+    const anchorDay = Number(selectedDate.split('-')[2] || '1');
+    const lastDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+    const clamped = Math.min(Math.max(anchorDay, 1), lastDay);
+    const pad = (value: number) => String(value).padStart(2, '0');
+    const nextSelected = `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(clamped)}`;
     setVisibleMonth(next);
-    setSelectedDate(localDateKey(next));
+    setSelectedDate(nextSelected);
+    pulseContinuity(gridFade);
+    pulseContinuity(listFade);
   };
 
   const selectDay = (date: Date, key: string) => {
@@ -103,6 +151,15 @@ export const CalendarScreen = () => {
     if (date.getMonth() !== visibleMonth.getMonth()) {
       setVisibleMonth(new Date(date.getFullYear(), date.getMonth(), 1));
     }
+    pulseContinuity(listFade);
+  };
+
+  const goToday = () => {
+    const today = new Date();
+    setVisibleMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+    setSelectedDate(todayKey);
+    pulseContinuity(gridFade);
+    pulseContinuity(listFade);
   };
 
   const totalForSelectedDay =
@@ -129,24 +186,7 @@ export const CalendarScreen = () => {
           <>
             <ScreenIntro title={t('calendar.title')} subtitle={t('calendar.subtitle')} />
 
-            {!calendarConnected ? (
-              <TouchableOpacity
-                style={styles.connectionCta}
-                onPress={() => navigation.navigate('Connections')}
-                accessibilityRole="button"
-              >
-                <View style={styles.connectionIcon}>
-                  <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-                </View>
-                <View style={styles.connectionCopy}>
-                  <Text style={styles.connectionTitle}>{t('calendar.connectTitle')}</Text>
-                  <Text style={styles.connectionStatus}>{t('calendar.connectBody')}</Text>
-                </View>
-                <Text style={styles.connectionAction}>{t('calendar.connectAction')}</Text>
-              </TouchableOpacity>
-            ) : null}
-
-            <View style={styles.calendarCard}>
+            <Animated.View style={[styles.calendarCard, { opacity: gridFade }]}>
               <View style={styles.monthHeader}>
                 <TouchableOpacity
                   style={styles.monthButton}
@@ -164,11 +204,9 @@ export const CalendarScreen = () => {
                   visibleMonth.getFullYear() !== new Date().getFullYear() ? (
                     <TouchableOpacity
                       style={styles.todayButton}
-                      onPress={() => {
-                        const today = new Date();
-                        setVisibleMonth(new Date(today.getFullYear(), today.getMonth(), 1));
-                        setSelectedDate(todayKey);
-                      }}
+                      onPress={goToday}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('calendar.backToday')}
                     >
                       <Text style={styles.todayLink}>{t('calendar.backToday')}</Text>
                     </TouchableOpacity>
@@ -193,8 +231,15 @@ export const CalendarScreen = () => {
               </View>
 
               <View style={styles.grid}>
-                {calendarDays.map((day) => {
+                {visibleDays.map((day) => {
                   const selected = day.key === selectedDate;
+                  const dayLabel = formatDate(day.date, {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                  });
+                  const dayCountLabel =
+                    day.total === 1 ? t('calendar.activity') : t('calendar.activities');
                   return (
                     <TouchableOpacity
                       key={day.key}
@@ -203,11 +248,7 @@ export const CalendarScreen = () => {
                       activeOpacity={0.72}
                       accessibilityRole="button"
                       accessibilityState={{ selected }}
-                      accessibilityLabel={formatDate(day.date, {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long',
-                      })}
+                      accessibilityLabel={`${dayLabel}, ${day.total} ${dayCountLabel}`}
                     >
                       <Text
                         style={[
@@ -220,36 +261,55 @@ export const CalendarScreen = () => {
                         {day.number}
                       </Text>
                       <View style={styles.indicatorRow}>
-                        {day.hasGoogleEvent ? (
-                          <View
-                            style={[
-                              styles.indicator,
-                              { backgroundColor: selected ? colors.onPrimary : colors.primary },
-                            ]}
-                          />
-                        ) : null}
-                        {day.hasGoal ? (
-                          <View
-                            style={[
-                              styles.indicator,
-                              {
-                                backgroundColor: selected
-                                  ? colors.onPrimary
-                                  : day.hasImportantGoal
-                                    ? colors.flame
-                                    : colors.secondary,
-                              },
-                            ]}
-                          />
+                        {day.total > 0 ? (
+                          <>
+                            <View
+                              style={[
+                                styles.indicator,
+                                {
+                                  backgroundColor: selected
+                                    ? colors.onPrimary
+                                    : day.important
+                                      ? colors.flame
+                                      : colors.secondary,
+                                },
+                              ]}
+                            />
+                            {day.total > 1 ? (
+                              <Text
+                                style={[
+                                  styles.indicatorCount,
+                                  selected && styles.indicatorCountSelected,
+                                ]}
+                              >
+                                {day.total}
+                              </Text>
+                            ) : null}
+                          </>
                         ) : null}
                       </View>
                     </TouchableOpacity>
                   );
                 })}
               </View>
-            </View>
+              <TouchableOpacity
+                style={styles.expandButton}
+                onPress={toggleExpanded}
+                accessibilityRole="button"
+                accessibilityState={{ expanded }}
+              >
+                <Text style={styles.expandText}>
+                  {expanded ? t('calendar.showLess') : t('calendar.showMonth')}
+                </Text>
+                <Ionicons
+                  name={expanded ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+            </Animated.View>
 
-            <View style={styles.detailHeader}>
+            <Animated.View style={[styles.detailHeader, { opacity: listFade }]}>
               <View style={styles.detailHeaderCopy}>
                 <Text style={styles.detailTitle}>
                   {formatDate(new Date(`${selectedDate}T00:00:00`), {
@@ -271,7 +331,7 @@ export const CalendarScreen = () => {
               >
                 <Ionicons name="add" size={20} color={colors.onPrimary} />
               </TouchableOpacity>
-            </View>
+            </Animated.View>
           </>
         }
         ListEmptyComponent={
@@ -279,6 +339,54 @@ export const CalendarScreen = () => {
             <SuiDoodle variant="calendar" size={58} color={colors.secondary} />
             <Text style={styles.emptyText}>{t('calendar.freeDay')}</Text>
           </View>
+        }
+        ListFooterComponent={
+          !calendarConnected && !connectDismissed ? (
+            totalForSelectedDay === 0 ? (
+              <View style={styles.ghostRow}>
+                <TouchableOpacity
+                  style={styles.ghostMain}
+                  onPress={() => navigation.navigate('Connections')}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('calendar.connectGhost')}
+                >
+                  <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                  <View style={styles.ghostCopy}>
+                    <Text style={styles.ghostTitle}>{t('calendar.connectTitle')}</Text>
+                    <Text style={styles.ghostBody}>{t('calendar.connectBody')}</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.ghostDismiss}
+                  onPress={() => setConnectDismissed(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('calendar.dismiss')}
+                >
+                  <Ionicons name="close" size={16} color={colors.onSurfaceVariant} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.ghostCompact}>
+                <TouchableOpacity
+                  style={styles.ghostMain}
+                  onPress={() => navigation.navigate('Connections')}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('calendar.connectGhost')}
+                >
+                  <Ionicons name="calendar-outline" size={17} color={colors.primary} />
+                  <Text style={styles.ghostText}>{t('calendar.connectGhost')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.ghostDismiss}
+                  onPress={() => setConnectDismissed(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('calendar.dismiss')}
+                >
+                  <Ionicons name="close" size={16} color={colors.onSurfaceVariant} />
+                </TouchableOpacity>
+              </View>
+            )
+          ) : null
         }
         renderItem={({ item: entry }) => {
           if (entry.kind === 'google') {
@@ -306,7 +414,9 @@ export const CalendarScreen = () => {
                 backgroundColor={
                   entry.item.gravity === 'high' ? colors.flameContainer : colors.primaryContainer
                 }
-                onPress={() => navigation.navigate('Goals', { editId: entry.item.id })}
+                onPress={() =>
+                  navigation.navigate('Goals', { editId: entry.item.id, returnTo: 'Calendar' })
+                }
               />
             );
           }
@@ -317,7 +427,9 @@ export const CalendarScreen = () => {
               meta={t('calendar.habitRepeat')}
               color={colors.secondary}
               backgroundColor={colors.secondaryContainer}
-              onPress={() => navigation.navigate('Habits', { editId: entry.item.id })}
+              onPress={() =>
+                navigation.navigate('Habits', { editId: entry.item.id, returnTo: 'Calendar' })
+              }
             />
           );
         }}
@@ -386,70 +498,6 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       paddingTop: SPACING.sm,
       paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING,
     },
-    connectionCta: {
-      minHeight: 66,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACING.sm,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-      borderRadius: radius.lg,
-      padding: SPACING.sm,
-      marginBottom: SPACING.xs,
-    },
-    connectionIcon: {
-      width: 42,
-      height: 42,
-      borderRadius: 21,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.primaryContainer,
-    },
-    connectionCopy: { flex: 1 },
-    connectionTitle: { ...type.titleSm, color: colors.onSurface },
-    statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 1 },
-    statusDot: { width: 6, height: 6, borderRadius: 3 },
-    connectionStatus: { ...type.bodySm, color: colors.onSurfaceVariant },
-    connectionAction: {
-      ...type.labelMd,
-      color: colors.primary,
-      flexShrink: 1,
-      textAlign: 'right',
-    },
-    syncButton: {
-      minHeight: 40,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 5,
-      borderRadius: 20,
-      backgroundColor: colors.primaryContainer,
-      paddingHorizontal: SPACING.md,
-    },
-    syncButtonDisabled: { opacity: 0.48 },
-    syncButtonText: { ...type.labelMd, color: colors.primary },
-    connectionMessage: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      gap: SPACING.sm,
-      paddingHorizontal: SPACING.sm,
-      marginBottom: SPACING.md,
-    },
-    connectionMessageText: { ...type.bodySm, color: colors.onSurfaceVariant, flex: 1 },
-    disconnectText: { ...type.labelSm, color: colors.error },
-    lastSyncText: {
-      ...type.bodySm,
-      color: colors.onSurfaceVariant,
-      flex: 1,
-    },
-    connectionFooter: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACING.sm,
-      marginHorizontal: SPACING.sm,
-      marginBottom: SPACING.md,
-    },
     calendarCard: {
       backgroundColor: colors.surface,
       borderWidth: 1,
@@ -498,8 +546,26 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     dayNumberOutside: { color: colors.outline },
     dayNumberToday: { color: colors.primary },
     dayNumberSelected: { color: colors.onPrimary },
-    indicatorRow: { height: 5, flexDirection: 'row', gap: 2, marginTop: 2 },
-    indicator: { width: 4, height: 4, borderRadius: 2 },
+    indicatorRow: {
+      height: 16,
+      flexDirection: 'row',
+      gap: 3,
+      marginTop: 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    indicator: { width: 6, height: 6, borderRadius: 3 },
+    indicatorCount: { ...type.labelSm, color: colors.onSurfaceVariant },
+    indicatorCountSelected: { color: colors.onPrimary },
+    expandButton: {
+      minHeight: 44,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 4,
+      marginTop: SPACING.xs,
+    },
+    expandText: { ...type.labelMd, color: colors.primary },
     detailHeader: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -527,6 +593,40 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       gap: SPACING.sm,
     },
     emptyText: { ...type.bodyMd, color: colors.onSurfaceVariant },
+    ghostRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: radius.lg,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.sm,
+      marginTop: SPACING.sm,
+    },
+    ghostMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+    ghostCopy: { flex: 1, gap: 2 },
+    ghostTitle: { ...type.titleSm, color: colors.onSurface },
+    ghostBody: { ...type.bodySm, color: colors.onSurfaceVariant },
+    ghostText: { ...type.labelMd, color: colors.primary, flex: 1 },
+    ghostDismiss: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    ghostCompact: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.outlineVariant,
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: SPACING.xs,
+      marginTop: SPACING.sm,
+    },
     dayRow: {
       flexDirection: 'row',
       alignItems: 'center',

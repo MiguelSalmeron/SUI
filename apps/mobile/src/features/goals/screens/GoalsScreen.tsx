@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -60,6 +60,16 @@ export const GoalsScreen = () => {
   const [milestoneGoalId, setMilestoneGoalId] = useState<string | null>(null);
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
   const [followUpGoalId, setFollowUpGoalId] = useState<string | null>(null);
+  // Retorno a origen (Agenda/Inicio): evita dejar al usuario varado en otra tab.
+  const returnToRef = useRef<keyof import('@/shared/navigation/types').MainTabParamList | null>(
+    null,
+  );
+  const closeAndReturn = () => {
+    const destination = returnToRef.current;
+    returnToRef.current = null;
+    if (destination === 'Overview' || destination === 'Calendar')
+      navigation.navigate(destination);
+  };
   const commitments = useAccountabilityStore((state) => state.commitments);
   const followUpGoal = goals.find((goal) => goal.id === followUpGoalId) ?? null;
   const followUpCommitment = followUpGoal
@@ -70,20 +80,29 @@ export const GoalsScreen = () => {
 
   useEffect(() => {
     if (!route.params?.create) return;
+    if (route.params?.returnTo) returnToRef.current = route.params.returnTo;
     setEditingGoal(null);
     setFormVisible(true);
-    navigation.setParams({ create: undefined });
-  }, [navigation, route.params?.create]);
+    navigation.setParams({ create: undefined, returnTo: undefined });
+  }, [navigation, route.params?.create, route.params?.returnTo]);
 
   useEffect(() => {
     const editId = route.params?.editId;
     if (!editId) return;
+    if (route.params?.returnTo) returnToRef.current = route.params.returnTo;
     const goal = goals.find((item) => item.id === editId);
-    navigation.setParams({ editId: undefined });
-    if (!goal) return;
+    navigation.setParams({ editId: undefined, returnTo: undefined });
+    if (!goal) {
+      // Aviso en vez de silencio: el botón en agenda parecía roto si no pasaba nada.
+      Alert.alert(t('goals.missing'), t('goals.missingBody'), [
+        { text: t('common.close') },
+      ]);
+      returnToRef.current = null;
+      return;
+    }
     setEditingGoal(goal);
     setFormVisible(true);
-  }, [goals, navigation, route.params?.editId]);
+  }, [goals, navigation, t, route.params?.editId, route.params?.returnTo]);
 
   const activeGoals = useMemo(
     () =>
@@ -353,6 +372,7 @@ export const GoalsScreen = () => {
           setFormVisible(false);
           setEditingGoal(null);
           setFilter('active');
+          closeAndReturn();
           void (async () => {
             const state = useProductivityStore.getState();
             for (const job of collectMirrorCandidates(
@@ -368,6 +388,7 @@ export const GoalsScreen = () => {
         onCancel={() => {
           setFormVisible(false);
           setEditingGoal(null);
+          closeAndReturn();
         }}
       />
       <PromptModal
