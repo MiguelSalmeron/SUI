@@ -1,4 +1,5 @@
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { FocusTarget } from '@/shared/focus/focusTypes';
 
 export type MainTabParamList = {
   Overview: undefined;
@@ -10,8 +11,8 @@ export type MainTabParamList = {
 export type RootStackParamList = {
   Welcome: undefined;
   Home: undefined;
-  Chat: undefined;
-  Pomodoro: undefined;
+  Chat: { prefill?: string } | undefined;
+  Pomodoro: { target?: FocusTarget } | undefined;
   Progress: undefined;
   Settings: undefined;
   Login: undefined;
