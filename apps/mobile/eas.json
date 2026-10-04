@@ -24,6 +24,15 @@
         "EXPO_PUBLIC_APP_ENV": "staging"
       }
     },
+    "demo": {
+      "extends": "staging",
+      "channel": "demo",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "EXPO_PUBLIC_ACCOUNTABILITY_ENABLED": "false",
+        "EXPO_PUBLIC_ENGAGEMENT_ENABLED": "false"
+      }
+    },
     "production": {
       "environment": "production",
       "channel": "production",
