@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '@/features/auth/public';
+import { useDeferredStarterSeed } from '@/features/onboarding/public';
 import {
   NAV_BAR_HEIGHT,
   SPACING,
@@ -295,6 +296,9 @@ export const TabNavigator = () => {
   useEffect(() => {
     handleAuthUserChanged(user?.uid ?? null);
   }, [user?.uid, handleAuthUserChanged]);
+
+  // Va después del efecto de handleAuthUserChanged: la recarga por uid debe empezar antes de evaluar la siembra.
+  useDeferredStarterSeed(user?.uid ?? null);
 
   useReconcileAccountability(user?.uid ?? null, PRODUCT_CONFIG.accountabilityEnabled);
   useAccountabilityNotificationRouting(PRODUCT_CONFIG.accountabilityEnabled);

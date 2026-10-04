@@ -18,7 +18,6 @@ import { MOTION } from '@/shared/ui/motion/motionTokens';
 import { useReduceMotion } from '@/shared/ui/motion/useReduceMotion';
 import { recordTelemetry } from '@/shared/observability/telemetry';
 import { useIntroStore } from '../store/useIntroStore';
-import { useProductivityStore } from '@/shared/domain/productivity/public';
 import { AccountDecisionView } from '../components/AccountDecisionView';
 import { IntentionPicker } from '../components/IntentionPicker';
 import { OnboardingButton, OnboardingEntrance } from '../components/OnboardingMotion';
@@ -35,7 +34,6 @@ export const WelcomeScreen = ({ navigation }: Props) => {
   const acceptPolicy = useIntroStore((state) => state.acceptPolicy);
   const completeIntro = useIntroStore((state) => state.completeIntro);
   const setUserIntention = useIntroStore((state) => state.setUserIntention);
-  const seedStarterData = useProductivityStore((state) => state.seedStarterData);
   const { currentStep, totalSteps, selectedIntention, setSelectedIntention, goToStep } =
     useOnboardingFlow();
   const reduceMotion = useReduceMotion();
@@ -52,10 +50,6 @@ export const WelcomeScreen = ({ navigation }: Props) => {
       setTransitioning(true);
       if (step === 1) {
         setUserIntention(selectedIntention);
-        // La siembra va antes de la decisión de cuenta: la vista previa del
-        // picker ya la prometió, y hacerlo acá evita que quien entra por login
-        // (que se salta el paso 1) salga con Inicio vacío sin habérselo anunciado.
-        seedStarterData(selectedIntention, t);
       }
       const finish = () => {
         goToStep(step);
@@ -78,16 +72,7 @@ export const WelcomeScreen = ({ navigation }: Props) => {
         if (finished) finish();
       });
     },
-    [
-      currentStep,
-      exit,
-      goToStep,
-      reduceMotion,
-      seedStarterData,
-      selectedIntention,
-      setUserIntention,
-      t,
-    ],
+    [currentStep, exit, goToStep, reduceMotion, selectedIntention, setUserIntention],
   );
 
   useEffect(() => {
@@ -125,10 +110,6 @@ export const WelcomeScreen = ({ navigation }: Props) => {
   const handleOpenAuth = (route: 'Login' | 'Register') => {
     recordConsent();
     recordTelemetry('onboarding.account_open', { route });
-    // El enlace de login vive en el paso 0 y se salta el picker, así que la
-    // siembra no corrió. Sin esto ese usuario vería Inicio vacío pese a haber
-    // visto la vista previa prometida.
-    seedStarterData(selectedIntention, t);
     navigation.navigate(route);
   };
   const handleContinueLocal = () => {

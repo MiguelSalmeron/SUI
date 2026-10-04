@@ -38,11 +38,10 @@ jest.mock('expo-haptics', () => ({
   ImpactFeedbackStyle: { Light: 'light' },
 }));
 jest.mock('@/shared/observability/telemetry', () => ({ recordTelemetry: jest.fn() }));
-// El store de productividad arrastra Firebase y persistencia; la pantalla sólo
-// necesita la siembra y el catálogo de kits, que sí es puro.
+const mockSeedStarterData = jest.fn();
 jest.mock('@/shared/domain/productivity/public', () => ({
   useProductivityStore: (selector: (state: { seedStarterData: unknown }) => unknown) =>
-    selector({ seedStarterData: jest.fn() }),
+    selector({ seedStarterData: mockSeedStarterData }),
   STARTER_KITS: jest.requireActual('@/shared/domain/productivity/model/starterKits').STARTER_KITS,
 }));
 
@@ -130,6 +129,7 @@ describe('Onboarding sin valores animados en hosts comunes', () => {
       renderer?.unmount();
     });
     renderer = undefined;
+    expect(mockSeedStarterData).not.toHaveBeenCalled();
     jest.clearAllMocks();
   });
 
@@ -245,12 +245,23 @@ describe('Onboarding sin valores animados en hosts comunes', () => {
     await act(async () => {
       renderer = create(<WelcomeScreen navigation={navigation} route={route} />);
     });
-    // El CTA del paso 0 es el del picker de intención, que además siembra.
     pressButtonWithText(renderer!.root, 'onboarding.seed.confirm');
     pressButtonWithText(renderer!.root, text);
     expect((navigation as { navigate: jest.Mock }).navigate).toHaveBeenCalledWith(routeName);
     expect(useIntroStore.getState().consent?.minimumAgeConfirmed).toBe(true);
     expect(useIntroStore.getState().introComplete).toBe(false);
+  });
+
+  it('login directo conserva la intención sin sembrar antes de auth', async () => {
+    await act(async () => {
+      renderer = create(<WelcomeScreen navigation={navigation} route={route} />);
+    });
+    pressButtonWithText(renderer!.root, 'onboarding.intentions.habit');
+    pressButtonWithText(renderer!.root, 'welcome.loginAction');
+    expect((navigation as { navigate: jest.Mock }).navigate).toHaveBeenCalledWith('Login');
+    expect(useIntroStore.getState().userIntention).toBe('habit');
+    expect(useIntroStore.getState().introComplete).toBe(false);
+    expect(mockSeedStarterData).not.toHaveBeenCalled();
   });
 
   it('al colapsar offline reinicia reconocimiento', async () => {
