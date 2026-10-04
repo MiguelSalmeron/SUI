@@ -55,19 +55,25 @@ contadores en navegación.
 
 ### Bienvenida
 
-Orden:
+Dos pasos, contenido centrado hasta 560dp y safe areas:
 
-1. mosaico abstracto superior;
-2. isologo principal;
-3. `Cultiva tu vida`;
-4. descripción breve;
-5. `Crear cuenta`;
-6. `Ya tengo cuenta`;
-7. `Continuar sin cuenta`;
-8. aviso legal de mayoría de edad (18+), Términos y Privacidad.
+1. Bienvenida: marca compacta centrada, descripción breve,
+   intención elegible y CTA `Empezar con esto`. Cuatro filas de ancho completo
+   en ES/EN; descripción sólo en selección activa. Vista previa breve del kit
+   real, editable o descartable. CTA palpita suavemente con pausas; se detiene
+   al tocarlo, cambiar de pantalla o pasar a segundo plano. Con reducción de
+   movimiento queda estático.
+   Intención inicial `explore`, persistida al avanzar. Acceso secundario a login.
+2. Cuenta: valor de sincronización, `Crear cuenta` primario, `Ya tengo cuenta`
+   outline. Tarjeta visible `Probar sin cuenta`, colapsada por defecto. Al abrir,
+   explica pérdida de datos al borrar datos, desinstalar o perder dispositivo;
+   exige reconocimiento explícito antes de habilitar `Empezar sin cuenta`.
+   Consentimiento 18+, Términos y Privacidad al final.
 
-Mosaico representa Meta, Hábito, Agenda y Progreso sin fotografías, nombres,
-fechas ni ejemplos. Es decorativo y queda fuera de lector de pantalla.
+Mosaico representa Meta, Hábito, Agenda y Progreso sin datos reales; queda fuera
+del lector de pantalla. Selección marcada con borde, color y check. Controles
+de al menos 44dp, CTA de 52dp. Salida de paso 180ms, entrada 320ms, stagger
+de 60–90ms. Reduce-motion elimina desplazamientos, escalas y esperas.
 
 ### Auth
 

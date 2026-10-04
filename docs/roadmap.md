@@ -1,6 +1,7 @@
 # Roadmap operativo de Sui
 
 Alcance: [PRD](product/PRD.md). UX/UI: [sistema de diseño](product/DESIGN_SYSTEM.md).
+Evaluación externa: [entregables del Hackathon](product/HACKATHON_ENTREGABLES.md).
 
 ## Completado en código
 
@@ -8,6 +9,10 @@ Alcance: [PRD](product/PRD.md). UX/UI: [sistema de diseño](product/DESIGN_SYSTE
 - [x] Flujo de onboarding modular (FTUX) con intención declarada, animaciones nativas a 60fps y spotlight guiado contextual.
 - [x] Remediación de estabilidad: navegación hardware Android, blindaje Google Calendar local, clasificación offline precisa y escalado Cloud Function a 512MiB.
 - [x] Inicio vacío guiado; nuevos usuarios sin datos de ejemplo.
+- [x] Siembra de arranque según la intención elegida: el usuario entra a Inicio con
+      una meta o un hábito de ejemplo (nunca historial, nunca espejo a Google),
+      vista previa literal antes de confirmar y aviso con _Personalizar_ o
+      _Descartar_. Medido con `onboarding.first_action`.
 - [x] i18n ES/EN persistido.
 - [x] Auth correo, Google, Apple iOS e invitado técnico.
 - [x] Recuperación de contraseña y verificación por correo.

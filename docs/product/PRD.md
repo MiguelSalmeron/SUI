@@ -264,6 +264,7 @@ users/{uid}/connections/{provider}  # backend-only
 ## 11. Fuentes relacionadas
 
 - [Sistema de diseño](DESIGN_SYSTEM.md)
+- [Entregables del Hackathon](HACKATHON_ENTREGABLES.md)
 - [Arquitectura](../explanation/architecture.md)
 - [Privacidad y crisis](../explanation/privacy-and-crisis.md)
 - [Rollout productivo](../how-to/production-rollout.md)

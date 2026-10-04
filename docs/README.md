@@ -10,6 +10,8 @@ Auditada contra código y configuración: 28 de agosto de 2026.
 - [Arquitectura](explanation/architecture.md): límites técnicos y flujos.
 - [Roadmap](roadmap.md): estado y próximos gates.
 - [Plan de Accountability](product/ACCOUNTABILITY_PLAN.md): seguimiento personalizado, arquitectura, fases y criterios.
+- [Entregables del Hackathon](product/HACKATHON_ENTREGABLES.md): criterios de
+  evaluación externa por sprint, categoría Startup.
 
 Si documento contradice estas fuentes, PRD define producto; sistema de diseño
 define interfaz; ADR más reciente define decisión técnica.

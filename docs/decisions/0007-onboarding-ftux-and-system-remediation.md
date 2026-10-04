@@ -6,6 +6,7 @@
 ## Contexto
 
 El flujo inicial de la aplicación carecía de una experiencia guiada de primer uso (FTUX), presentando una bienvenida estática sin transiciones visuales ni captura de intención del estudiante. Además, la auditoría del sistema reveló:
+
 1. Falsos errores de reautenticación en Google Calendar para usuarios en modo local.
 2. Clasificación incorrecta de caídas de red en el sincronizador (TypeError sin propiedad `code`).
 3. Falta de interceptación del botón hardware "Atrás" de Android en pantallas modulares de bienvenida.
@@ -31,3 +32,37 @@ El flujo inicial de la aplicación carecía de una experiencia guiada de primer 
 - Reducción del agobio cognitivo inicial con una bienvenida fluida de 60fps.
 - Respeto total al principio local-first: los usuarios invitados operan sin advertencias espurias ni errores bloqueantes.
 - Mayor confiabilidad en entornos móviles con conectividad inestable o nula.
+
+## Actualización — 1 de octubre de 2026
+
+Acá el primer ingreso pasa a `welcome` → `account`. La intención se elige en
+bienvenida; `explore` cubre a quien todavía no decide. Cuenta ocupa el camino
+principal. Offline sigue visible, con aviso literal de pérdida local y check
+obligatorio sin preselección. Se conserva consentimiento, persistencia y merge
+existente; la educación extensa queda en Home y su foco de primer uso.
+
+## Actualización — siembra de arranque (1 de octubre de 2026)
+
+La intención elegida dejó de ser sólo un foco contextual: ahora decide qué
+aparece en Inicio. `STARTER_KITS` define un kit por intención y
+`seedStarterData` lo crea al confirmar.
+
+Reglas que gobiernan la decisión:
+
+1. **Se siembra forma, nunca historial.** Nada nace completado, con racha o con
+   XP. Una racha sembrada se rompe el día tres, cuando la real no existe, y la
+   app pasa de ally a engaño. El primer win tiene que ser genuino.
+2. **Nunca al espejo.** Todo lo sembrado nace con `mirrorToGoogle: false`
+   explícito, porque el default de metas es `true` y un ejemplo en el Google
+   Calendar real del usuario es un papelón.
+3. **Doble candado de idempotencia.** No siembra si `starterSeededAt` ya está
+   marcado ni si el usuario tiene metas o hábitos propios. Volver atrás no
+   duplica y un login con historial no recibe ejemplos encima. Descartar un
+   ejemplo no lo re-trae: la marca ya quedó puesta al crear.
+4. **La marca no viaja.** "Es un ejemplo" son IDs en el store local, no un
+   campo en `Goal`/`Habit`: ese contrato va al backend y al espejo, y ahí la
+   marca es ruido. Además no se vincula hábito con meta sembrados, porque el
+   bonus Antigravity sumaría avance que el usuario no generó.
+
+Consecuencia: `addGoal` y `addHabit` pasaron a devolver el ID creado o `null`
+en vez de `boolean`, para marcar sin leer el store por posición.
