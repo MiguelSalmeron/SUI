@@ -17,7 +17,7 @@ import {
 } from '@/shared/theme/theme';
 import { Skeleton } from '@/shared/ui/Skeleton';
 import { buildUnifiedTimeline, loadCachedGoogleEvents } from '@/features/calendar/public';
-import { PomodoroCard } from '@/features/pomodoro/public';
+import { PomodoroCard, usePomodoroStore } from '@/features/pomodoro/public';
 import type { GoogleEvent, TimelineItem } from '@/shared/types/models';
 import { localDateKey, useProductivityStore } from '@/shared/domain/productivity/public';
 import type { MainTabParamList, RootStackParamList } from '@/shared/navigation/types';
@@ -25,8 +25,11 @@ import { SuiDoodle } from '@/shared/ui/SuiDoodle';
 import { useI18n } from '@/shared/i18n/i18n';
 import type { TranslationKey } from '@/shared/i18n/translations';
 import { FirstRunSpotlight } from '../components/FirstRunSpotlight';
+import { ResumeNudge } from '../components/ResumeNudge';
 import { StarterSeedBanner } from '../components/StarterSeedBanner';
+import { TodayPlanCard } from '../components/TodayPlanCard';
 import { useFirstRunSpotlight } from '../hooks/useFirstRunSpotlight';
+import { buildDayPlan, type PlanStep } from '../model/dayPlan';
 
 type OverviewNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Overview'>,
@@ -53,6 +56,7 @@ export const OverviewScreen = () => {
   const habits = useProductivityStore((s) => s.habits);
   const streak = useProductivityStore((s) => s.streak);
   const totalXp = useProductivityStore((s) => s.totalXp);
+  const lastCompletedDate = useProductivityStore((s) => s.lastCompletedDate);
   const toggleHabit = useProductivityStore((s) => s.toggleHabit);
   const toggleGoal = useProductivityStore((s) => s.toggleGoal);
   const isSeeded = useProductivityStore((s) => s.isSeeded);
@@ -96,11 +100,34 @@ export const OverviewScreen = () => {
   const progress = actionableItems.length
     ? Math.round((completedCount / actionableItems.length) * 100)
     : 0;
-  const nextItem = timelineItems.find((item) => {
-    if (item.origin !== 'google_calendar') return !item.completed;
-    if (!item.startAt) return true;
-    return new Date(item.startAt).getTime() >= Date.now();
-  });
+  // Todavía no hay selector de energía ni de tiempo en Inicio: con los valores
+  // neutros el plan sale con su tope de 3 pasos. `todayKey` en las dependencias
+  // fuerza recalcular al cruzar la medianoche.
+  const dayPlan = useMemo(
+    () => buildDayPlan({ goals, habits, energy: 'normal', availableTime: null, now: new Date() }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [goals, habits, todayKey],
+  );
+
+  const focusStep = (step: PlanStep) => {
+    // Si ya corre una sesión no se le cambia el objetivo a media marcha: sólo
+    // se abre Pomodoro para que el usuario vea lo que tiene en curso.
+    const pomodoro = usePomodoroStore.getState();
+    if (pomodoro.running) {
+      navigation.navigate('Pomodoro');
+      return;
+    }
+    pomodoro.setFocusTarget(step.target);
+    navigation.navigate('Pomodoro', { target: step.target });
+  };
+
+  const openStep = (step: PlanStep) => {
+    if (step.target.kind === 'habit') {
+      navigation.navigate('Habits', { editId: step.target.habitId, returnTo: 'Overview' });
+    } else {
+      navigation.navigate('Goals', { editId: step.target.goalId, returnTo: 'Overview' });
+    }
+  };
 
   const handleToggleItem = (item: TimelineItem) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
@@ -220,65 +247,19 @@ export const OverviewScreen = () => {
                     }}
                   />
                 ) : null}
-                <View style={styles.focusCard}>
-                  {nextItem ? (
-                    <>
-                      <View style={styles.focusTopRow}>
-                        <View style={styles.focusLabel}>
-                          <View style={styles.pulseDot} />
-                          <Text style={styles.focusEyebrow}>{t('home.next')}</Text>
-                        </View>
-                        <Text style={styles.focusTime}>{nextItem.time ?? t('home.allDay')}</Text>
-                      </View>
-                      <TouchableOpacity
-                        onPress={() => openItem(nextItem)}
-                        disabled={nextItem.origin === 'google_calendar'}
-                        accessibilityRole={
-                          nextItem.origin === 'google_calendar' ? undefined : 'button'
-                        }
-                      >
-                        <Text style={styles.focusTitle} numberOfLines={2}>
-                          {nextItem.title || t('calendar.untitledEvent')}
-                        </Text>
-                      </TouchableOpacity>
-                      <View style={styles.focusFooter}>
-                        <View style={styles.originRow}>
-                          <Ionicons
-                            name={originPresentation(nextItem).icon}
-                            size={15}
-                            color={colors.onPrimaryContainer}
-                          />
-                          <Text style={styles.focusOrigin}>
-                            {t(originPresentation(nextItem).labelKey)}
-                          </Text>
-                        </View>
-                        {nextItem.origin !== 'google_calendar' ? (
-                          <TouchableOpacity
-                            style={styles.focusAction}
-                            onPress={() => handleToggleItem(nextItem)}
-                            accessibilityRole="button"
-                            accessibilityLabel={t('home.markDone', {
-                              title: nextItem.title || t('calendar.untitledEvent'),
-                            })}
-                          >
-                            <Ionicons name="checkmark" size={17} color={colors.onFlame} />
-                            <Text style={styles.focusActionText}>{t('home.done')}</Text>
-                          </TouchableOpacity>
-                        ) : null}
-                      </View>
-                    </>
-                  ) : (
-                    <View style={styles.clearDay}>
-                      <View style={styles.clearIcon}>
-                        <Ionicons name="checkmark" size={24} color={colors.onSecondaryContainer} />
-                      </View>
-                      <View style={styles.clearCopy}>
-                        <Text style={styles.clearTitle}>{t('home.clearTitle')}</Text>
-                        <Text style={styles.clearText}>{t('home.clearBody')}</Text>
-                      </View>
-                    </View>
-                  )}
-                </View>
+                {dayPlan[0] ? (
+                  <ResumeNudge
+                    lastCompletedDate={lastCompletedDate}
+                    onStart={() => focusStep(dayPlan[0]!)}
+                  />
+                ) : null}
+                <TodayPlanCard
+                  steps={dayPlan}
+                  onFocus={focusStep}
+                  onOpen={openStep}
+                  onCreateGoal={() => navigation.navigate('Goals', { create: true })}
+                  onFreeFocus={() => navigation.navigate('Pomodoro')}
+                />
                 <TouchableOpacity
                   style={styles.progressCard}
                   onPress={() => navigation.navigate('Progress')}
@@ -476,68 +457,6 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       gap: SPACING.sm,
     },
     firstRunSecondaryText: { ...type.labelLg, color: colors.onSecondaryContainer },
-    focusCard: {
-      minHeight: 158,
-      backgroundColor: colors.primaryContainer,
-      borderRadius: radius.xl,
-      padding: SPACING.lg,
-      justifyContent: 'space-between',
-      marginBottom: SPACING.md,
-    },
-    focusTopRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    focusLabel: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-    pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.flame },
-    focusEyebrow: {
-      ...type.labelSm,
-      color: colors.onPrimaryContainer,
-      letterSpacing: 1.2,
-    },
-    focusTime: { ...type.labelMd, color: colors.onPrimaryContainer, opacity: 0.72 },
-    focusTitle: {
-      ...type.titleLg,
-      color: colors.onPrimaryContainer,
-      marginVertical: SPACING.md,
-      maxWidth: 300,
-    },
-    focusFooter: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: SPACING.md,
-    },
-    originRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    focusOrigin: { ...type.bodySm, color: colors.onPrimaryContainer },
-    focusAction: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-      backgroundColor: colors.flame,
-      borderRadius: radius.full,
-      paddingHorizontal: SPACING.md,
-      minHeight: 44,
-    },
-    focusActionText: { ...type.labelLg, color: colors.onFlame },
-    clearDay: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
-    clearIcon: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.secondaryContainer,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    clearCopy: { flex: 1 },
-    clearTitle: { ...type.titleMd, color: colors.onPrimaryContainer },
-    clearText: {
-      ...type.bodySm,
-      color: colors.onPrimaryContainer,
-      opacity: 0.75,
-      marginTop: 2,
-    },
     progressCard: {
       backgroundColor: colors.surface,
       borderRadius: radius.lg,
