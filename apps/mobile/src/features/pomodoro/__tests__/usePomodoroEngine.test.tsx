@@ -57,6 +57,8 @@ describe('usePomodoroEngine', () => {
       dayKey: localDateKey(),
       sessions: 0,
       focusMinutes: 0,
+      focusTarget: null,
+      history: [],
     });
   });
 
