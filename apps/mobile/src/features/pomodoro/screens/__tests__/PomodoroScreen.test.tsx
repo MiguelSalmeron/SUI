@@ -1,7 +1,16 @@
 // `productivity/public` arrastra firebase (ESM) fuera del alcance de jest.
+// Se suma un stub del store para que la tarjeta de enfoque lea metas/hábitos sin Firebase.
 jest.mock('@/shared/domain/productivity/public', () => ({
   ...jest.requireActual('@/shared/domain/productivity/model/homeStorage'),
   ...jest.requireActual('@/shared/domain/productivity/store/useCelebrationStore'),
+  useProductivityStore: Object.assign(() => ({ goals: [], habits: [] }), {
+    getState: () => ({ goals: [], habits: [] }),
+  }),
+}));
+
+jest.mock('@react-navigation/native', () => ({
+  useRoute: () => ({ params: {} }),
+  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn(), getParent: () => null }),
 }));
 
 jest.mock('@/shared/observability/telemetry', () => ({

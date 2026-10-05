@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import {
   SCREEN_CONTENT_BOTTOM_PADDING,
@@ -14,6 +15,10 @@ import {
   getNotificationPermission,
   requestNotificationPermission,
 } from '@/shared/infrastructure/notifications';
+import { useProductivityStore } from '@/shared/domain/productivity/public';
+import type { RootStackParamList } from '@/shared/navigation/types';
+import { completeFocusTarget, resolveFocusTarget } from '@/shared/focus/completeFocusTarget';
+import { sameFocusTarget } from '@/shared/focus/focusFlow';
 import { usePomodoroEngine } from '../hooks/usePomodoroEngine';
 import {
   POMODORO_MAX_MINUTES,
@@ -29,12 +34,16 @@ const formatTime = (totalSeconds: number): string => {
   return `${minutes}:${seconds}`;
 };
 
+type PomodoroRoute = RouteProp<RootStackParamList, 'Pomodoro'>;
+
 export const PomodoroScreen = () => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { t } = useI18n();
   const engine = usePomodoroEngine();
+  const route = useRoute<PomodoroRoute>();
+  const navigation = useNavigation();
 
   const minutes = usePomodoroStore((s) => s.minutes);
   const notifyOnComplete = usePomodoroStore((s) => s.notifyOnComplete);
@@ -44,11 +53,37 @@ export const PomodoroScreen = () => {
   const targetEndTime = usePomodoroStore((s) => s.targetEndTime);
   const secondsLeft = usePomodoroStore((s) => s.secondsLeft);
   const sessions = usePomodoroStore((s) => s.sessions);
+  const focusTarget = usePomodoroStore((s) => s.focusTarget);
+
+  // Se suscribe a metas y hábitos para que el título enfocado se actualice
+  // cuando el paso se complete desde otra pantalla (Hoy, Metas, Hábitos).
+  useProductivityStore((s) => s.goals);
+  useProductivityStore((s) => s.habits);
 
   const [configVisible, setConfigVisible] = useState(false);
   const [notifyVisible, setNotifyVisible] = useState(false);
   const [notifyBusy, setNotifyBusy] = useState(false);
   const [notifyError, setNotifyError] = useState('');
+  // Guarda el resultado del toque en Marcar paso: así un doble toque no
+  // reintenta el dominio (que de por sí ya es idempotente).
+  const [targetResult, setTargetResult] = useState<string | null>(null);
+
+  // El parámetro de navegación sólo fija el objetivo en reposo: a media sesión
+  // se ignora para no mezclar pasos, y sin parámetro se conserva el guardado
+  // (cerrar/reabrir no pierde el target porque vive persistido en el store).
+  const routeTarget = route.params?.target ?? null;
+  useEffect(() => {
+    if (!routeTarget) return;
+    if (usePomodoroStore.getState().running) return;
+    if (sameFocusTarget(usePomodoroStore.getState().focusTarget, routeTarget)) return;
+    usePomodoroStore.getState().setFocusTarget(routeTarget);
+    setTargetResult(null);
+  }, [routeTarget]);
+
+  // Si cambia el objetivo (nuevo Enfocar o limpieza), se resetea el aviso local.
+  useEffect(() => {
+    setTargetResult(null);
+  }, [focusTarget]);
 
   const fullSeconds = minutes * 60;
   const remainingSeconds = running
@@ -76,6 +111,40 @@ export const PomodoroScreen = () => {
     sessions === 1
       ? t('pomodoro.sessionsTodayOne')
       : t('pomodoro.sessionsTodayMany', { count: sessions });
+
+  // Acá se lee el contexto mínimo del paso (título y meta madre) con la misma
+  // función que usa el resto de la app: nada de lógica duplicada.
+  const focusInfo = focusTarget ? resolveFocusTarget(focusTarget) : null;
+
+  const handleCompleteTarget = useCallback(() => {
+    const current = usePomodoroStore.getState().focusTarget;
+    if (!current) return;
+    // Si el dominio ya lo ve listo, no se reintenta: se refleja como listo.
+    const resolved = resolveFocusTarget(current);
+    if (resolved.status === 'done') {
+      setTargetResult('already_done');
+      return;
+    }
+    if (resolved.status === 'missing') {
+      setTargetResult('missing');
+      return;
+    }
+    setTargetResult(completeFocusTarget(current));
+  }, []);
+
+  const targetDone =
+    focusInfo?.status === 'done' || targetResult === 'completed' || targetResult === 'already_done';
+
+  const handleBackToday = useCallback(() => {
+    // Volver a Hoy muestra el estado ya actualizado: la sesión quedó en el
+    // historial y el paso (si se marcó) ya no sale como pendiente.
+    const parent = navigation.getParent();
+    if (parent) {
+      navigation.goBack();
+      return;
+    }
+    navigation.navigate('Home' as never);
+  }, [navigation]);
 
   // Al abrir, refleja revocaciones del permiso hechas en los ajustes del sistema.
   useEffect(() => {
@@ -147,6 +216,31 @@ export const PomodoroScreen = () => {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
+      <View testID="pomodoro-focus-card" style={styles.focusCard}>
+        <Text style={styles.focusEyebrow}>{t('pomodoro.focusLabel')}</Text>
+        {!focusTarget || !focusInfo ? (
+          <Text style={styles.focusFree}>{t('pomodoro.freeSession')}</Text>
+        ) : focusInfo.status === 'missing' ? (
+          <Text style={styles.focusFree}>{t('pomodoro.focusMissing')}</Text>
+        ) : (
+          <>
+            <Text testID="pomodoro-focus-title" style={styles.focusTitle} numberOfLines={2}>
+              {focusInfo.title}
+            </Text>
+            {focusInfo.parentTitle ? (
+              <Text style={styles.focusParent} numberOfLines={1}>
+                {focusInfo.parentTitle}
+              </Text>
+            ) : null}
+            {targetDone ? (
+              <Text testID="pomodoro-focus-done" style={styles.focusDone}>
+                {t('pomodoro.focusDone')}
+              </Text>
+            ) : null}
+          </>
+        )}
+      </View>
+
       <View style={styles.hero}>
         <Text style={styles.timer}>{formatTime(remainingSeconds)}</Text>
         <Text style={styles.caption}>{caption}</Text>
@@ -213,6 +307,33 @@ export const PomodoroScreen = () => {
           </TouchableOpacity>
         )}
       </View>
+
+      {state === 'completed' ? (
+        <View testID="pomodoro-complete-panel" style={styles.completePanel}>
+          {focusTarget && focusInfo && focusInfo.status !== 'missing' && !targetDone ? (
+            <TouchableOpacity
+              testID="pomodoro-complete-target"
+              style={[styles.action, styles.actionPrimary]}
+              onPress={handleCompleteTarget}
+              accessibilityRole="button"
+              activeOpacity={0.8}
+            >
+              <Ionicons name="checkmark" size={20} color={colors.onPrimary} />
+              <Text style={styles.actionPrimaryText}>{t('pomodoro.completeTarget')}</Text>
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity
+            testID="pomodoro-back-today"
+            style={[styles.action, styles.actionGhost]}
+            onPress={handleBackToday}
+            accessibilityRole="button"
+            activeOpacity={0.8}
+          >
+            <Ionicons name="home-outline" size={19} color={colors.primary} />
+            <Text style={styles.actionGhostText}>{t('pomodoro.backToday')}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       {locked ? <Text style={styles.lockedHint}>{t('pomodoro.lockedDuringSession')}</Text> : null}
 
@@ -304,6 +425,20 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       paddingTop: SPACING.xl,
       paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING,
     },
+    focusCard: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.md,
+      marginBottom: SPACING.md,
+    },
+    focusEyebrow: { ...type.labelSm, color: colors.primary, letterSpacing: 1.2 },
+    focusTitle: { ...type.titleMd, color: colors.onSurface, marginTop: 4 },
+    focusParent: { ...type.bodySm, color: colors.onSurfaceVariant, marginTop: 2 },
+    focusFree: { ...type.bodyMd, color: colors.onSurfaceVariant, marginTop: 4 },
+    focusDone: { ...type.labelMd, color: colors.primary, marginTop: 4 },
     hero: {
       alignItems: 'center',
       marginTop: SPACING.lg,
@@ -331,6 +466,10 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     actionsRow: {
       flexDirection: 'row',
       gap: SPACING.md,
+    },
+    completePanel: {
+      gap: SPACING.md,
+      marginTop: SPACING.md,
     },
     action: {
       flex: 1,
