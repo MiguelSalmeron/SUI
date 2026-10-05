@@ -25,7 +25,11 @@ import {
 import { clearGoogleEventsCache } from '@/features/calendar/public';
 import { useIntroStore } from '@/features/onboarding/public';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
-import { clearLocalProductivity, useProductivityStore } from '@/shared/domain/productivity/public';
+import {
+  clearLocalProductivity,
+  useProductivityStore,
+  type ProductivityState,
+} from '@/shared/domain/productivity/public';
 import { PRODUCT_CONFIG } from '@/shared/config/product';
 import {
   cancelAllAccountabilityNotifications,
@@ -63,6 +67,36 @@ import {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 type IconName = keyof typeof Ionicons.glyphMap;
+
+export type AccountSyncState =
+  | 'cloud'
+  | 'pending'
+  | 'local'
+  | 'localRegistered'
+  | 'offline'
+  | 'error'
+  | 'syncing';
+
+/**
+ * Estado de cuenta visible en Ajustes.
+ *
+ * Sin red (`offline`) se avisa que todo sigue guardado acá, incluso sin
+ * cuenta. Sin respaldo (`cloudActive` falso) nunca se muestra error de nube:
+ * con cuenta registrada se avisa que el respaldo sigue sin activarse, sin
+ * cuenta es vida local. Nunca expone términos internos.
+ */
+export const resolveAccountSyncState = (
+  syncStatus: ProductivityState['syncStatus'],
+  cloudActive: boolean,
+  accountMode: 'local' | 'registered',
+): AccountSyncState => {
+  if (syncStatus === 'offline') return 'offline';
+  if (!cloudActive) return accountMode === 'registered' ? 'localRegistered' : 'local';
+  if (syncStatus === 'error') return 'error';
+  if (syncStatus === 'pending') return 'pending';
+  if (syncStatus === 'syncing') return 'syncing';
+  return 'cloud';
+};
 
 type RowProps = {
   icon: IconName;
@@ -181,19 +215,43 @@ export const SettingsScreen = ({ navigation }: Props) => {
     }
   };
 
+  const accountState = resolveAccountSyncState(home.syncStatus, cloudActive, accountMode);
   const syncLabel =
-    home.syncStatus === 'syncing'
-      ? t('settings.syncing')
-      : home.syncStatus === 'pending' || home.syncStatus === 'offline'
-        ? t('settings.syncPending')
-        : home.syncStatus === 'error'
-          ? t('settings.syncError')
-          : cloudActive
-            ? t('settings.cloudData')
-            : t('settings.localData');
-  const syncDescription = cloudActive
-    ? t('settings.cloudDataDescription')
-    : t('settings.localDataDescription');
+    accountState === 'cloud'
+      ? t('settings.accountCloud')
+      : accountState === 'pending'
+        ? t('settings.accountPending')
+        : accountState === 'offline'
+          ? t('settings.accountOffline')
+          : accountState === 'error'
+            ? t('settings.accountError')
+            : accountState === 'syncing'
+              ? t('settings.accountSyncing')
+              : accountState === 'localRegistered'
+                ? t('settings.accountLocalRegistered')
+                : t('settings.accountLocal');
+  const syncDescription =
+    accountState === 'cloud'
+      ? t('settings.accountCloudDescription')
+      : accountState === 'pending'
+        ? t('settings.accountPendingDescription')
+        : accountState === 'syncing'
+          ? t('settings.accountSyncingDescription')
+          : accountState === 'offline'
+            ? t('settings.accountOfflineDescription')
+            : accountState === 'error'
+              ? t('settings.accountErrorDescription')
+              : accountState === 'localRegistered'
+                ? t('settings.accountLocalRegisteredDescription')
+                : t('settings.accountLocalDescription');
+  const syncIcon: IconName =
+    accountState === 'cloud'
+      ? 'cloud-done-outline'
+      : accountState === 'pending' || accountState === 'syncing'
+        ? 'cloud-upload-outline'
+        : accountState === 'offline' || accountState === 'error'
+          ? 'cloud-offline-outline'
+          : 'phone-portrait-outline';
   const themeLabel =
     mode === 'system' ? t('common.system') : mode === 'dark' ? t('common.dark') : t('common.light');
   const fontLabel =
@@ -412,11 +470,7 @@ export const SettingsScreen = ({ navigation }: Props) => {
         ) : null}
 
         <Section title={t('settings.account')}>
-          <SettingsRow
-            icon={cloudActive ? 'cloud-done-outline' : 'phone-portrait-outline'}
-            label={syncLabel}
-            description={syncDescription}
-          />
+          <SettingsRow icon={syncIcon} label={syncLabel} description={syncDescription} />
           {accountMode === 'local' ? (
             <SettingsRow
               icon="shield-checkmark-outline"

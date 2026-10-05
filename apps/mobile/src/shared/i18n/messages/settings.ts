@@ -53,6 +53,28 @@ export const settings = {
     'settings.syncPending': 'Pendiente de sincronizar',
     'settings.syncing': 'Sincronizando',
     'settings.syncError': 'Error de sincronización',
+    // Estado de cuenta por separado: cada etiqueta explica su consecuencia
+    // sin usar términos internos (outbox, CAS, epoch).
+    'settings.accountCloud': 'En la nube',
+    'settings.accountCloudDescription': 'Respaldado. Podés entrar desde otro teléfono.',
+    'settings.accountPending': 'Pendiente de subir',
+    'settings.accountPendingDescription': 'Tenés cambios por subir. Se suben solos al conectarte.',
+    'settings.accountLocal': 'Solo en este teléfono',
+    'settings.accountLocalDescription':
+      'Todo vive acá. Si borrás la app, se pierde. Creá una cuenta para respaldar.',
+    'settings.accountLocalRegistered': 'Solo en este teléfono',
+    'settings.accountLocalRegisteredDescription':
+      'Todo vive acá hasta que se active el respaldo de tu cuenta.',
+    'settings.accountOffline': 'Sin conexión',
+    'settings.accountOfflineDescription': 'Estás sin conexión. Seguí trabajando, se guarda acá.',
+    'settings.accountError': 'No se pudo respaldar',
+    'settings.accountErrorDescription': 'No se pudo respaldar. Nada se borró; probá de nuevo.',
+    'settings.accountSyncing': 'Sincronizando',
+    'settings.accountSyncingDescription': 'Subiendo tus cambios.',
+    // Aviso de retomar: nunca habla de rachas perdidas, sólo invita a un paso chico.
+    'settings.resumeNudge.body': 'Hace {days} días que no pasabas. Retomá con algo chico.',
+    'settings.resumeNudge.start': 'Empezar',
+    'settings.resumeNudge.dismiss': 'Descartar',
   },
   en: {
     'settings.language': 'Language',
@@ -108,5 +130,26 @@ export const settings = {
     'settings.syncPending': 'Pending sync',
     'settings.syncing': 'Syncing',
     'settings.syncError': 'Sync error',
+    'settings.accountCloud': 'In the cloud',
+    'settings.accountCloudDescription': 'Backed up. You can sign in from another phone.',
+    'settings.accountPending': 'Pending upload',
+    'settings.accountPendingDescription':
+      'You have changes to upload. They upload automatically when you reconnect.',
+    'settings.accountLocal': 'Only on this phone',
+    'settings.accountLocalDescription':
+      'Everything lives here. If you delete the app, it is gone. Create an account to back it up.',
+    'settings.accountLocalRegistered': 'Only on this phone',
+    'settings.accountLocalRegisteredDescription':
+      'Everything lives here until your account backup is turned on.',
+    'settings.accountOffline': 'Offline',
+    'settings.accountOfflineDescription': 'You are offline. Keep working, it stays saved here.',
+    'settings.accountError': 'Could not back up',
+    'settings.accountErrorDescription': 'Could not back up. Nothing was deleted; try again.',
+    'settings.accountSyncing': 'Syncing',
+    'settings.accountSyncingDescription': 'Uploading your changes.',
+    'settings.resumeNudge.body':
+      'It has been {days} days since you stopped by. Start again with something small.',
+    'settings.resumeNudge.start': 'Start',
+    'settings.resumeNudge.dismiss': 'Dismiss',
   },
 } as const;

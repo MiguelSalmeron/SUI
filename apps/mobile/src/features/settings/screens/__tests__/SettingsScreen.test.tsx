@@ -21,6 +21,7 @@ const mockHandleAuthUserChanged = jest.fn(async (_uid?: string | null) => undefi
 const mockClearState = jest.fn(async () => undefined);
 const mockResetIntro = jest.fn();
 const mockNavigation = { navigate: jest.fn(), reset: jest.fn() };
+let mockSyncStatus: string = 'synced';
 
 const mockUser = {
   uid: 'user-1',
@@ -69,7 +70,7 @@ jest.mock('@/shared/domain/productivity/public', () => ({
     goals: [{ id: 'g1' }],
     habits: [],
     weeklyHistory: [],
-    syncStatus: 'idle',
+    syncStatus: mockSyncStatus,
     clearState: mockClearState,
     syncNow: jest.fn(async () => undefined),
   }),
@@ -149,7 +150,7 @@ jest.mock('../../services/notifications', () => ({
   scheduleNightlyReport: jest.fn(async () => 'scheduled'),
 }));
 
-import { SettingsScreen } from '../SettingsScreen';
+import { SettingsScreen, resolveAccountSyncState } from '../SettingsScreen';
 import { AuthContext } from '@/features/auth/public';
 import { auth } from '@/shared/infrastructure/firebase/firebase';
 
@@ -163,6 +164,7 @@ const renderScreen = () =>
 describe('SettingsScreen accountability lifecycle', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSyncStatus = 'synced';
     (auth as { currentUser: typeof mockUser | null }).currentUser = mockUser;
   });
 
@@ -200,5 +202,76 @@ describe('SettingsScreen accountability lifecycle', () => {
     await waitFor(() => expect(mockClearAccountability).toHaveBeenCalledWith('user-1'));
     expect(mockCancelAccountability).toHaveBeenCalled();
     alert.mockRestore();
+  });
+});
+
+describe('SettingsScreen estado de cuenta', () => {
+  // Cada estado visible explica su consecuencia sin términos internos.
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (auth as { currentUser: typeof mockUser | null }).currentUser = mockUser;
+  });
+
+  it('separa offline de pendiente', () => {
+    expect(resolveAccountSyncState('offline', true, 'registered')).toBe('offline');
+    expect(resolveAccountSyncState('pending', true, 'registered')).toBe('pending');
+  });
+
+  it('muestra nube cuando hay cuenta y todo está subido', () => {
+    expect(resolveAccountSyncState('synced', true, 'registered')).toBe('cloud');
+    expect(resolveAccountSyncState('local', true, 'registered')).toBe('cloud');
+  });
+
+  it('muestra vida local sin cuenta, incluso con cambios en cola', () => {
+    expect(resolveAccountSyncState('local', false, 'local')).toBe('local');
+    expect(resolveAccountSyncState('pending', false, 'local')).toBe('local');
+    expect(resolveAccountSyncState('syncing', false, 'local')).toBe('local');
+  });
+
+  it('con cuenta registrada sin respaldo avisa que sigue sin activarse', () => {
+    expect(resolveAccountSyncState('local', false, 'registered')).toBe('localRegistered');
+    expect(resolveAccountSyncState('synced', false, 'registered')).toBe('localRegistered');
+    expect(resolveAccountSyncState('pending', false, 'registered')).toBe('localRegistered');
+  });
+
+  it('sin respaldo nunca muestra error de nube', () => {
+    expect(resolveAccountSyncState('error', false, 'registered')).toBe('localRegistered');
+    expect(resolveAccountSyncState('error', false, 'local')).toBe('local');
+  });
+
+  it('prioriza error yOffline sobre la cuenta', () => {
+    expect(resolveAccountSyncState('error', true, 'registered')).toBe('error');
+    expect(resolveAccountSyncState('offline', false, 'local')).toBe('offline');
+    expect(resolveAccountSyncState('offline', false, 'registered')).toBe('offline');
+  });
+
+  it('en modo avión Ajustes dice Sin conexión con su explicación', async () => {
+    mockSyncStatus = 'offline';
+    const screen = await renderScreen();
+    expect(screen.getByText('settings.accountOffline')).toBeTruthy();
+    expect(screen.getByText('settings.accountOfflineDescription')).toBeTruthy();
+    expect(screen.queryByText('settings.accountPending')).toBeNull();
+  });
+
+  it('con cambios por subir muestra Pendiente y su consecuencia', async () => {
+    mockSyncStatus = 'pending';
+    const screen = await renderScreen();
+    expect(screen.getByText('settings.accountPending')).toBeTruthy();
+    expect(screen.getByText('settings.accountPendingDescription')).toBeTruthy();
+    expect(screen.queryByText('settings.accountOffline')).toBeNull();
+  });
+
+  it('con cuenta al día muestra En la nube', async () => {
+    mockSyncStatus = 'synced';
+    const screen = await renderScreen();
+    expect(screen.getByText('settings.accountCloud')).toBeTruthy();
+    expect(screen.getByText('settings.accountCloudDescription')).toBeTruthy();
+  });
+
+  it('con error muestra que nada se borró', async () => {
+    mockSyncStatus = 'error';
+    const screen = await renderScreen();
+    expect(screen.getByText('settings.accountError')).toBeTruthy();
+    expect(screen.getByText('settings.accountErrorDescription')).toBeTruthy();
   });
 });
