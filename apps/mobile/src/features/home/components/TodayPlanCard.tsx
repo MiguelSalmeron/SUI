@@ -1,14 +1,20 @@
-import { useMemo } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useId, useMemo, useRef } from 'react';
+import { Animated, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useI18n } from '@/shared/i18n/i18n';
 import type { TranslationKey } from '@/shared/i18n/translations';
 import { SPACING, type AppTheme, useAppTheme } from '@/shared/theme/theme';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import type { PlanStep } from '../model/dayPlan';
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 export interface TodayPlanCardProps {
   /** Pasos tal como salen de `buildDayPlan`: el orden y el tope ya vienen resueltos. */
   steps: PlanStep[];
+  /** Duración viva de Pomodoro: fijate que manda sobre el bloque sugerido. */
+  focusMinutes: number;
   onFocus: (step: PlanStep) => void;
   onOpen: (step: PlanStep) => void;
   onCreateGoal: () => void;
@@ -36,6 +42,7 @@ const originOf = (
 
 export const TodayPlanCard = ({
   steps,
+  focusMinutes,
   onFocus,
   onOpen,
   onCreateGoal,
@@ -45,10 +52,37 @@ export const TodayPlanCard = ({
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { t } = useI18n();
+  const focusScale = useRef(new Animated.Value(1)).current;
+  useEffect(() => () => focusScale.stopAnimation(), [focusScale]);
+  const animateFocus = (value: number) => {
+    Animated.timing(focusScale, {
+      toValue: value,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  };
+  const glowId = useId().replace(/:/g, '');
+  // Glow difuso recortado por el wrapper: el degradado cae a opacidad 0
+  // antes de tocar cualquier borde para que no quede ningún corte recto.
+  const glow = (
+    <View pointerEvents="none" style={styles.glowWrapper}>
+      <Svg width="100%" height="100%">
+        <Defs>
+          <RadialGradient id={`${glowId}-flame`} cx="100%" cy="0%" rx="60%" ry="50%">
+            <Stop offset="0" stopColor={colors.flame} stopOpacity={0.22} />
+            <Stop offset="0.55" stopColor={colors.flame} stopOpacity={0.08} />
+            <Stop offset="1" stopColor={colors.flame} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Rect width="100%" height="100%" fill={`url(#${glowId}-flame)`} />
+      </Svg>
+    </View>
+  );
 
   if (steps.length === 0) {
     return (
       <View style={styles.card} testID="today-plan-empty">
+        {glow}
         <View style={styles.header}>
           <View style={styles.headerLabel}>
             <View style={styles.pulseDot} />
@@ -73,7 +107,7 @@ export const TodayPlanCard = ({
             accessibilityRole="button"
             accessibilityLabel={t('home.plan.emptyFocus')}
           >
-            <Ionicons name="timer-outline" size={17} color={colors.onPrimaryContainer} />
+            <Ionicons name="timer-outline" size={17} color={colors.onHeroSurface} />
             <Text style={styles.secondaryButtonText}>{t('home.plan.emptyFocus')}</Text>
           </TouchableOpacity>
         </View>
@@ -89,7 +123,7 @@ export const TodayPlanCard = ({
     return (
       <View style={styles.metaRow}>
         <View style={styles.origin}>
-          <Ionicons name={origin.icon} size={14} color={colors.onPrimaryContainer} />
+          <Ionicons name={origin.icon} size={14} color={colors.onHeroSurfaceVariant} />
           <Text style={styles.originText} numberOfLines={1}>
             {step.parentTitle
               ? t(origin.labelKey, { title: step.parentTitle })
@@ -109,6 +143,7 @@ export const TodayPlanCard = ({
 
   return (
     <View style={styles.card} testID="today-plan">
+      {glow}
       <View style={styles.header}>
         <View style={styles.headerLabel}>
           <View style={styles.pulseDot} />
@@ -125,22 +160,28 @@ export const TodayPlanCard = ({
         </TouchableOpacity>
         {renderMeta(first)}
         <View style={styles.focusRow}>
-          <TouchableOpacity
-            style={styles.focusButton}
-            onPress={() => onFocus(first)}
+          <AnimatedPressable
+            style={[styles.focusButton, { transform: [{ scale: focusScale }] }]}
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+              onFocus(first);
+            }}
+            onPressIn={() => animateFocus(0.97)}
+            onPressOut={() => animateFocus(1)}
             accessibilityRole="button"
             accessibilityLabel={t('home.plan.focusA11y', {
               title: first.title,
-              minutes: first.blockMinutes,
+              minutes: focusMinutes,
             })}
             testID="today-plan-focus"
           >
-            <Ionicons name="play" size={16} color={colors.onFlame} />
-            <Text style={styles.focusButtonText}>{t('home.plan.focus')}</Text>
-          </TouchableOpacity>
-          <Text style={styles.blockText}>
-            {t('home.plan.minutes', { minutes: first.blockMinutes })}
-          </Text>
+            <View style={styles.playCircle}>
+              <Ionicons name="play" size={16} color={colors.flame} />
+            </View>
+            <Text style={styles.focusButtonText}>
+              {`${t('home.plan.focus')} · ${t('home.plan.minutes', { minutes: focusMinutes })}`}
+            </Text>
+          </AnimatedPressable>
         </View>
       </View>
 
@@ -165,31 +206,43 @@ export const TodayPlanCard = ({
   );
 };
 
-const createStyles = ({ colors, radius, type }: AppTheme) =>
+const createStyles = ({ colors, radius, type, elevation }: AppTheme) =>
   StyleSheet.create({
     card: {
-      backgroundColor: colors.primaryContainer,
+      backgroundColor: colors.heroSurface,
+      overflow: 'hidden',
+      ...elevation.soft,
       borderRadius: radius.xl,
       padding: SPACING.lg,
       marginBottom: SPACING.md,
+    },
+    // Recorta el glow al mismo radio de la tarjeta para que el degradado
+    // nunca pinte sobre las esquinas redondeadas.
+    glowWrapper: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      overflow: 'hidden',
+      borderRadius: radius.xl,
     },
     header: { marginBottom: SPACING.sm },
     headerLabel: { flexDirection: 'row', alignItems: 'center', gap: 7 },
     pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.flame },
     eyebrow: {
       ...type.labelSm,
-      color: colors.onPrimaryContainer,
+      color: colors.onHeroSurface,
       letterSpacing: 1.2,
       textTransform: 'uppercase',
     },
     subtitle: {
       ...type.bodySm,
-      color: colors.onPrimaryContainer,
-      opacity: 0.72,
+      color: colors.onHeroSurfaceVariant,
       marginTop: 2,
     },
     firstStep: { paddingTop: SPACING.xs },
-    firstTitle: { ...type.titleLg, color: colors.onPrimaryContainer, marginBottom: SPACING.xs },
+    firstTitle: { ...type.titleLg, color: colors.onHeroSurface, marginBottom: SPACING.xs },
     metaRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -198,12 +251,12 @@ const createStyles = ({ colors, radius, type }: AppTheme) =>
       marginTop: 2,
     },
     origin: { flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 1 },
-    originText: { ...type.bodySm, color: colors.onPrimaryContainer, flexShrink: 1 },
-    reasonText: { ...type.bodySm, color: colors.onPrimaryContainer, opacity: 0.72 },
+    originText: { ...type.bodySm, color: colors.onHeroSurfaceVariant, flexShrink: 1 },
+    reasonText: { ...type.bodySm, color: colors.onHeroSurfaceVariant },
     deadlineChip: {
       ...type.labelSm,
-      color: colors.onFlameContainer,
-      backgroundColor: colors.flameContainer,
+      color: colors.onFlame,
+      backgroundColor: colors.flame,
       borderRadius: radius.full,
       paddingHorizontal: SPACING.sm,
       paddingVertical: 2,
@@ -216,6 +269,7 @@ const createStyles = ({ colors, radius, type }: AppTheme) =>
       marginTop: SPACING.md,
     },
     focusButton: {
+      width: '100%',
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
@@ -223,16 +277,23 @@ const createStyles = ({ colors, radius, type }: AppTheme) =>
       backgroundColor: colors.flame,
       borderRadius: radius.full,
       paddingHorizontal: SPACING.lg,
-      minHeight: 44,
+      minHeight: 54,
     },
-    focusButtonText: { ...type.labelLg, color: colors.onFlame },
-    blockText: { ...type.labelMd, color: colors.onPrimaryContainer, opacity: 0.72 },
+    focusButtonText: { ...type.labelLg, color: colors.onFlame, flexShrink: 1 },
+    playCircle: {
+      width: 28,
+      height: 28,
+      borderRadius: radius.full,
+      backgroundColor: colors.onFlame,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     restStep: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: SPACING.sm,
       borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.outlineVariant,
+      borderTopColor: colors.heroDivider,
       marginTop: SPACING.md,
       paddingTop: SPACING.md,
     },
@@ -240,19 +301,18 @@ const createStyles = ({ colors, radius, type }: AppTheme) =>
       width: 26,
       height: 26,
       borderRadius: 13,
-      backgroundColor: colors.surface,
+      backgroundColor: 'rgba(255,255,255,0.10)',
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: 1,
     },
-    stepNumberText: { ...type.labelMd, color: colors.primary },
+    stepNumberText: { ...type.labelMd, color: colors.onHeroSurface },
     restCopy: { flex: 1, minWidth: 0, minHeight: 44 },
-    restTitle: { ...type.titleSm, color: colors.onPrimaryContainer },
-    emptyTitle: { ...type.titleMd, color: colors.onPrimaryContainer, marginTop: SPACING.xs },
+    restTitle: { ...type.titleSm, color: colors.onHeroSurface },
+    emptyTitle: { ...type.brandDisplaySm, color: colors.onHeroSurface, marginTop: SPACING.xs },
     emptyBody: {
       ...type.bodySm,
-      color: colors.onPrimaryContainer,
-      opacity: 0.8,
+      color: colors.onHeroSurfaceVariant,
       marginTop: 2,
     },
     emptyActions: {
@@ -266,10 +326,10 @@ const createStyles = ({ colors, radius, type }: AppTheme) =>
       alignItems: 'center',
       justifyContent: 'center',
       gap: 6,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.heroDivider,
       borderRadius: radius.full,
       paddingHorizontal: SPACING.lg,
       minHeight: 44,
     },
-    secondaryButtonText: { ...type.labelLg, color: colors.onPrimaryContainer },
+    secondaryButtonText: { ...type.labelLg, color: colors.onHeroSurface },
   });

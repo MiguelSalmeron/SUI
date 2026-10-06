@@ -1,5 +1,13 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef } from 'react';
-import { AppState, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Animated,
+  AppState,
+  Pressable,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { createBottomTabNavigator, type BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@/shared/ui/Ionicons';
@@ -7,10 +15,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '@/features/auth/public';
 import { useDeferredStarterSeed } from '@/features/onboarding/public';
 import {
-  NAV_BAR_HEIGHT,
+  MD3_RADIUS,
+  type AppTheme,
   SPACING,
   type ColorScheme,
-  type TypographyScale,
   useAppTheme,
 } from '@/shared/theme/theme';
 import {
@@ -26,7 +34,7 @@ import { ASSISTANT_INSERT_INDEX, MAIN_TAB_ITEMS } from './mainTabs';
 import { CalendarScreen } from '@/features/calendar/public';
 import { GoalsScreen } from '@/features/goals/public';
 import { HabitsScreen } from '@/features/habits/public';
-import { CelebrationToast, OverviewScreen } from '@/features/home/public';
+import { OverviewScreen } from '@/features/home/public';
 import {
   AccountabilityCheckInHost,
   ACCOUNTABILITY_PAYLOAD_TYPE,
@@ -159,7 +167,8 @@ export const TabHeader = React.memo(function TabHeader({
 
 type MainTabBarProps = BottomTabBarProps & {
   colors: ColorScheme;
-  type: TypographyScale;
+  elevation: AppTheme['elevation'];
+  scheme: AppTheme['scheme'];
   onAssistant: () => void;
   labels: Record<keyof MainTabParamList, string>;
   assistantAccessibilityLabel: string;
@@ -171,30 +180,50 @@ export const MainTabBar = ({
   navigation,
   insets,
   colors,
-  type,
+  elevation,
+  scheme,
   onAssistant,
   labels,
   assistantAccessibilityLabel,
   assistantAccessibilityHint,
 }: MainTabBarProps) => {
-  const styles = useMemo(() => tabBarStyles(colors, type), [colors, type]);
+  const styles = useMemo(
+    () => tabBarStyles(colors, elevation, scheme),
+    [colors, elevation, scheme],
+  );
+  const assistantScale = useRef(new Animated.Value(1)).current;
+  useEffect(() => () => assistantScale.stopAnimation(), [assistantScale]);
+
+  const animateAssistant = (value: number) => {
+    Animated.timing(assistantScale, {
+      toValue: value,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  };
 
   const assistantButton = (
-    <TouchableOpacity
+    <Pressable
       key="assistant"
       style={styles.assistantSlot}
-      onPress={onAssistant}
-      activeOpacity={0.82}
+      onPress={() => {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+        onAssistant();
+      }}
+      onPressIn={() => animateAssistant(0.96)}
+      onPressOut={() => animateAssistant(1)}
       accessibilityRole="button"
       accessibilityLabel={assistantAccessibilityLabel}
       accessibilityHint={assistantAccessibilityHint}
       testID="assistant-tab-button"
     >
-      <View style={styles.assistantButton}>
-        <SuiMark variant="isotype" tone="inverse" size={25} />
-      </View>
-      <Text style={styles.assistantLabel}>Sui</Text>
-    </TouchableOpacity>
+      <Animated.View style={[styles.assistantOrb, { transform: [{ scale: assistantScale }] }]}>
+        <View pointerEvents="none" style={styles.assistantHalo} />
+        <View style={styles.assistantButton}>
+          <SuiMark variant="isotype" tone="inverse" size={24} />
+        </View>
+      </Animated.View>
+    </Pressable>
   );
 
   return (
@@ -202,8 +231,7 @@ export const MainTabBar = ({
       style={[
         styles.barSurface,
         {
-          minHeight: NAV_BAR_HEIGHT + insets.bottom,
-          paddingBottom: Math.max(insets.bottom, SPACING.xs),
+          paddingBottom: Math.max(insets.bottom, 8) + 8,
         },
       ]}
     >
@@ -245,11 +273,12 @@ export const MainTabBar = ({
                 <View style={[styles.iconShell, focused && styles.iconShellActive]}>
                   <Ionicons
                     name={focused ? presentation.focused : presentation.outline}
-                    size={22}
+                    size={24}
                     color={color}
+                    accessible={false}
+                    importantForAccessibility="no"
                   />
                 </View>
-                <Text style={[styles.tabLabel, { color }]}>{labels[routeName]}</Text>
               </TouchableOpacity>
             </React.Fragment>
           );
@@ -353,7 +382,6 @@ export const TabNavigator = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <CelebrationToast />
       {PRODUCT_CONFIG.accountabilityEnabled ? (
         <AccountabilityCheckInHost goals={goals} habits={habits} />
       ) : null}
@@ -362,7 +390,8 @@ export const TabNavigator = () => {
           <MainTabBar
             {...props}
             colors={colors}
-            type={theme.type}
+            elevation={theme.elevation}
+            scheme={theme.scheme}
             onAssistant={openAssistant}
             labels={tabLabels}
             assistantAccessibilityLabel={t('nav.openChat')}
@@ -427,70 +456,82 @@ const headerStyles = (colors: ColorScheme) =>
     },
   });
 
-const tabBarStyles = (colors: ColorScheme, type: TypographyScale) =>
+const tabBarStyles = (
+  colors: ColorScheme,
+  elevation: AppTheme['elevation'],
+  scheme: AppTheme['scheme'],
+) =>
   StyleSheet.create({
     barSurface: {
-      backgroundColor: colors.surface,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.outlineVariant,
-      paddingTop: SPACING.xs,
+      backgroundColor: colors.background,
+      paddingHorizontal: 16,
+      paddingTop: 8,
     },
     barContent: {
       width: '100%',
       maxWidth: 560,
-      minHeight: NAV_BAR_HEIGHT - SPACING.xs,
+      height: 58,
+      borderRadius: MD3_RADIUS.full,
+      backgroundColor: colors.surface,
+      ...elevation.floating,
+      borderWidth: scheme === 'dark' ? StyleSheet.hairlineWidth : 0,
+      borderColor: colors.outlineVariant,
+      paddingHorizontal: 8,
       alignSelf: 'center',
       flexDirection: 'row',
-      alignItems: 'flex-end',
+      alignItems: 'center',
     },
     tabItem: {
       flex: 1,
       minWidth: 0,
-      minHeight: 60,
+      minHeight: 56,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 2,
       paddingHorizontal: 2,
     },
     iconShell: {
-      minWidth: 42,
-      height: 29,
-      borderRadius: 15,
+      minWidth: 48,
+      height: 32,
+      borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center',
     },
     iconShellActive: {
+      width: 56,
+      height: 32,
+      borderRadius: MD3_RADIUS.full,
       backgroundColor: colors.primaryContainer,
-    },
-    tabLabel: {
-      ...type.labelXs,
     },
     assistantSlot: {
       flex: 1,
       minWidth: 0,
-      minHeight: 68,
+      minHeight: 56,
       alignItems: 'center',
-      justifyContent: 'flex-start',
-      marginTop: -14,
+      justifyContent: 'center',
+      marginTop: -20,
+    },
+    assistantOrb: {
+      width: 52,
+      height: 52,
+    },
+    assistantHalo: {
+      position: 'absolute',
+      width: 60,
+      height: 60,
+      top: -4,
+      left: -4,
+      backgroundColor: colors.primaryContainer,
+      opacity: scheme === 'dark' ? 0.12 : 0.18,
+      borderRadius: MD3_RADIUS.full,
     },
     assistantButton: {
       width: 52,
       height: 52,
-      borderRadius: 26,
+      borderRadius: MD3_RADIUS.full,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.primary,
-      borderWidth: 4,
+      borderWidth: 3,
       borderColor: colors.surface,
-      shadowColor: colors.onBackground,
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.14,
-      shadowRadius: 6,
-      elevation: 4,
-    },
-    assistantLabel: {
-      ...type.labelXs,
-      color: colors.primary,
-      marginTop: 1,
     },
   });

@@ -23,6 +23,11 @@ export type ColorScheme = {
   onTertiaryContainer: string;
   background: string;
   onBackground: string;
+  heroSurface: string;
+  onHeroSurface: string;
+  onHeroSurfaceVariant: string;
+  heroDivider: string;
+  heroGlowBlue: string;
   surface: string;
   onSurface: string;
   surfaceVariant: string;
@@ -74,8 +79,13 @@ export const MD3_LIGHT: ColorScheme = {
   tertiaryContainer: '#E2EAF5',
   onTertiaryContainer: '#1C2A40',
 
-  background: '#F6FAFC',
+  background: '#F5F1EA',
   onBackground: SUI_BRAND.navy,
+  heroSurface: SUI_BRAND.navy,
+  onHeroSurface: '#F5F8FA',
+  onHeroSurfaceVariant: 'rgba(245,248,250,0.72)',
+  heroDivider: 'rgba(255,255,255,0.12)',
+  heroGlowBlue: SUI_BRAND.blue,
   surface: '#FFFFFF',
   onSurface: SUI_BRAND.navy,
   surfaceVariant: '#E3EDF2',
@@ -98,7 +108,7 @@ export const MD3_LIGHT: ColorScheme = {
   successContainer: '#CFE9D2',
   onSuccessContainer: '#07250B',
 
-  // Único acento energético; reservar para rachas y celebraciones.
+  // Acento energético para foco, acción principal y racha.
   flame: SUI_BRAND.flame,
   onFlame: SUI_BRAND.navy,
   flameContainer: '#FCE9DC',
@@ -133,6 +143,11 @@ export const MD3_DARK: ColorScheme = {
 
   background: SUI_BRAND.navy,
   onBackground: '#F5F8FA',
+  heroSurface: '#174D69',
+  onHeroSurface: '#F5F8FA',
+  onHeroSurfaceVariant: 'rgba(245,248,250,0.75)',
+  heroDivider: 'rgba(255,255,255,0.14)',
+  heroGlowBlue: SUI_BRAND.blue,
   surface: '#111C32',
   onSurface: '#F5F8FA',
   surfaceVariant: '#2B3A55',

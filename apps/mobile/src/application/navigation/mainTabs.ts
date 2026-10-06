@@ -5,8 +5,8 @@ type TabIcon =
   | 'home-outline'
   | 'flag'
   | 'flag-outline'
-  | 'repeat'
-  | 'repeat-outline'
+  | 'checkmark-circle'
+  | 'checkmark-circle-outline'
   | 'calendar'
   | 'calendar-outline';
 
@@ -19,7 +19,7 @@ type TabPresentation = {
 export const MAIN_TAB_ITEMS: Record<keyof MainTabParamList, TabPresentation> = {
   Overview: { label: 'Inicio', focused: 'home', outline: 'home-outline' },
   Goals: { label: 'Metas', focused: 'flag', outline: 'flag-outline' },
-  Habits: { label: 'Hábitos', focused: 'repeat', outline: 'repeat-outline' },
+  Habits: { label: 'Hábitos', focused: 'checkmark-circle', outline: 'checkmark-circle-outline' },
   Calendar: { label: 'Agenda', focused: 'calendar', outline: 'calendar-outline' },
 };
 
