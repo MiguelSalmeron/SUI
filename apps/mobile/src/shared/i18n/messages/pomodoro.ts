@@ -14,6 +14,9 @@ export const pomodoro = {
     'pomodoro.pause': 'Pausar',
     'pomodoro.resume': 'Reanudar',
     'pomodoro.reset': 'Reiniciar',
+    'pomodoro.stepConfigTitle': 'Duración para este paso',
+    'pomodoro.stepConfigHint':
+      'Usá entre 1 y 180 minutos. Tu duración habitual de {minutes} min se conserva.',
     'pomodoro.configRow': 'Duración de la sesión',
     'pomodoro.configValue': '{minutes} min',
     'pomodoro.configAction': 'Configurar',
@@ -54,6 +57,9 @@ export const pomodoro = {
     'pomodoro.pause': 'Pause',
     'pomodoro.resume': 'Resume',
     'pomodoro.reset': 'Reset',
+    'pomodoro.stepConfigTitle': 'Length for this step',
+    'pomodoro.stepConfigHint':
+      'Use between 1 and 180 minutes. Your usual {minutes} min duration stays unchanged.',
     'pomodoro.configRow': 'Session length',
     'pomodoro.configValue': '{minutes} min',
     'pomodoro.configAction': 'Configure',

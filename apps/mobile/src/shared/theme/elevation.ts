@@ -6,6 +6,8 @@
  * shadowColor: genera halos en dark mode.
  */
 
+import { SUI_BRAND } from './brand';
+
 export type Elevation = {
   shadowColor: string;
   shadowOffset: { width: number; height: number };
@@ -35,6 +37,8 @@ export const MD3_ELEVATION_LIGHT: Record<string, Elevation> = {
   level3: elevation(4, 0.1, 10, 6),
   level4: elevation(6, 0.12, 14, 8),
   level5: elevation(8, 0.14, 18, 12),
+  soft: elevation(4, 0.05, 18, 2, SUI_BRAND.navy),
+  floating: elevation(4, 0.07, 20, 3, SUI_BRAND.navy),
 };
 
 export const MD3_ELEVATION_DARK: Record<string, Elevation> = {
@@ -44,6 +48,8 @@ export const MD3_ELEVATION_DARK: Record<string, Elevation> = {
   level3: elevation(4, 0.35, 10, 7),
   level4: elevation(6, 0.4, 14, 9),
   level5: elevation(8, 0.45, 18, 12),
+  soft: elevation(0, 0, 0, 0),
+  floating: elevation(0, 0, 0, 0),
 };
 
 /** @deprecated Usa theme.elevation — se resuelve por scheme. */

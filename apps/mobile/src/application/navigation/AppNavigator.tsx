@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { View } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
@@ -8,7 +9,7 @@ import {
   RegisterScreen,
 } from '@/features/auth/public';
 import { ChatScreen } from '@/features/chat/public';
-import { SummaryScreen } from '@/features/home/public';
+import { CelebrationToast, SummaryScreen } from '@/features/home/public';
 import { PomodoroScreen } from '@/features/pomodoro/public';
 import { useIntroStore, WelcomeScreen } from '@/features/onboarding/public';
 import { ConnectionsScreen, SettingsScreen } from '@/features/settings/public';
@@ -53,84 +54,88 @@ export const AppNavigator = () => {
 
   return (
     <NavigationContainer theme={navTheme}>
-      <Stack.Navigator
-        initialRouteName={introComplete ? 'Home' : 'Welcome'}
-        screenOptions={{
-          headerShown: false,
-          animation: 'slide_from_right',
-          animationDuration: 280,
-          contentStyle: { backgroundColor: theme.colors.background },
-        }}
-      >
-        <Stack.Screen
-          name="Welcome"
-          component={WelcomeScreen}
-          options={{ gestureEnabled: false, animation: 'fade' }}
-        />
-        <Stack.Screen name="Home" component={TabNavigator} options={{ gestureEnabled: false }} />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        <Stack.Screen
-          name="MergeData"
-          component={MergeDataScreen}
-          options={{ gestureEnabled: false }}
-        />
-        <Stack.Screen
-          name="Chat"
-          component={ChatScreen}
-          options={{ ...standardHeader, title: 'Sui', headerBackTitle: t('nav.backHome') }}
-        />
-        <Stack.Screen
-          name="Pomodoro"
-          component={PomodoroScreen}
-          options={{
-            ...standardHeader,
-            title: t('pomodoro.title'),
-            headerBackTitle: t('nav.backHome'),
+      {/* Aviso de celebración global: así también se ve sobre las pantallas del stack. */}
+      <View style={{ flex: 1 }}>
+        <Stack.Navigator
+          initialRouteName={introComplete ? 'Home' : 'Welcome'}
+          screenOptions={{
+            headerShown: false,
+            animation: 'slide_from_right',
+            animationDuration: 280,
+            contentStyle: { backgroundColor: theme.colors.background },
           }}
-        />
-        <Stack.Screen
-          name="Progress"
-          component={SummaryScreen}
-          options={{
-            ...standardHeader,
-            title: '',
-            headerBackTitle: t('nav.backHome'),
-            headerStyle: { backgroundColor: theme.colors.background },
-            headerShadowVisible: false,
-          }}
-        />
-        <Stack.Screen
-          name="Settings"
-          component={SettingsScreen}
-          options={{
-            ...standardHeader,
-            title: t('nav.settings'),
-            headerBackTitle: t('nav.backHome'),
-          }}
-        />
-        <Stack.Screen
-          name="Connections"
-          component={ConnectionsScreen}
-          options={{
-            ...standardHeader,
-            title: t('settings.connections'),
-            headerBackTitle: t('nav.backSettings'),
-          }}
-        />
-        {PRODUCT_CONFIG.accountabilityEnabled ? (
+        >
           <Stack.Screen
-            name="AccountabilitySettings"
-            component={AccountabilitySettingsScreen}
+            name="Welcome"
+            component={WelcomeScreen}
+            options={{ gestureEnabled: false, animation: 'fade' }}
+          />
+          <Stack.Screen name="Home" component={TabNavigator} options={{ gestureEnabled: false }} />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+          <Stack.Screen
+            name="MergeData"
+            component={MergeDataScreen}
+            options={{ gestureEnabled: false }}
+          />
+          <Stack.Screen
+            name="Chat"
+            component={ChatScreen}
+            options={{ ...standardHeader, title: 'Sui', headerBackTitle: t('nav.backHome') }}
+          />
+          <Stack.Screen
+            name="Pomodoro"
+            component={PomodoroScreen}
             options={{
               ...standardHeader,
-              title: t('accountability.settings.title'),
+              title: t('pomodoro.title'),
+              headerBackTitle: t('nav.backHome'),
+            }}
+          />
+          <Stack.Screen
+            name="Progress"
+            component={SummaryScreen}
+            options={{
+              ...standardHeader,
+              title: '',
+              headerBackTitle: t('nav.backHome'),
+              headerStyle: { backgroundColor: theme.colors.background },
+              headerShadowVisible: false,
+            }}
+          />
+          <Stack.Screen
+            name="Settings"
+            component={SettingsScreen}
+            options={{
+              ...standardHeader,
+              title: t('nav.settings'),
+              headerBackTitle: t('nav.backHome'),
+            }}
+          />
+          <Stack.Screen
+            name="Connections"
+            component={ConnectionsScreen}
+            options={{
+              ...standardHeader,
+              title: t('settings.connections'),
               headerBackTitle: t('nav.backSettings'),
             }}
           />
-        ) : null}
-      </Stack.Navigator>
+          {PRODUCT_CONFIG.accountabilityEnabled ? (
+            <Stack.Screen
+              name="AccountabilitySettings"
+              component={AccountabilitySettingsScreen}
+              options={{
+                ...standardHeader,
+                title: t('accountability.settings.title'),
+                headerBackTitle: t('nav.backSettings'),
+              }}
+            />
+          ) : null}
+        </Stack.Navigator>
+        <CelebrationToast />
+      </View>
     </NavigationContainer>
   );
 };
