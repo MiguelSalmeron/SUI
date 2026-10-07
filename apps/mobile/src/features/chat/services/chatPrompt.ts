@@ -5,55 +5,112 @@
  */
 
 import { ChatMessage, CONTEXT_WINDOW, EmotionalProfile, PromptMessage } from '../types/chat';
+
+/** Cuántas metas/hábitos se inyectan: suficiente pa anclar, sin quemar tokens. */
+const MAX_CONTEXT_ITEMS = 3;
+/** Tope de caracteres por título: evita que un título largo se coma el prompt. */
+const MAX_CONTEXT_TITLE_CHARS = 80;
+
+const cleanList = (items: string[] = []): string[] =>
+  items
+    .map((item) => item.trim().slice(0, MAX_CONTEXT_TITLE_CHARS))
+    .filter(Boolean)
+    .slice(0, MAX_CONTEXT_ITEMS);
+
 export const buildEmotionalProfile = ({
   name = '',
   goals = [],
+  habits = [],
+  timeOfDay,
+  streak = 0,
   locale = 'es',
 }: Partial<EmotionalProfile> = {}): EmotionalProfile => ({
-  name,
-  goals,
+  name: name.trim().slice(0, MAX_CONTEXT_TITLE_CHARS),
+  goals: cleanList(goals),
+  habits: cleanList(habits),
+  timeOfDay,
+  streak,
   locale,
   botPersonality: 'calm',
 });
+
+const styleLine = (p: EmotionalProfile): string => {
+  if (p.botPersonality === 'direct')
+    return 'Tu estilo es directo, conciso, orientado a la acción sin rodeos.';
+  if (p.botPersonality === 'coach')
+    return 'Tu estilo es de coach entusiasta: celebrás la constancia sin presionar.';
+  return 'Tu estilo es empático, suave, cálido y enfocado en bajar el estrés.';
+};
+
+const timeLine = (p: EmotionalProfile): string => {
+  const map = {
+    morning: { es: 'Es de mañana', en: 'It is morning' },
+    afternoon: { es: 'Es de tarde', en: 'It is afternoon' },
+    evening: { es: 'Es de noche', en: 'It is evening' },
+    night: { es: 'Es de madrugada', en: 'It is late night' },
+  } as const;
+  if (!p.timeOfDay) return '';
+  return p.locale === 'en' ? `${map[p.timeOfDay].en}. ` : `${map[p.timeOfDay].es}. `;
+};
 
 /**
  * Genera el system prompt empático. Mantiene tono cálido, breve y preventivo.
  * NO da diagnósticos clínicos; ante crisis, deriva (el overlay de emergencia
  * se dispara en cliente antes del envío vía detección de palabras clave).
+ *
+ * Fijate que ES/EN comparten las mismas reglas: antes EN ignoraba la ficha y
+ * el modelo respondía genérico según el idioma.
  */
 export const buildSystemPrompt = (p: EmotionalProfile): string => {
   const facts: string[] = [];
-  if (p.name) facts.push(`Nombre: ${p.name}`);
-  if (p.goals.length) facts.push(`Metas actuales: ${p.goals.join(', ')}`);
+  if (p.name) facts.push(p.locale === 'en' ? `Name: ${p.name}` : `Nombre: ${p.name}`);
+  if (p.goals.length)
+    facts.push(
+      p.locale === 'en' ? `Active goals: ${p.goals.join(', ')}` : `Metas activas: ${p.goals.join(', ')}`,
+    );
+  if (p.habits.length)
+    facts.push(
+      p.locale === 'en' ? `Active habits: ${p.habits.join(', ')}` : `Hábitos activos: ${p.habits.join(', ')}`,
+    );
+  if (p.streak && p.streak > 1)
+    facts.push(
+      p.locale === 'en'
+        ? `Current streak: ${p.streak} days`
+        : `Racha actual: ${p.streak} días seguidos`,
+    );
 
-  let styleInstruction =
-    'Tu estilo es empático, suave, cálido y enfocado en la reducción del estrés.';
-  if (p.botPersonality === 'direct') {
-    styleInstruction =
-      'Tu estilo es directo, conciso, orientado a la productividad y a la acción sin rodeos.';
-  } else if (p.botPersonality === 'coach') {
-    styleInstruction =
-      'Tu estilo es un coach entusiasta y gamificado, motivando al usuario a mantener sus rachas y ganar XP.';
-  }
-
-  const ficha = facts.length ? `\n\nContexto voluntario:\n- ${facts.join('\n- ')}` : '';
+  const ficha = facts.length
+    ? p.locale === 'en'
+      ? `\n\nVoluntary context:\n- ${facts.join('\n- ')}`
+      : `\n\nContexto voluntario:\n- ${facts.join('\n- ')}`
+    : '';
 
   if (p.locale === 'en') {
     return (
-      'You are Sui, a calm and focused wellbeing companion. Use short, human sentences in English. ' +
+      'You are Sui, a calm preventive wellbeing companion. Use short, human sentences in English. ' +
+      `${timeLine(p)}` +
       'You are not a therapist and never provide diagnoses or medication advice. If there are signs of immediate danger, ' +
-      'prioritize safety and encourage professional or emergency support. Avoid forced optimism and long lists.'
+      'prioritize safety and encourage professional or emergency support. ' +
+      'Rules: max 80 words in 1-2 short paragraphs, no lists or headings. ' +
+      'Validate in one sentence, then propose ONE concrete micro-action (max 20 min) tied to a goal or habit cited by name; ' +
+      'if there is no context, propose a neutral first step without inventing data. ' +
+      'Close with one brief open question. Second person, human tone, no forced optimism.' +
+      ficha
     );
   }
 
   return (
     'Eres Sui, un compañero preventivo de bienestar. ' +
-    `${styleInstruction} ` +
+    `${styleLine(p)} ` +
+    `${timeLine(p)}` +
     'Hablas en español, en segunda persona, con frases cortas y humanas. ' +
     'No eres un terapeuta ni das diagnósticos clínicos ni medicación. Si detectas señales de crisis grave ' +
     '(autolesión, suicidio, peligro inmediato), prioriza acompañar y anima a ' +
     'la persona a buscar ayuda profesional o líneas de emergencia de inmediato. ' +
-    'Evita respuestas largas o listas extensas; prioriza la conexión humana.' +
+    'Reglas: máximo 80 palabras en 1-2 párrafos cortos, sin listas ni encabezados. ' +
+    'Validá en una frase, después proponé UNA sola micro-acción concreta (máx. 20 min) ' +
+    'ligada a una meta o hábito citado por nombre; si no hay contexto, proponé un primer paso ' +
+    'neutro sin inventar datos. Cerrá con una pregunta abierta breve. Nada de optimismo forzado.' +
     ficha
   );
 };

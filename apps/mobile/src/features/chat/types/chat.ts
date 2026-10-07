@@ -31,11 +31,20 @@ export const MAX_INPUT_CHARS = 1000;
 /**
  * "Ficha de Estado Emocional": contexto derivado del onboarding que se inyecta
  * como system prompt en cada conversación para personalizar la empatía.
+ *
+ * Acá sólo viajan títulos y conteos ya visibles en la app: nada sensible se
+ * inventa ni se pide de más, así el modelo ancla sin adivinar tu vida.
  */
 export interface EmotionalProfile {
   name: string;
   botPersonality?: 'calm' | 'direct' | 'coach' | null;
   goals: string[];
+  /** Hábitos activos ya formateados (p. ej. `Caminar (racha 4)`). */
+  habits: string[];
+  /** Momento local del día: afina el saludo sin pedir la hora. */
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+  /** Racha global de constancia, 0 si no hay. */
+  streak?: number;
   locale: 'es' | 'en';
 }
 

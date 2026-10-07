@@ -18,6 +18,12 @@ interface ChatState {
   messages: ChatMessage[];
   /** id del mensaje del asistente que está recibiendo chunks, o null. */
   streamingId: string | null;
+  /**
+   * Último texto que sí pasó la crisis y se envió. Vive sólo en memoria:
+   * sirve para reintentar sin duplicar tu mensaje. No se persiste en
+   * `sui-chat-v1` para no guardar nada extra en el dispositivo.
+   */
+  lastSentText: string | null;
 
   // Lectura
   setHydrated: (value: boolean) => void;
@@ -29,6 +35,8 @@ interface ChatState {
   appendChunk: (id: string, chunk: string) => void;
   finalizeAssistant: (id: string) => void;
   markError: (id: string) => void;
+  /** Saca un mensaje del hilo (se usa al reintentar: se borra la respuesta fallida). */
+  removeMessage: (id: string) => void;
   clear: () => void;
 }
 
@@ -38,6 +46,7 @@ export const useChatStore = create<ChatState>()(
       hydrated: false,
       messages: [],
       streamingId: null,
+      lastSentText: null,
 
       setHydrated: (value) => set({ hydrated: value }),
 
@@ -50,7 +59,9 @@ export const useChatStore = create<ChatState>()(
           content: content.trim(),
           createdAt: Date.now(),
         };
-        set((s) => ({ messages: [...prune(s.messages), msg] }));
+        // Acá se guarda el último texto aceptado: ya pasó la crisis en la
+        // pantalla, así que reintentar lo puede reusar sin pedirlo de nuevo.
+        set((s) => ({ messages: [...prune(s.messages), msg], lastSentText: msg.content }));
         return msg.id;
       },
 
@@ -85,7 +96,13 @@ export const useChatStore = create<ChatState>()(
           ),
         })),
 
-      clear: () => set({ messages: [], streamingId: null }),
+      removeMessage: (id) =>
+        set((s) => ({
+          messages: s.messages.filter((m) => m.id !== id),
+          streamingId: s.streamingId === id ? null : s.streamingId,
+        })),
+
+      clear: () => set({ messages: [], streamingId: null, lastSentText: null }),
     }),
     {
       name: CHAT_STORAGE_KEY,

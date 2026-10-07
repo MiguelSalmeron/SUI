@@ -5,6 +5,9 @@ import { buildReportPayload } from '../reportPrompt';
 const profile = {
   name: 'Ana',
   goals: ['Dormir mejor', 'Estudiar con enfoque'],
+  habits: ['Caminar (racha 4)'],
+  timeOfDay: 'morning' as const,
+  streak: 4,
   locale: 'es' as const,
 };
 
@@ -21,6 +24,9 @@ describe('chatPrompt', () => {
     expect(buildEmotionalProfile(profile)).toEqual({
       name: 'Ana',
       goals: ['Dormir mejor', 'Estudiar con enfoque'],
+      habits: ['Caminar (racha 4)'],
+      timeOfDay: 'morning',
+      streak: 4,
       locale: 'es',
       botPersonality: 'calm',
     });
@@ -31,6 +37,28 @@ describe('chatPrompt', () => {
     expect(system).toContain('No eres un terapeuta');
     expect(system).toContain('diagnósticos clínicos');
     expect(system).toContain('Nombre: Ana');
+    expect(system).toContain('Metas activas');
+    expect(system).toContain('Hábitos activos');
+    expect(system).toContain('80 palabras');
+    expect(system).toContain('micro-acción');
+  });
+
+  it('mantiene paridad ES/EN en ficha y reglas anti-genéricas', () => {
+    const systemEn = buildSystemPrompt(buildEmotionalProfile({ ...profile, locale: 'en' }));
+    expect(systemEn).toContain('Name: Ana');
+    expect(systemEn).toContain('Active goals');
+    expect(systemEn).toContain('Active habits');
+    expect(systemEn).toContain('80 words');
+    expect(systemEn).toContain('micro-action');
+  });
+
+  it('recorta listas largas pa cuidar tokens', () => {
+    const full = buildEmotionalProfile({
+      goals: ['a', 'b', 'c', 'd', 'e'],
+      habits: ['h1', 'h2', 'h3', 'h4'],
+    });
+    expect(full.goals).toHaveLength(3);
+    expect(full.habits).toHaveLength(3);
   });
 
   it('arma payload filtrando errores, streaming y mensajes vacíos', () => {
