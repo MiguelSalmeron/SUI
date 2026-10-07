@@ -12,7 +12,7 @@ export type RootStackParamList = {
   Welcome: undefined;
   Home: undefined;
   Chat: { prefill?: string } | undefined;
-  Pomodoro: { target?: FocusTarget } | undefined;
+  Pomodoro: { target?: FocusTarget; sessionMinutes?: number } | undefined;
   Progress: undefined;
   Settings: undefined;
   Login: undefined;

@@ -17,11 +17,16 @@ import {
 } from '@/shared/theme/theme';
 import { Skeleton } from '@/shared/ui/Skeleton';
 import { buildUnifiedTimeline, loadCachedGoogleEvents } from '@/features/calendar/public';
-import { PomodoroCard, usePomodoroStore } from '@/features/pomodoro/public';
+import {
+  hasActivePomodoroSession,
+  PomodoroCard,
+  usePomodoroStore,
+} from '@/features/pomodoro/public';
 import type { GoogleEvent, TimelineItem } from '@/shared/types/models';
 import { localDateKey, useProductivityStore } from '@/shared/domain/productivity/public';
 import type { MainTabParamList, RootStackParamList } from '@/shared/navigation/types';
 import { SuiDoodle } from '@/shared/ui/SuiDoodle';
+import { SuiMist } from '@/shared/ui/SuiMist';
 import { useI18n } from '@/shared/i18n/i18n';
 import type { TranslationKey } from '@/shared/i18n/translations';
 import { FirstRunSpotlight } from '../components/FirstRunSpotlight';
@@ -59,6 +64,8 @@ export const OverviewScreen = () => {
   const lastCompletedDate = useProductivityStore((s) => s.lastCompletedDate);
   const toggleHabit = useProductivityStore((s) => s.toggleHabit);
   const toggleGoal = useProductivityStore((s) => s.toggleGoal);
+  // La sesión libre usa la preferencia; el plan muestra la duración de su paso.
+  const focusMinutes = usePomodoroStore((s) => s.minutes);
   const isSeeded = useProductivityStore((s) => s.isSeeded);
   const personalizeSeeded = useProductivityStore((s) => s.personalizeSeeded);
   const dismissSeeded = useProductivityStore((s) => s.dismissSeeded);
@@ -110,15 +117,15 @@ export const OverviewScreen = () => {
   );
 
   const focusStep = (step: PlanStep) => {
-    // Si ya corre una sesión no se le cambia el objetivo a media marcha: sólo
+    // Si la sesión corre o quedó pausada, conservá su objetivo y duración: sólo
     // se abre Pomodoro para que el usuario vea lo que tiene en curso.
     const pomodoro = usePomodoroStore.getState();
-    if (pomodoro.running) {
+    if (hasActivePomodoroSession(pomodoro)) {
       navigation.navigate('Pomodoro');
       return;
     }
-    pomodoro.setFocusTarget(step.target);
-    navigation.navigate('Pomodoro', { target: step.target });
+    pomodoro.setFocusTarget(step.target, step.blockMinutes);
+    navigation.navigate('Pomodoro', { target: step.target, sessionMinutes: step.blockMinutes });
   };
 
   const openStep = (step: PlanStep) => {
@@ -179,7 +186,9 @@ export const OverviewScreen = () => {
           <>
             <View style={styles.intro}>
               <Text style={styles.eyebrow}>{t('home.today')}</Text>
-              <Text style={styles.title}>{formattedToday}</Text>
+              <Text style={styles.title}>
+                {formattedToday.charAt(0).toLocaleUpperCase() + formattedToday.slice(1)}
+              </Text>
               <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
             </View>
             {emptyState ? (
@@ -253,13 +262,20 @@ export const OverviewScreen = () => {
                     onStart={() => focusStep(dayPlan[0]!)}
                   />
                 ) : null}
-                <TodayPlanCard
-                  steps={dayPlan}
-                  onFocus={focusStep}
-                  onOpen={openStep}
-                  onCreateGoal={() => navigation.navigate('Goals', { create: true })}
-                  onFreeFocus={() => navigation.navigate('Pomodoro')}
-                />
+                <View style={styles.planShell}>
+                  <SuiMist />
+                  <TodayPlanCard
+                    steps={dayPlan}
+                    focusMinutes={dayPlan[0]?.blockMinutes ?? focusMinutes}
+                    onFocus={focusStep}
+                    onOpen={openStep}
+                    onCreateGoal={() => navigation.navigate('Goals', { create: true })}
+                    onFreeFocus={() => {
+                      usePomodoroStore.getState().setFocusTarget(null);
+                      navigation.navigate('Pomodoro');
+                    }}
+                  />
+                </View>
                 <TouchableOpacity
                   style={styles.progressCard}
                   onPress={() => navigation.navigate('Progress')}
@@ -285,16 +301,17 @@ export const OverviewScreen = () => {
                     <View style={[styles.progressFill, { width: `${progress}%` }]} />
                   </View>
                   <View style={styles.statsRow}>
-                    <View style={styles.statItem}>
-                      <Ionicons name="flame" size={16} color={colors.flame} />
-                      <Text style={styles.statValue}>{streak}</Text>
-                      <Text style={styles.statLabel}>{t('home.streakDays')}</Text>
+                    <View style={[styles.statItem, styles.streakChip]}>
+                      <Ionicons name="flame" size={16} color={colors.onFlameContainer} />
+                      <Text style={[styles.statValue, styles.streakText]}>{streak}</Text>
+                      <Text style={[styles.statLabel, styles.streakText]}>
+                        {streak === 1 ? t('home.streakDay') : t('home.streakDays')}
+                      </Text>
                     </View>
-                    <View style={styles.statDivider} />
-                    <View style={styles.statItem}>
-                      <Ionicons name="sparkles" size={15} color={colors.primary} />
-                      <Text style={styles.statValue}>{totalXp}</Text>
-                      <Text style={styles.statLabel}>{t('home.totalXp')}</Text>
+                    <View style={[styles.statItem, styles.xpChip]}>
+                      <Ionicons name="sparkles" size={15} color={colors.onPrimaryContainer} />
+                      <Text style={[styles.statValue, styles.xpText]}>{totalXp}</Text>
+                      <Text style={[styles.statLabel, styles.xpText]}>{t('home.totalXp')}</Text>
                     </View>
                   </View>
                   <View style={styles.progressLink}>
@@ -392,7 +409,7 @@ export const OverviewScreen = () => {
 };
 
 const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
-  const { colors, radius, type } = theme;
+  const { colors, radius, type, elevation, scheme } = theme;
   return StyleSheet.create({
     screenContainer: {
       flex: 1,
@@ -411,7 +428,6 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     title: {
       ...type.headlineSm,
       color: colors.onSurface,
-      textTransform: 'capitalize',
       marginTop: 2,
     },
     subtitle: { ...type.bodyMd, color: colors.onSurfaceVariant, marginTop: 2 },
@@ -457,12 +473,18 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       gap: SPACING.sm,
     },
     firstRunSecondaryText: { ...type.labelLg, color: colors.onSecondaryContainer },
+    planShell: {
+      position: 'relative',
+      marginHorizontal: -SPACING.md,
+      paddingHorizontal: SPACING.md,
+    },
     progressCard: {
       backgroundColor: colors.surface,
-      borderRadius: radius.lg,
-      borderWidth: 1,
+      borderRadius: radius.xl,
+      ...elevation.soft,
+      borderWidth: scheme === 'dark' ? StyleSheet.hairlineWidth : 0,
       borderColor: colors.outlineVariant,
-      padding: SPACING.md,
+      padding: 20,
       marginBottom: SPACING.xl,
     },
     progressHeader: {
@@ -473,9 +495,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     },
     progressLabel: { ...type.titleSm, color: colors.onSurface },
     progressCount: { ...type.bodySm, color: colors.onSurfaceVariant, marginTop: 1 },
-    progressPercent: { ...type.titleLg, color: colors.primary },
+    progressPercent: { ...type.brandDisplaySm, color: colors.primary },
     progressTrack: {
-      height: 7,
+      height: 10,
       borderRadius: radius.full,
       backgroundColor: colors.surfaceContainerHighest,
       overflow: 'hidden',
@@ -485,16 +507,29 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       borderRadius: radius.full,
       backgroundColor: colors.secondary,
     },
-    statsRow: { flexDirection: 'row', alignItems: 'center', marginTop: SPACING.md },
-    statItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5 },
+    statsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      marginTop: SPACING.md,
+    },
+    statItem: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 5,
+      borderRadius: radius.full,
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: 6,
+      maxWidth: '100%',
+    },
+    streakChip: { backgroundColor: colors.flameContainer },
+    streakText: { color: colors.onFlameContainer },
+    xpChip: { backgroundColor: colors.primaryContainer },
+    xpText: { color: colors.onPrimaryContainer },
     statValue: { ...type.labelLg, color: colors.onSurface },
     statLabel: { ...type.bodySm, color: colors.onSurfaceVariant },
-    statDivider: {
-      width: 1,
-      height: 22,
-      backgroundColor: colors.outlineVariant,
-      marginHorizontal: SPACING.sm,
-    },
     progressLink: {
       flexDirection: 'row',
       alignItems: 'center',

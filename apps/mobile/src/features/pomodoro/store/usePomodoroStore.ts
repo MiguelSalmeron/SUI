@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { localDateKey } from '@/shared/domain/productivity/pure';
+import { sameFocusTarget } from '@/shared/focus/focusFlow';
 import type { FocusDay, FocusTarget } from '@/shared/focus/focusTypes';
 
 export const POMODORO_STORAGE_KEY = '@sui/pomodoro-v1';
@@ -14,8 +15,9 @@ const clampMinutes = (minutes: number): number =>
   Math.min(POMODORO_MAX_MINUTES, Math.max(POMODORO_MIN_MINUTES, Math.round(minutes)));
 
 interface PomodoroState {
-  /** Duración configurada de la sesión. */
+  /** Duración habitual del usuario; cada paso conserva su duración aparte. */
   minutes: number;
+  sessionMinutes: number | null;
   /** Notificar al terminar la sesión (opt-in explícito). */
   notifyOnComplete: boolean;
   /** Segundos restantes de la sesión actual (sólo memoria, no se persiste). */
@@ -33,9 +35,10 @@ interface PomodoroState {
   history: FocusDay[];
 
   setMinutes: (minutes: number) => void;
+  setSessionMinutes: (minutes: number) => void;
   setNotifyOnComplete: (enabled: boolean) => void;
   /** Fija el objetivo de enfoque; pasar nulo lo deja como sesión libre. */
-  setFocusTarget: (target: FocusTarget | null) => void;
+  setFocusTarget: (target: FocusTarget | null, sessionMinutes?: number) => void;
   start: () => void;
   pause: () => void;
   resume: () => void;
@@ -47,6 +50,22 @@ interface PomodoroState {
   /** Normaliza las estadísticas al día actual (rollover de medianoche). */
   refreshDay: () => void;
 }
+
+export const getSessionMinutes = (state: {
+  minutes: number;
+  sessionMinutes?: number | null;
+}): number => state.sessionMinutes ?? state.minutes;
+
+export const hasActivePomodoroSession = (state: {
+  minutes: number;
+  sessionMinutes?: number | null;
+  running: boolean;
+  secondsLeft: number;
+}): boolean =>
+  state.running || (state.secondsLeft > 0 && state.secondsLeft < getSessionMinutes(state) * 60);
+
+const sanitizeSessionMinutes = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0 ? clampMinutes(value) : null;
 
 const emptyDay = () => ({
   dayKey: localDateKey(),
@@ -82,7 +101,11 @@ const sanitizeFocusTarget = (value: unknown): FocusTarget | null => {
   const candidate = value as Record<string, unknown>;
   if (candidate['kind'] === 'milestone') {
     if (typeof candidate['goalId'] === 'string' && typeof candidate['milestoneId'] === 'string') {
-      return { kind: 'milestone', goalId: candidate['goalId'], milestoneId: candidate['milestoneId'] };
+      return {
+        kind: 'milestone',
+        goalId: candidate['goalId'],
+        milestoneId: candidate['milestoneId'],
+      };
     }
     return null;
   }
@@ -129,6 +152,7 @@ const sanitizeFocusHistory = (value: unknown): FocusDay[] => {
 type PersistedPomodoro = Pick<
   PomodoroState,
   | 'minutes'
+  | 'sessionMinutes'
   | 'notifyOnComplete'
   | 'dayKey'
   | 'sessions'
@@ -141,6 +165,7 @@ type PersistedPomodoro = Pick<
 
 const initialState = {
   minutes: DEFAULT_POMODORO_MINUTES,
+  sessionMinutes: null as number | null,
   notifyOnComplete: false,
   secondsLeft: DEFAULT_POMODORO_MINUTES * 60,
   running: false,
@@ -160,21 +185,56 @@ export const usePomodoroStore = create<PomodoroState>()(
           const clamped = clampMinutes(minutes);
           return {
             minutes: clamped,
-            // Si hay una sesión en curso no se altera su cuenta regresiva.
-            secondsLeft: state.running ? state.secondsLeft : clamped * 60,
+            sessionMinutes: state.running
+              ? getSessionMinutes(state)
+              : state.focusTarget
+                ? getSessionMinutes(state)
+                : null,
+            // La preferencia global no cambia el bloque que ya enfocaste.
+            secondsLeft: state.running || state.focusTarget ? state.secondsLeft : clamped * 60,
           };
+        }),
+
+      setSessionMinutes: (minutes) =>
+        set((state) => {
+          if (state.running) return state;
+          const duration = sanitizeSessionMinutes(minutes);
+          if (duration === null) return state;
+          return { sessionMinutes: duration, secondsLeft: duration * 60 };
         }),
 
       setNotifyOnComplete: (enabled) => set({ notifyOnComplete: enabled }),
 
-      setFocusTarget: (target) => set({ focusTarget: target }),
+      setFocusTarget: (target, sessionMinutes) =>
+        set((state) => {
+          // Retomá la sesión activa o pausada antes de preparar otro paso.
+          if (hasActivePomodoroSession(state)) return state;
+          if (
+            target &&
+            sameFocusTarget(state.focusTarget, target) &&
+            sessionMinutes === undefined
+          ) {
+            return { focusTarget: target };
+          }
+          const duration = target
+            ? (sanitizeSessionMinutes(sessionMinutes) ?? state.minutes)
+            : null;
+          return {
+            focusTarget: target,
+            sessionMinutes: duration,
+            secondsLeft: (duration ?? state.minutes) * 60,
+            targetEndTime: null,
+          };
+        }),
 
       start: () =>
         set((state) => {
           if (state.running) return state;
-          const activeSeconds = state.secondsLeft <= 0 ? state.minutes * 60 : state.secondsLeft;
+          const activeSeconds =
+            state.secondsLeft <= 0 ? getSessionMinutes(state) * 60 : state.secondsLeft;
           return {
             secondsLeft: activeSeconds,
+            sessionMinutes: getSessionMinutes(state),
             running: true,
             targetEndTime: Date.now() + activeSeconds * 1000,
           };
@@ -189,9 +249,11 @@ export const usePomodoroStore = create<PomodoroState>()(
       resume: () =>
         set((state) => {
           if (state.running) return state;
-          const activeSeconds = state.secondsLeft <= 0 ? state.minutes * 60 : state.secondsLeft;
+          const activeSeconds =
+            state.secondsLeft <= 0 ? getSessionMinutes(state) * 60 : state.secondsLeft;
           return {
             secondsLeft: activeSeconds,
+            sessionMinutes: getSessionMinutes(state),
             running: true,
             targetEndTime: Date.now() + activeSeconds * 1000,
           };
@@ -201,7 +263,8 @@ export const usePomodoroStore = create<PomodoroState>()(
         set((state) => ({
           running: false,
           targetEndTime: null,
-          secondsLeft: state.minutes * 60,
+          sessionMinutes: state.focusTarget ? getSessionMinutes(state) : null,
+          secondsLeft: (state.focusTarget ? getSessionMinutes(state) : state.minutes) * 60,
         })),
 
       completeSession: () =>
@@ -215,10 +278,11 @@ export const usePomodoroStore = create<PomodoroState>()(
             secondsLeft: 0,
             dayKey: stats.dayKey,
             sessions: stats.sessions + 1,
-            focusMinutes: stats.focusMinutes + state.minutes,
+            focusMinutes: stats.focusMinutes + getSessionMinutes(state),
+            sessionMinutes: state.focusTarget ? getSessionMinutes(state) : null,
             // El historial se acumula acá mismo para que cerrar la app a media
             // sesión no pierda el día: al completar ya queda guardado.
-            history: upsertFocusDay(state.history ?? [], today, state.minutes),
+            history: upsertFocusDay(state.history ?? [], today, getSessionMinutes(state)),
           };
         }),
 
@@ -242,6 +306,7 @@ export const usePomodoroStore = create<PomodoroState>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state): PersistedPomodoro => ({
         minutes: state.minutes,
+        sessionMinutes: state.sessionMinutes,
         notifyOnComplete: state.notifyOnComplete,
         dayKey: state.dayKey,
         sessions: state.sessions,
@@ -259,6 +324,7 @@ export const usePomodoroStore = create<PomodoroState>()(
           secondsLeft: current.secondsLeft,
           // Payload viejo sin estos campos hidrata sin errores.
           focusTarget: sanitizeFocusTarget(raw.focusTarget),
+          sessionMinutes: sanitizeSessionMinutes(raw.sessionMinutes),
           history: sanitizeFocusHistory(raw.history),
         };
         // Rollover de medianoche: estadísticas de ayer no se arrastran.
@@ -270,9 +336,10 @@ export const usePomodoroStore = create<PomodoroState>()(
         if (base.running && typeof base.targetEndTime !== 'number') {
           base.running = false;
         }
+        if (!base.focusTarget && !base.running) base.sessionMinutes = null;
         base.secondsLeft = base.running
           ? Math.max(0, Math.ceil((base.targetEndTime! - Date.now()) / 1000))
-          : base.minutes * 60;
+          : getSessionMinutes(base) * 60;
         return base;
       },
     },

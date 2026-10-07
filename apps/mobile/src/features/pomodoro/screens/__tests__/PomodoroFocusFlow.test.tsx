@@ -39,6 +39,8 @@ jest.mock('@/shared/theme/theme', () => {
     createSurface: () => surface,
     useAppTheme: () => ({
       colors,
+      elevation: { soft: {} },
+      scheme: 'light',
       radius,
       type,
       stateLayer: { hover: 0.08, pressed: 0.12, dragged: 0.16, focus: 0.12 },
@@ -50,7 +52,7 @@ jest.mock('@/shared/ui/Ionicons', () => ({ Ionicons: () => null }));
 
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
-let mockRouteParams: { target?: unknown } = {};
+let mockRouteParams: { target?: unknown; sessionMinutes?: number } = {};
 
 jest.mock('@react-navigation/native', () => ({
   useRoute: () => ({ params: mockRouteParams }),
@@ -70,6 +72,7 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const pomodoroBase = () => ({
   minutes: 25,
+  sessionMinutes: null as number | null,
   notifyOnComplete: false,
   secondsLeft: 1500,
   running: false,
@@ -164,6 +167,85 @@ describe('Pomodoro flujo Enfocar (B2)', () => {
     await view.unmount();
   });
 
+  it('abre el bloque de 10 minutos y su ajuste conserva la preferencia al reabrir', async () => {
+    mockRouteParams = { target: { kind: 'habit', habitId: 'h1' }, sessionMinutes: 10 };
+    const view = await render(<PomodoroScreen />);
+    await flush();
+
+    expect(view.getByText('10:00')).toBeTruthy();
+    expect(usePomodoroStore.getState()).toMatchObject({ minutes: 25, sessionMinutes: 10 });
+    await fireEvent.press(view.getByTestId('pomodoro-config-row'));
+    await fireEvent.changeText(view.getByLabelText('pomodoro.stepConfigTitle'), '20');
+    await fireEvent.press(view.getByLabelText('pomodoro.configApply'));
+    expect(view.getByText('20:00')).toBeTruthy();
+    expect(usePomodoroStore.getState()).toMatchObject({ minutes: 25, sessionMinutes: 20 });
+
+    await view.unmount();
+    const reopened = await render(<PomodoroScreen />);
+    await flush();
+    expect(reopened.getByText('20:00')).toBeTruthy();
+    await reopened.unmount();
+  });
+
+  it.each([true, false])('otra ruta conserva el bloque y progreso, running=%s', async (running) => {
+    usePomodoroStore.setState({
+      focusTarget: { kind: 'habit', habitId: 'h1' },
+      sessionMinutes: 10,
+      secondsLeft: 400,
+      running,
+      targetEndTime: running ? Date.now() + 400000 : null,
+    });
+    mockRouteParams = {
+      target: { kind: 'milestone', goalId: 'g1', milestoneId: 'm1' },
+      sessionMinutes: 50,
+    };
+    const view = await render(<PomodoroScreen />);
+    await flush();
+
+    expect(usePomodoroStore.getState()).toMatchObject({
+      focusTarget: { kind: 'habit', habitId: 'h1' },
+      sessionMinutes: 10,
+      minutes: 25,
+      secondsLeft: 400,
+      running,
+    });
+    expect(view.getByText('06:40')).toBeTruthy();
+    await view.unmount();
+  });
+
+  it('reabrir el bloque terminado conserva cierre e historial de 10 minutos', async () => {
+    mockRouteParams = { target: { kind: 'habit', habitId: 'h1' }, sessionMinutes: 10 };
+    const view = await render(<PomodoroScreen />);
+    await act(async () => {
+      usePomodoroStore.getState().start();
+      usePomodoroStore.getState().completeSession();
+    });
+    await view.unmount();
+
+    const reopened = await render(<PomodoroScreen />);
+    await flush();
+    expect(reopened.getByTestId('pomodoro-complete-panel')).toBeTruthy();
+    expect(usePomodoroStore.getState()).toMatchObject({
+      minutes: 25,
+      sessionMinutes: 10,
+      secondsLeft: 0,
+      sessions: 1,
+      focusMinutes: 10,
+    });
+    await reopened.unmount();
+  });
+
+  it('ajustar un paso persistido anterior tampoco cambia la preferencia global', async () => {
+    usePomodoroStore.setState({ focusTarget: { kind: 'habit', habitId: 'h1' } });
+    const view = await render(<PomodoroScreen />);
+    await fireEvent.press(view.getByTestId('pomodoro-config-row'));
+    await fireEvent.changeText(view.getByLabelText('pomodoro.stepConfigTitle'), '10');
+    await fireEvent.press(view.getByLabelText('pomodoro.configApply'));
+    expect(view.getByText('10:00')).toBeTruthy();
+    expect(usePomodoroStore.getState()).toMatchObject({ minutes: 25, sessionMinutes: 10 });
+    await view.unmount();
+  });
+
   it('completar target no duplica estado ante doble toque', async () => {
     mockRouteParams = { target: { kind: 'habit', habitId: 'h1' } };
     const view = await render(<PomodoroScreen />);
@@ -233,6 +315,32 @@ describe('Pomodoro flujo Enfocar (B2)', () => {
     expect(view.queryByTestId('pomodoro-complete-target')).toBeNull();
     await fireEvent.press(view.getByTestId('pomodoro-start'));
     expect(usePomodoroStore.getState().running).toBe(true);
+    await view.unmount();
+  });
+
+  it('cambiar de paso tras completar vuelve a idle sin botón de completar', async () => {
+    // Completás con el hábito y luego llega otro Enfocar: quedás en idle con duración completa.
+    mockRouteParams = { target: { kind: 'habit', habitId: 'h1' } };
+    const view = await render(<PomodoroScreen />);
+    await flush();
+    await act(async () => {
+      usePomodoroStore.getState().start();
+    });
+    await act(async () => {
+      usePomodoroStore.getState().completeSession();
+    });
+    expect(view.getByTestId('pomodoro-complete-target')).toBeTruthy();
+
+    mockRouteParams = { target: { kind: 'milestone', goalId: 'g1', milestoneId: 'm1' } };
+    await view.rerender(<PomodoroScreen />);
+    await flush();
+
+    const state = usePomodoroStore.getState();
+    expect(state.focusTarget).toEqual({ kind: 'milestone', goalId: 'g1', milestoneId: 'm1' });
+    expect(state.running).toBe(false);
+    expect(state.secondsLeft).toBe(state.minutes * 60);
+    expect(view.queryByTestId('pomodoro-complete-target')).toBeNull();
+    expect(view.queryByTestId('pomodoro-complete-panel')).toBeNull();
     await view.unmount();
   });
 });

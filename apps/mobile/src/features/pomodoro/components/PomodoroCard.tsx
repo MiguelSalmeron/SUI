@@ -3,7 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import { SPACING, useAppTheme } from '@/shared/theme/theme';
 import { useI18n } from '@/shared/i18n/i18n';
-import { usePomodoroStore } from '../store/usePomodoroStore';
+import { getSessionMinutes, usePomodoroStore } from '../store/usePomodoroStore';
 
 const formatTime = (totalSeconds: number): string => {
   const minutes = Math.floor(totalSeconds / 60)
@@ -29,7 +29,7 @@ export const PomodoroCard = ({ onPress }: Props) => {
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { t } = useI18n();
-  const minutes = usePomodoroStore((s) => s.minutes);
+  const minutes = usePomodoroStore(getSessionMinutes);
   const running = usePomodoroStore((s) => s.running);
   const targetEndTime = usePomodoroStore((s) => s.targetEndTime);
   const secondsLeft = usePomodoroStore((s) => s.secondsLeft);
@@ -55,22 +55,30 @@ export const PomodoroCard = ({ onPress }: Props) => {
       accessibilityRole="button"
       accessibilityLabel={t('pomodoro.openCard')}
     >
-      <View style={styles.headerRow}>
-        <View style={styles.iconWrap}>
-          <Ionicons name="timer-outline" size={22} color={colors.primary} />
-        </View>
-        <Text style={styles.title}>{t('pomodoro.title')}</Text>
-        {sessions > 0 ? (
-          <View style={styles.sessionsChip}>
-            <Text style={styles.sessionsText}>{sessionsLabel}</Text>
-          </View>
-        ) : null}
+      <View style={styles.iconWrap}>
+        <Ionicons name="timer-outline" size={22} color={colors.onFlameContainer} />
       </View>
-
-      <View style={styles.timerRow}>
-        <Text style={styles.timer}>{formatTime(remainingSeconds)}</Text>
-        <Text style={styles.caption} numberOfLines={2}>
+      <View style={styles.copy}>
+        <View style={styles.titleRow}>
+          <Text style={styles.title} numberOfLines={1}>
+            {t('pomodoro.title')}
+          </Text>
+          {sessions > 0 ? (
+            <View style={styles.sessionsChip}>
+              <Text style={styles.sessionsText} numberOfLines={1}>
+                {sessionsLabel}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+        <Text style={styles.caption} numberOfLines={1}>
           {running ? t('pomodoro.cardActive') : t('pomodoro.cardIdle', { minutes })}
+        </Text>
+      </View>
+      <View style={styles.timerRow}>
+        {running ? <View style={styles.runningDot} /> : null}
+        <Text style={[styles.timer, running && styles.timerActive]}>
+          {formatTime(remainingSeconds)}
         </Text>
       </View>
     </TouchableOpacity>
@@ -78,52 +86,52 @@ export const PomodoroCard = ({ onPress }: Props) => {
 };
 
 const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
-  const { colors, radius, type } = theme;
+  const { colors, radius, type, elevation, scheme } = theme;
   return StyleSheet.create({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: radius.lg,
-      borderWidth: 1,
+      borderRadius: radius.full,
+      ...elevation.soft,
+      borderWidth: scheme === 'dark' ? StyleSheet.hairlineWidth : 0,
       borderColor: colors.outlineVariant,
-      padding: SPACING.md,
-      marginBottom: SPACING.xl,
-    },
-    headerRow: {
+      height: 64,
       flexDirection: 'row',
       alignItems: 'center',
       gap: SPACING.sm,
+      paddingHorizontal: SPACING.md,
+      marginBottom: SPACING.xl,
     },
+    copy: { flex: 1, minWidth: 0 },
+    titleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
     iconWrap: {
       width: 44,
       height: 44,
       borderRadius: 22,
-      backgroundColor: colors.primaryContainer,
+      backgroundColor: colors.flameContainer,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    title: { ...type.titleMd, color: colors.onSurface, flexShrink: 0 },
+    title: { ...type.titleMd, color: colors.onSurface, flexShrink: 1 },
     sessionsChip: {
-      marginLeft: 'auto',
+      flexShrink: 1,
       backgroundColor: colors.secondaryContainer,
       borderRadius: radius.full,
       paddingHorizontal: SPACING.sm,
-      minHeight: 28,
+      minHeight: 20,
       justifyContent: 'center',
     },
     sessionsText: { ...type.labelSm, color: colors.onSecondaryContainer },
     timerRow: {
       flexDirection: 'row',
-      alignItems: 'baseline',
-      justifyContent: 'space-between',
-      gap: SPACING.md,
-      marginTop: SPACING.md,
+      alignItems: 'center',
+      gap: SPACING.xs,
     },
-    timer: { ...type.titleLg, color: colors.primary },
+    timer: { ...type.titleLg, color: colors.onSurface },
+    timerActive: { color: colors.flame },
+    runningDot: { width: 8, height: 8, borderRadius: radius.full, backgroundColor: colors.flame },
     caption: {
       ...type.bodySm,
       color: colors.onSurfaceVariant,
-      flex: 1,
-      textAlign: 'right',
     },
   });
 };

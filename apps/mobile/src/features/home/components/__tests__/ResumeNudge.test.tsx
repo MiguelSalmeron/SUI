@@ -15,6 +15,7 @@ jest.mock('@/shared/theme/theme', () => {
     SPACING: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 },
     useAppTheme: () => ({
       scheme: 'light',
+      elevation: { soft: {} },
       colors: leaf,
       radius: { full: 999, lg: 12, xl: 16 },
       type: textStyle,
@@ -78,8 +79,7 @@ const mountIsolated = (props: NudgeProps): MountedNudge => {
       );
     });
     const getRoot = () => renderer!.root;
-    const findCard = () =>
-      getRoot().findAll((node) => node.props?.testID === 'resume-nudge');
+    const findCard = () => getRoot().findAll((node) => node.props?.testID === 'resume-nudge');
     handle = {
       visible: () => findCard().length > 0,
       texts: () =>
@@ -213,9 +213,9 @@ describe('ResumeNudge', () => {
   it('no reaparece al volver a montar en el mismo módulo', () => {
     let secondVisible: boolean | null = null;
     jest.isolateModules(() => {
-        const ReactFresh = require('react') as typeof import('react');
-        const TT = require('react-test-renderer') as typeof import('react-test-renderer');
-        const mod = require('../ResumeNudge') as typeof import('../ResumeNudge');
+      const ReactFresh = require('react') as typeof import('react');
+      const TT = require('react-test-renderer') as typeof import('react-test-renderer');
+      const mod = require('../ResumeNudge') as typeof import('../ResumeNudge');
       const fiveAgo = new Date(now);
       fiveAgo.setDate(fiveAgo.getDate() - 4);
       let first: import('react-test-renderer').ReactTestRenderer;
@@ -237,9 +237,7 @@ describe('ResumeNudge', () => {
       ReactFresh.act(() => {
         (dismiss.props.onPress as () => void)();
       });
-      expect(first!.root.findAll((node) => node.props?.testID === 'resume-nudge').length).toBe(
-        0,
-      );
+      expect(first!.root.findAll((node) => node.props?.testID === 'resume-nudge').length).toBe(0);
       ReactFresh.act(() => {
         first!.unmount();
       });

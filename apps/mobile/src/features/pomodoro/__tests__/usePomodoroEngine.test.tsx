@@ -50,6 +50,7 @@ describe('usePomodoroEngine', () => {
     engineApi = undefined;
     usePomodoroStore.setState({
       minutes: DEFAULT_POMODORO_MINUTES,
+      sessionMinutes: null as number | null,
       notifyOnComplete: false,
       secondsLeft: DEFAULT_POMODORO_MINUTES * 60,
       running: false,
@@ -141,6 +142,37 @@ describe('usePomodoroEngine', () => {
     expect(usePomodoroStore.getState().sessions).toBe(0);
     expect(triggerSpy).not.toHaveBeenCalled();
 
+    await view.unmount();
+  });
+
+  it('notifica y completa el paso a los 10 minutos aunque la preferencia sea 25', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-09-05T10:00:00.000Z'));
+    usePomodoroStore.getState().setFocusTarget({ kind: 'habit', habitId: 'h1' }, 10);
+    usePomodoroStore.getState().setNotifyOnComplete(true);
+    const view = await render(<EngineHarness />);
+    await act(async () => engineApi?.start());
+
+    expect(schedulePomodoroCompleteNotification).toHaveBeenCalledWith(Date.now() + 600000);
+    await act(async () => {
+      jest.advanceTimersByTime(599000);
+    });
+    expect(usePomodoroStore.getState()).toMatchObject({
+      running: true,
+      secondsLeft: 1,
+      sessions: 0,
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(usePomodoroStore.getState()).toMatchObject({
+      running: false,
+      secondsLeft: 0,
+      minutes: 25,
+      sessions: 1,
+      focusMinutes: 10,
+      history: [{ dayKey: localDateKey(), sessions: 1, minutes: 10 }],
+    });
     await view.unmount();
   });
 

@@ -11,6 +11,7 @@ import { localDateKey } from '@/shared/domain/productivity/public';
 import type { FocusTarget } from '@/shared/focus/focusTypes';
 import {
   DEFAULT_POMODORO_MINUTES,
+  getSessionMinutes,
   POMODORO_MAX_MINUTES,
   POMODORO_MIN_MINUTES,
   POMODORO_STORAGE_KEY,
@@ -20,6 +21,7 @@ import {
 
 const baseline = () => ({
   minutes: DEFAULT_POMODORO_MINUTES,
+  sessionMinutes: null as number | null,
   notifyOnComplete: false,
   secondsLeft: DEFAULT_POMODORO_MINUTES * 60,
   running: false,
@@ -318,12 +320,183 @@ describe('usePomodoroStore', () => {
     const raw = (await AsyncStorage.getItem(POMODORO_STORAGE_KEY)) ?? '{}';
     const payload = JSON.parse(raw) as { state: Record<string, unknown> };
     expect(payload.state.focusTarget).toEqual(target);
-    expect(payload.state.history).toEqual([
-      { dayKey: localDateKey(), sessions: 1, minutes: 25 },
-    ]);
+    expect(payload.state.history).toEqual([{ dayKey: localDateKey(), sessions: 1, minutes: 25 }]);
 
     // El selector que usa Semana devuelve el mismo historial del store.
     const { result } = await renderHook(() => useFocusHistory());
     expect(result.current).toEqual(usePomodoroStore.getState().history);
+  });
+
+  it('cambiar de paso en reposo vuelve a duración completa (idle)', () => {
+    // Acá se simula completar y enfocar otro paso: quedás en idle listo para arrancar.
+    usePomodoroStore.getState().setFocusTarget({ kind: 'habit', habitId: 'h1' });
+    usePomodoroStore.getState().start();
+    usePomodoroStore.getState().completeSession();
+    expect(usePomodoroStore.getState().secondsLeft).toBe(0);
+
+    usePomodoroStore.getState().setFocusTarget({ kind: 'habit', habitId: 'h2' });
+
+    const state = usePomodoroStore.getState();
+    expect(state.focusTarget).toEqual({ kind: 'habit', habitId: 'h2' });
+    expect(state.running).toBe(false);
+    expect(state.secondsLeft).toBe(state.minutes * 60);
+  });
+
+  it('repetir el mismo paso en reposo no reinicia la cuenta', () => {
+    // Si volvés al mismo paso, se respeta lo que ya llevás pausado.
+    usePomodoroStore.getState().setFocusTarget({ kind: 'habit', habitId: 'h1' });
+    usePomodoroStore.getState().start();
+    usePomodoroStore.getState().syncRemaining(900);
+    usePomodoroStore.getState().pause();
+
+    usePomodoroStore.getState().setFocusTarget({ kind: 'habit', habitId: 'h1' });
+
+    expect(usePomodoroStore.getState().secondsLeft).toBe(900);
+  });
+
+  it('cambiar de paso a media sesión conserva objetivo y cuenta', () => {
+    usePomodoroStore.getState().setFocusTarget({ kind: 'habit', habitId: 'h1' });
+    usePomodoroStore.getState().start();
+    usePomodoroStore.getState().syncRemaining(800);
+
+    usePomodoroStore.getState().setFocusTarget({ kind: 'habit', habitId: 'h2' });
+
+    const state = usePomodoroStore.getState();
+    expect(state.focusTarget).toEqual({ kind: 'habit', habitId: 'h1' });
+    expect(state.running).toBe(true);
+    expect(state.secondsLeft).toBe(800);
+  });
+  it('prepara 10 minutos del paso y persiste 25 como preferencia global', async () => {
+    usePomodoroStore.getState().setFocusTarget({ kind: 'habit', habitId: 'h1' }, 10);
+    expect(usePomodoroStore.getState()).toMatchObject({
+      minutes: 25,
+      sessionMinutes: 10,
+      secondsLeft: 600,
+      running: false,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const payload = JSON.parse((await AsyncStorage.getItem(POMODORO_STORAGE_KEY))!);
+    expect(payload.state).toMatchObject({ minutes: 25, sessionMinutes: 10 });
+  });
+
+  it('ajustar y reiniciar el paso conserva la preferencia y el objetivo', () => {
+    const target = { kind: 'habit', habitId: 'h1' } as const;
+    usePomodoroStore.getState().setFocusTarget(target, 10);
+    usePomodoroStore.getState().setSessionMinutes(12);
+    usePomodoroStore.getState().setMinutes(40);
+    expect(usePomodoroStore.getState()).toMatchObject({
+      minutes: 40,
+      sessionMinutes: 12,
+      secondsLeft: 720,
+      focusTarget: target,
+    });
+    usePomodoroStore.getState().start();
+    usePomodoroStore.getState().syncRemaining(300);
+    usePomodoroStore.getState().reset();
+    expect(usePomodoroStore.getState()).toMatchObject({
+      minutes: 40,
+      sessionMinutes: 12,
+      secondsLeft: 720,
+    });
+  });
+
+  it('en pausa conserva el bloque y sólo prepara otro paso después de reiniciar', () => {
+    const target = { kind: 'habit', habitId: 'h1' } as const;
+    usePomodoroStore.getState().setFocusTarget(target, 10);
+    usePomodoroStore.getState().start();
+    usePomodoroStore.getState().syncRemaining(400);
+    usePomodoroStore.getState().pause();
+    usePomodoroStore.getState().setFocusTarget({ kind: 'habit', habitId: 'h2' }, 50);
+    expect(usePomodoroStore.getState()).toMatchObject({
+      focusTarget: target,
+      sessionMinutes: 10,
+      secondsLeft: 400,
+      minutes: 25,
+    });
+    usePomodoroStore.getState().reset();
+    usePomodoroStore.getState().setFocusTarget({ kind: 'habit', habitId: 'h2' }, 15);
+    expect(usePomodoroStore.getState()).toMatchObject({
+      sessionMinutes: 15,
+      secondsLeft: 900,
+      minutes: 25,
+    });
+  });
+
+  it('el historial cuenta 10 reales aunque cambie la preferencia global durante la sesión', () => {
+    usePomodoroStore.getState().setFocusTarget({ kind: 'habit', habitId: 'h1' }, 10);
+    usePomodoroStore.getState().start();
+    usePomodoroStore.getState().setMinutes(40);
+    usePomodoroStore.getState().setSessionMinutes(50);
+    usePomodoroStore.getState().completeSession();
+    usePomodoroStore.getState().completeSession();
+    expect(usePomodoroStore.getState()).toMatchObject({
+      minutes: 40,
+      focusMinutes: 10,
+      sessions: 1,
+    });
+    expect(usePomodoroStore.getState().history).toEqual([
+      { dayKey: localDateKey(), sessions: 1, minutes: 10 },
+    ]);
+  });
+
+  it('la sesión libre recupera la preferencia después de un paso contextual', () => {
+    usePomodoroStore.getState().setMinutes(40);
+    usePomodoroStore.getState().setFocusTarget({ kind: 'habit', habitId: 'h1' }, 10);
+    usePomodoroStore.getState().start();
+    usePomodoroStore.getState().completeSession();
+    usePomodoroStore.getState().setFocusTarget(null);
+    expect(usePomodoroStore.getState()).toMatchObject({
+      minutes: 40,
+      sessionMinutes: null,
+      secondsLeft: 2400,
+      focusTarget: null,
+    });
+    usePomodoroStore.getState().start();
+    usePomodoroStore.getState().completeSession();
+    expect(usePomodoroStore.getState().focusMinutes).toBe(50);
+  });
+
+  it.each([NaN, Infinity, -10, 0])(
+    'duración contextual inválida %s usa la preferencia',
+    (duration) => {
+      usePomodoroStore.getState().setMinutes(40);
+      usePomodoroStore.getState().setFocusTarget({ kind: 'habit', habitId: 'h1' }, duration);
+      expect(getSessionMinutes(usePomodoroStore.getState())).toBe(40);
+      expect(usePomodoroStore.getState().minutes).toBe(40);
+    },
+  );
+
+  it('rehidrata una sesión de 10 minutos sin cambiar los 25 habituales', async () => {
+    const target = { kind: 'habit', habitId: 'h1' } as const;
+    usePomodoroStore.getState().setFocusTarget(target, 10);
+    usePomodoroStore.getState().start();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const persisted = (await AsyncStorage.getItem(POMODORO_STORAGE_KEY))!;
+    usePomodoroStore.setState(baseline());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await AsyncStorage.setItem(POMODORO_STORAGE_KEY, persisted);
+    await usePomodoroStore.persist.rehydrate();
+    const reopened = usePomodoroStore.getState();
+    expect(reopened).toMatchObject({
+      minutes: 25,
+      sessionMinutes: 10,
+      focusTarget: target,
+      running: true,
+    });
+    expect(reopened.secondsLeft).toBeGreaterThanOrEqual(599);
+    expect(reopened.secondsLeft).toBeLessThanOrEqual(600);
+    reopened.completeSession();
+    expect(usePomodoroStore.getState().focusMinutes).toBe(10);
+  });
+
+  it('payload viejo sin duración contextual conserva su duración habitual', () => {
+    const merge = usePomodoroStore.persist.getOptions().merge!;
+    const state = merge(
+      { ...baseline(), minutes: 40, sessionMinutes: undefined },
+      usePomodoroStore.getState(),
+    );
+    expect(state.minutes).toBe(40);
+    expect(state.sessionMinutes).toBeNull();
+    expect(state.secondsLeft).toBe(2400);
   });
 });

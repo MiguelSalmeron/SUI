@@ -13,7 +13,7 @@ export type PlanStep = {
   parentTitle?: string;
   reasonKey: TranslationKey;
   reasonParams?: Record<string, string | number>;
-  blockMinutes: 15 | 25 | 50;
+  blockMinutes: number;
 };
 
 type Candidate = {

@@ -17,7 +17,7 @@ jest.mock('@/shared/theme/theme', () => {
     SCREEN_CONTENT_BOTTOM_PADDING: 80,
     SCREEN_MAX_CONTENT_WIDTH: 560,
     SPACING: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 },
-    useAppTheme: () => ({ colors, radius, type }),
+    useAppTheme: () => ({ colors, radius, type, elevation: { soft: {} }, scheme: 'light' }),
   };
 });
 
@@ -32,6 +32,7 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const baseState = () => ({
   minutes: 25,
+  sessionMinutes: null as number | null,
   notifyOnComplete: false,
   secondsLeft: 1500,
   running: false,
@@ -62,6 +63,13 @@ describe('PomodoroCard', () => {
     const view = await render(<PomodoroCard onPress={jest.fn()} />);
 
     expect(view.getByText('pomodoro.sessionsTodayMany')).toBeTruthy();
+  });
+
+  it('refleja los 10 minutos del paso sin usar los 25 de la preferencia', async () => {
+    usePomodoroStore.setState({ sessionMinutes: 10, secondsLeft: 600 });
+    const view = await render(<PomodoroCard onPress={jest.fn()} />);
+    expect(view.getByText('10:00')).toBeTruthy();
+    expect(view.queryByText('25:00')).toBeNull();
   });
 
   it('en sesión activa muestra la cuenta regresiva restante', async () => {

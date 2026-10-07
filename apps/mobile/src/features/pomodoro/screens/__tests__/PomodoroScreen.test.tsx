@@ -1,10 +1,12 @@
 // `productivity/public` arrastra firebase (ESM) fuera del alcance de jest.
 // Se suma un stub del store para que la tarjeta de enfoque lea metas/hábitos sin Firebase.
+const mockProdGoals: { id: string; title: string; completed: boolean }[] = [];
+const mockProdHabits: { id: string; title: string; completed: boolean }[] = [];
 jest.mock('@/shared/domain/productivity/public', () => ({
   ...jest.requireActual('@/shared/domain/productivity/model/homeStorage'),
   ...jest.requireActual('@/shared/domain/productivity/store/useCelebrationStore'),
   useProductivityStore: Object.assign(() => ({ goals: [], habits: [] }), {
-    getState: () => ({ goals: [], habits: [] }),
+    getState: () => ({ goals: mockProdGoals, habits: mockProdHabits }),
   }),
 }));
 
@@ -55,6 +57,8 @@ jest.mock('@/shared/theme/theme', () => {
     createSurface: () => surface,
     useAppTheme: () => ({
       colors,
+      elevation: { soft: {} },
+      scheme: 'light',
       radius,
       type,
       stateLayer: { hover: 0.08, pressed: 0.12, dragged: 0.16, focus: 0.12 },
@@ -77,6 +81,7 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const baseState = () => ({
   minutes: 25,
+  sessionMinutes: null as number | null,
   notifyOnComplete: false,
   secondsLeft: 1500,
   running: false,
@@ -84,15 +89,17 @@ const baseState = () => ({
   dayKey: localDateKey(),
   sessions: 0,
   focusMinutes: 0,
+  focusTarget: null,
 });
 
 jest.setTimeout(30000);
 
 describe('PomodoroScreen', () => {
-
   beforeEach(async () => {
     jest.clearAllMocks();
     await flush();
+    mockProdGoals.length = 0;
+    mockProdHabits.length = 0;
     usePomodoroStore.setState(baseState());
     jest.mocked(requestNotificationPermission).mockResolvedValue('granted');
     jest.mocked(getNotificationPermission).mockResolvedValue('granted');
@@ -233,6 +240,22 @@ describe('PomodoroScreen', () => {
     expect(usePomodoroStore.getState().notifyOnComplete).toBe(false);
     expect(view.getByText('pomodoro.notifyDenied')).toBeTruthy();
     expect(view.getByText('pomodoro.notifyConfirmTitle')).toBeTruthy();
+    await view.unmount();
+  });
+
+  it('con meta como objetivo no ofrece completar el paso', async () => {
+    // La meta sola no se completa de un toque: fijate que el panel sale pero sin el botón.
+    mockProdGoals.push({ id: 'g1', title: 'Meta grande', completed: false } as never);
+    usePomodoroStore.setState({
+      running: false,
+      secondsLeft: 0,
+      focusTarget: { kind: 'goal', goalId: 'g1' },
+    });
+    const view = await render(<PomodoroScreen />);
+    await flush();
+
+    expect(view.getByTestId('pomodoro-complete-panel')).toBeTruthy();
+    expect(view.queryByTestId('pomodoro-complete-target')).toBeNull();
     await view.unmount();
   });
 });

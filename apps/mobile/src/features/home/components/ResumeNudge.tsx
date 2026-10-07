@@ -104,15 +104,16 @@ export const ResumeNudge = ({ lastCompletedDate, onStart, now }: ResumeNudgeProp
   );
 };
 
-const createStyles = ({ colors, radius, type }: AppTheme) =>
+const createStyles = ({ colors, radius, type, elevation, scheme }: AppTheme) =>
   StyleSheet.create({
     card: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: SPACING.sm,
       backgroundColor: colors.surfaceContainerLowest,
-      borderRadius: radius.lg,
-      borderWidth: 1,
+      borderRadius: radius.xl,
+      ...elevation.soft,
+      borderWidth: scheme === 'dark' ? StyleSheet.hairlineWidth : 0,
       borderColor: colors.outlineVariant,
       padding: SPACING.md,
       marginBottom: SPACING.md,

@@ -1,5 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
+import * as Haptics from 'expo-haptics';
+import { SuiMist } from '@/shared/ui/SuiMist';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import {
@@ -21,10 +32,18 @@ import { completeFocusTarget, resolveFocusTarget } from '@/shared/focus/complete
 import { sameFocusTarget } from '@/shared/focus/focusFlow';
 import { usePomodoroEngine } from '../hooks/usePomodoroEngine';
 import {
+  getSessionMinutes,
+  hasActivePomodoroSession,
   POMODORO_MAX_MINUTES,
   POMODORO_MIN_MINUTES,
   usePomodoroStore,
 } from '../store/usePomodoroStore';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const RING_SIZE = 260;
+const RING_STROKE = 14;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
 
 const formatTime = (totalSeconds: number): string => {
   const minutes = Math.floor(totalSeconds / 60)
@@ -41,19 +60,31 @@ export const PomodoroScreen = () => {
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { t } = useI18n();
+  const startScale = useRef(new Animated.Value(1)).current;
+  useEffect(() => () => startScale.stopAnimation(), [startScale]);
+  const animateStart = (value: number) => {
+    Animated.timing(startScale, {
+      toValue: value,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  };
   const engine = usePomodoroEngine();
   const route = useRoute<PomodoroRoute>();
   const navigation = useNavigation();
 
-  const minutes = usePomodoroStore((s) => s.minutes);
+  const minutes = usePomodoroStore(getSessionMinutes);
+  const preferredMinutes = usePomodoroStore((s) => s.minutes);
   const notifyOnComplete = usePomodoroStore((s) => s.notifyOnComplete);
   const setNotifyOnComplete = usePomodoroStore((s) => s.setNotifyOnComplete);
   const setMinutes = usePomodoroStore((s) => s.setMinutes);
+  const setSessionMinutes = usePomodoroStore((s) => s.setSessionMinutes);
   const running = usePomodoroStore((s) => s.running);
   const targetEndTime = usePomodoroStore((s) => s.targetEndTime);
   const secondsLeft = usePomodoroStore((s) => s.secondsLeft);
   const sessions = usePomodoroStore((s) => s.sessions);
   const focusTarget = usePomodoroStore((s) => s.focusTarget);
+  const contextualDuration = focusTarget !== null;
 
   // Se suscribe a metas y hábitos para que el título enfocado se actualice
   // cuando el paso se complete desde otra pantalla (Hoy, Metas, Hábitos).
@@ -72,13 +103,19 @@ export const PomodoroScreen = () => {
   // se ignora para no mezclar pasos, y sin parámetro se conserva el guardado
   // (cerrar/reabrir no pierde el target porque vive persistido en el store).
   const routeTarget = route.params?.target ?? null;
+  const routeSessionMinutes = route.params?.sessionMinutes;
   useEffect(() => {
     if (!routeTarget) return;
-    if (usePomodoroStore.getState().running) return;
-    if (sameFocusTarget(usePomodoroStore.getState().focusTarget, routeTarget)) return;
-    usePomodoroStore.getState().setFocusTarget(routeTarget);
+    const pomodoro = usePomodoroStore.getState();
+    if (hasActivePomodoroSession(pomodoro)) return;
+    if (
+      sameFocusTarget(pomodoro.focusTarget, routeTarget) &&
+      (routeSessionMinutes === undefined || pomodoro.sessionMinutes !== null)
+    )
+      return;
+    pomodoro.setFocusTarget(routeTarget, routeSessionMinutes);
     setTargetResult(null);
-  }, [routeTarget]);
+  }, [routeTarget, routeSessionMinutes]);
 
   // Si cambia el objetivo (nuevo Enfocar o limpieza), se resetea el aviso local.
   useEffect(() => {
@@ -97,6 +134,9 @@ export const PomodoroScreen = () => {
       : secondsLeft < fullSeconds
         ? 'paused'
         : 'idle';
+
+  const ringProgress =
+    state === 'idle' ? 0 : Math.min(1, Math.max(0, 1 - remainingSeconds / fullSeconds));
 
   const caption =
     state === 'running'
@@ -172,10 +212,13 @@ export const PomodoroScreen = () => {
   const applyMinutes = useCallback(
     (value: string) => {
       const parsed = Number.parseInt(value, 10);
-      if (Number.isFinite(parsed)) setMinutes(parsed);
+      if (Number.isFinite(parsed)) {
+        if (contextualDuration) setSessionMinutes(parsed);
+        else setMinutes(parsed);
+      }
       setConfigVisible(false);
     },
-    [setMinutes],
+    [contextualDuration, setMinutes, setSessionMinutes],
   );
 
   const openNotify = useCallback(() => {
@@ -217,32 +260,75 @@ export const PomodoroScreen = () => {
       showsVerticalScrollIndicator={false}
     >
       <View testID="pomodoro-focus-card" style={styles.focusCard}>
-        <Text style={styles.focusEyebrow}>{t('pomodoro.focusLabel')}</Text>
-        {!focusTarget || !focusInfo ? (
-          <Text style={styles.focusFree}>{t('pomodoro.freeSession')}</Text>
-        ) : focusInfo.status === 'missing' ? (
-          <Text style={styles.focusFree}>{t('pomodoro.focusMissing')}</Text>
-        ) : (
-          <>
-            <Text testID="pomodoro-focus-title" style={styles.focusTitle} numberOfLines={2}>
-              {focusInfo.title}
-            </Text>
-            {focusInfo.parentTitle ? (
-              <Text style={styles.focusParent} numberOfLines={1}>
-                {focusInfo.parentTitle}
+        <View
+          style={styles.focusIcon}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <Ionicons name="timer-outline" size={20} color={colors.onFlameContainer} />
+        </View>
+        <View style={styles.focusCopy}>
+          <Text style={styles.focusEyebrow}>{t('pomodoro.focusLabel')}</Text>
+          {!focusTarget || !focusInfo ? (
+            <Text style={styles.focusFree}>{t('pomodoro.freeSession')}</Text>
+          ) : focusInfo.status === 'missing' ? (
+            <Text style={styles.focusFree}>{t('pomodoro.focusMissing')}</Text>
+          ) : (
+            <>
+              <Text testID="pomodoro-focus-title" style={styles.focusTitle} numberOfLines={2}>
+                {focusInfo.title}
               </Text>
-            ) : null}
-            {targetDone ? (
-              <Text testID="pomodoro-focus-done" style={styles.focusDone}>
-                {t('pomodoro.focusDone')}
-              </Text>
-            ) : null}
-          </>
-        )}
+              {focusInfo.parentTitle ? (
+                <Text style={styles.focusParent} numberOfLines={1}>
+                  {focusInfo.parentTitle}
+                </Text>
+              ) : null}
+              {targetDone ? (
+                <Text testID="pomodoro-focus-done" style={styles.focusDone}>
+                  {t('pomodoro.focusDone')}
+                </Text>
+              ) : null}
+            </>
+          )}
+        </View>
       </View>
 
       <View style={styles.hero}>
-        <Text style={styles.timer}>{formatTime(remainingSeconds)}</Text>
+        <View style={styles.timerShell}>
+          <SuiMist />
+          <Svg width={RING_SIZE} height={RING_SIZE} pointerEvents="none" accessible={false}>
+            <Circle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RING_RADIUS}
+              fill="none"
+              stroke={colors.surfaceContainerHigh}
+              strokeWidth={RING_STROKE}
+              strokeLinecap="round"
+            />
+            <Circle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RING_RADIUS}
+              fill="none"
+              stroke={state === 'completed' ? colors.secondary : colors.flame}
+              strokeWidth={RING_STROKE}
+              strokeLinecap="round"
+              strokeDasharray={[RING_LENGTH, RING_LENGTH]}
+              strokeDashoffset={RING_LENGTH * (1 - ringProgress)}
+              strokeOpacity={ringProgress === 0 ? 0 : 1}
+              transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+            />
+          </Svg>
+          <View style={styles.timerContent}>
+            <Text style={styles.timer}>{formatTime(remainingSeconds)}</Text>
+            {state === 'completed' ? (
+              <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                <Ionicons name="checkmark-circle" size={28} color={colors.secondary} />
+              </View>
+            ) : null}
+          </View>
+        </View>
         <Text style={styles.caption}>{caption}</Text>
         {sessions > 0 ? <Text style={styles.sessionsText}>{sessionsLabel}</Text> : null}
       </View>
@@ -252,23 +338,23 @@ export const PomodoroScreen = () => {
           <>
             <TouchableOpacity
               testID="pomodoro-pause"
-              style={[styles.action, styles.actionPrimary]}
+              style={[styles.action, styles.actionSoft]}
               onPress={engine.pause}
               accessibilityRole="button"
               activeOpacity={0.8}
             >
-              <Ionicons name="pause" size={20} color={colors.onPrimary} />
-              <Text style={styles.actionPrimaryText}>{t('pomodoro.pause')}</Text>
+              <Ionicons name="pause" size={20} color={colors.onSurface} />
+              <Text style={styles.actionSoftText}>{t('pomodoro.pause')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               testID="pomodoro-reset"
-              style={[styles.action, styles.actionGhost]}
+              style={[styles.action, styles.actionSoft]}
               onPress={engine.reset}
               accessibilityRole="button"
               activeOpacity={0.8}
             >
-              <Ionicons name="refresh" size={19} color={colors.primary} />
-              <Text style={styles.actionGhostText}>{t('pomodoro.reset')}</Text>
+              <Ionicons name="refresh" size={19} color={colors.onSurface} />
+              <Text style={styles.actionSoftText}>{t('pomodoro.reset')}</Text>
             </TouchableOpacity>
           </>
         ) : state === 'paused' ? (
@@ -280,46 +366,56 @@ export const PomodoroScreen = () => {
               accessibilityRole="button"
               activeOpacity={0.8}
             >
-              <Ionicons name="play" size={20} color={colors.onPrimary} />
+              <Ionicons name="play" size={20} color={colors.onFlame} />
               <Text style={styles.actionPrimaryText}>{t('pomodoro.resume')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               testID="pomodoro-reset"
-              style={[styles.action, styles.actionGhost]}
+              style={[styles.action, styles.actionSoft]}
               onPress={engine.reset}
               accessibilityRole="button"
               activeOpacity={0.8}
             >
-              <Ionicons name="refresh" size={19} color={colors.primary} />
-              <Text style={styles.actionGhostText}>{t('pomodoro.reset')}</Text>
+              <Ionicons name="refresh" size={19} color={colors.onSurface} />
+              <Text style={styles.actionSoftText}>{t('pomodoro.reset')}</Text>
             </TouchableOpacity>
           </>
         ) : (
-          <TouchableOpacity
+          <AnimatedPressable
             testID="pomodoro-start"
-            style={[styles.action, styles.actionPrimary]}
-            onPress={engine.start}
+            style={[styles.action, styles.actionPrimary, { transform: [{ scale: startScale }] }]}
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+              engine.start();
+            }}
+            onPressIn={() => animateStart(0.97)}
+            onPressOut={() => animateStart(1)}
             accessibilityRole="button"
-            activeOpacity={0.8}
           >
-            <Ionicons name="play" size={22} color={colors.onPrimary} />
+            <Ionicons name="play" size={22} color={colors.onFlame} />
             <Text style={styles.actionPrimaryText}>{t('pomodoro.start')}</Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
         )}
       </View>
 
       {state === 'completed' ? (
         <View testID="pomodoro-complete-panel" style={styles.completePanel}>
-          {focusTarget && focusInfo && focusInfo.status !== 'missing' && !targetDone ? (
+          {/* La meta sola no se completa de un toque (el dominio la deja como
+              not_completable): fijate que acá no se ofrece el botón para ese caso. */}
+          {focusTarget &&
+          focusTarget.kind !== 'goal' &&
+          focusInfo &&
+          focusInfo.status !== 'missing' &&
+          !targetDone ? (
             <TouchableOpacity
               testID="pomodoro-complete-target"
-              style={[styles.action, styles.actionPrimary]}
+              style={[styles.action, styles.actionComplete]}
               onPress={handleCompleteTarget}
               accessibilityRole="button"
               activeOpacity={0.8}
             >
-              <Ionicons name="checkmark" size={20} color={colors.onPrimary} />
-              <Text style={styles.actionPrimaryText}>{t('pomodoro.completeTarget')}</Text>
+              <Ionicons name="checkmark" size={20} color={colors.onSecondary} />
+              <Text style={styles.actionCompleteText}>{t('pomodoro.completeTarget')}</Text>
             </TouchableOpacity>
           ) : null}
           <TouchableOpacity
@@ -350,7 +446,9 @@ export const PomodoroScreen = () => {
             <Ionicons name="time-outline" size={19} color={colors.primary} />
           </View>
           <View style={styles.settingCopy}>
-            <Text style={styles.settingLabel}>{t('pomodoro.configRow')}</Text>
+            <Text style={styles.settingLabel}>
+              {t(contextualDuration ? 'pomodoro.stepConfigTitle' : 'pomodoro.configRow')}
+            </Text>
             <Text style={styles.settingValue}>{t('pomodoro.configValue', { minutes })}</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.onSurfaceVariant} />
@@ -386,8 +484,12 @@ export const PomodoroScreen = () => {
 
       <PromptModal
         visible={configVisible}
-        title={t('pomodoro.configTitle')}
-        hint={t('pomodoro.configHint')}
+        title={t(contextualDuration ? 'pomodoro.stepConfigTitle' : 'pomodoro.configTitle')}
+        hint={
+          contextualDuration
+            ? t('pomodoro.stepConfigHint', { minutes: preferredMinutes })
+            : t('pomodoro.configHint')
+        }
         placeholder="25"
         initialValue={String(minutes)}
         keyboardType="number-pad"
@@ -415,7 +517,7 @@ export const PomodoroScreen = () => {
 };
 
 const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
-  const { colors, radius, type } = theme;
+  const { colors, radius, type, elevation, scheme } = theme;
   return StyleSheet.create({
     content: {
       width: '100%',
@@ -426,14 +528,27 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       paddingBottom: SCREEN_CONTENT_BOTTOM_PADDING,
     },
     focusCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
       backgroundColor: colors.surface,
-      borderRadius: radius.lg,
-      borderWidth: 1,
+      borderRadius: radius.xl,
+      ...elevation.soft,
+      borderWidth: scheme === 'dark' ? StyleSheet.hairlineWidth : 0,
       borderColor: colors.outlineVariant,
       paddingHorizontal: SPACING.md,
       paddingVertical: SPACING.md,
       marginBottom: SPACING.md,
     },
+    focusIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.full,
+      backgroundColor: colors.flameContainer,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    focusCopy: { flex: 1, minWidth: 0 },
     focusEyebrow: { ...type.labelSm, color: colors.primary, letterSpacing: 1.2 },
     focusTitle: { ...type.titleMd, color: colors.onSurface, marginTop: 4 },
     focusParent: { ...type.bodySm, color: colors.onSurfaceVariant, marginTop: 2 },
@@ -444,11 +559,18 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       marginTop: SPACING.lg,
       marginBottom: SPACING.xl,
     },
+    timerShell: { width: RING_SIZE, height: RING_SIZE },
+    timerContent: {
+      ...StyleSheet.absoluteFill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: SPACING.xs,
+    },
     timer: {
       ...type.headlineLg,
-      fontSize: type.headlineLg.fontSize * 2,
-      lineHeight: type.headlineLg.lineHeight * 2,
-      color: colors.primary,
+      fontSize: type.headlineLg.fontSize * (56 / 30),
+      lineHeight: type.headlineLg.lineHeight * (56 / 30),
+      color: colors.onSurface,
       fontVariant: ['tabular-nums'],
       letterSpacing: 1,
     },
@@ -482,9 +604,13 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
       paddingHorizontal: SPACING.lg,
     },
     actionPrimary: {
-      backgroundColor: colors.primary,
+      backgroundColor: colors.flame,
     },
-    actionPrimaryText: { ...type.labelLg, color: colors.onPrimary },
+    actionPrimaryText: { ...type.labelLg, color: colors.onFlame },
+    actionSoft: { backgroundColor: colors.surface, ...elevation.soft },
+    actionSoftText: { ...type.labelLg, color: colors.onSurface },
+    actionComplete: { backgroundColor: colors.secondary },
+    actionCompleteText: { ...type.labelLg, color: colors.onSecondary },
     actionGhost: {
       backgroundColor: colors.surfaceContainerLow,
       borderWidth: 1,
@@ -499,8 +625,9 @@ const createStyles = (theme: ReturnType<typeof useAppTheme>) => {
     },
     settingsCard: {
       backgroundColor: colors.surface,
-      borderRadius: radius.lg,
-      borderWidth: 1,
+      borderRadius: radius.xl,
+      ...elevation.soft,
+      borderWidth: scheme === 'dark' ? StyleSheet.hairlineWidth : 0,
       borderColor: colors.outlineVariant,
       paddingHorizontal: SPACING.md,
       marginTop: SPACING.lg,

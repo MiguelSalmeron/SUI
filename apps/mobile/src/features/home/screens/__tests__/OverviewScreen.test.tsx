@@ -2,14 +2,28 @@ import { fireEvent, render, within } from '@testing-library/react-native';
 import { localDateKey } from '@/shared/domain/productivity/pure';
 import type { Goal, Habit } from '@/shared/types/models';
 
-const mockPomodoro = { running: false, setFocusTarget: jest.fn() };
+const mockPomodoro = {
+  running: false,
+  setFocusTarget: jest.fn(),
+  minutes: 25,
+  sessionMinutes: null as number | null,
+  secondsLeft: 1500,
+};
 
 // La tarjeta real basta aquí; el barrel completo arrastra el motor y
 // expo-notifications (ESM) fuera del alcance de jest. Del store sólo se usa
-// `getState` al enfocar, así que alcanza con un doble chiquito.
+// `getState` al enfocar y el selector de `minutes` para el plan, así que
+// alcanza con un doble chiquito que atienda ambas formas.
 jest.mock('@/features/pomodoro/public', () => {
   const { PomodoroCard } = jest.requireActual('../../../pomodoro/components/PomodoroCard');
-  return { PomodoroCard, usePomodoroStore: { getState: () => mockPomodoro } };
+  const usePomodoroStore = Object.assign(
+    (selector: (state: typeof mockPomodoro) => unknown) => selector(mockPomodoro),
+    { getState: () => mockPomodoro },
+  );
+  const { hasActivePomodoroSession } = jest.requireActual(
+    '../../../pomodoro/store/usePomodoroStore',
+  );
+  return { PomodoroCard, usePomodoroStore, hasActivePomodoroSession };
 });
 
 const mockNavigation = { navigate: jest.fn() };
@@ -54,7 +68,7 @@ jest.mock('@/shared/theme/theme', () => {
     SCREEN_CONTENT_BOTTOM_PADDING: 80,
     SCREEN_MAX_CONTENT_WIDTH: 560,
     SPACING: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 },
-    useAppTheme: () => ({ colors, radius, type }),
+    useAppTheme: () => ({ colors, radius, type, elevation: { soft: {} }, scheme: 'light' }),
   };
 });
 jest.mock('@/shared/ui/Ionicons', () => ({
@@ -64,6 +78,7 @@ jest.mock('@/shared/ui/Skeleton', () => ({ Skeleton: () => null }));
 jest.mock('@/shared/ui/SuiDoodle', () => ({ SuiDoodle: () => null }));
 
 import { OverviewScreen } from '../OverviewScreen';
+import * as dayPlan from '../../model/dayPlan';
 
 describe('OverviewScreen vacío', () => {
   beforeEach(async () => {
@@ -77,7 +92,7 @@ describe('OverviewScreen vacío', () => {
   it('muestra fecha y dos CTA; oculta analítica, agenda y Pomodoro', async () => {
     const screen = await render(<OverviewScreen />);
 
-    expect(screen.getByText('martes, 1 de septiembre')).toBeTruthy();
+    expect(screen.getByText('Martes, 1 de septiembre')).toBeTruthy();
     expect(screen.getByText('home.emptyTitle')).toBeTruthy();
     expect(screen.getByText('home.firstGoal')).toBeTruthy();
     expect(screen.getByText('home.firstHabit')).toBeTruthy();
@@ -171,6 +186,9 @@ describe('OverviewScreen con plan del día', () => {
     });
     jest.clearAllMocks();
     mockPomodoro.running = false;
+    mockPomodoro.minutes = 25;
+    mockPomodoro.sessionMinutes = null;
+    mockPomodoro.secondsLeft = 1500;
     mockState.lastCompletedDate = undefined;
     fullDay();
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -212,8 +230,60 @@ describe('OverviewScreen con plan del día', () => {
     await fireEvent.press(screen.getByTestId('today-plan-focus'));
 
     const target = { kind: 'milestone', goalId: 'g-a', milestoneId: 'm1' };
-    expect(mockPomodoro.setFocusTarget).toHaveBeenCalledWith(target);
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('Pomodoro', { target });
+    expect(mockPomodoro.setFocusTarget).toHaveBeenCalledWith(target, 25);
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('Pomodoro', {
+      target,
+      sessionMinutes: 25,
+    });
+  });
+
+  it('el plan muestra su bloque contextual aunque la preferencia global sea distinta', async () => {
+    mockPomodoro.minutes = 1;
+    const screen = await render(<OverviewScreen />);
+
+    expect(screen.getByText('home.plan.focus · home.plan.minutes|25')).toBeTruthy();
+    expect(screen.queryByText('home.plan.focus · home.plan.minutes|1')).toBeNull();
+    expect(screen.getByTestId('today-plan-focus').props.accessibilityLabel).toBe(
+      'home.plan.focusA11y|Definir alcance,25',
+    );
+  });
+
+  it('un paso de 10 minutos anuncia y envía 10 sin cambiar la preferencia', async () => {
+    const target = { kind: 'habit', habitId: 'h1' } as const;
+    const planSpy = jest.spyOn(dayPlan, 'buildDayPlan').mockReturnValue([
+      {
+        id: 'habit:h1',
+        target,
+        title: 'Leer',
+        blockMinutes: 10,
+        reasonKey: 'home.plan.reason.habitToday',
+      },
+    ]);
+    try {
+      const screen = await render(<OverviewScreen />);
+      expect(screen.getByText('home.plan.focus · home.plan.minutes|10')).toBeTruthy();
+      expect(screen.getByTestId('today-plan-focus').props.accessibilityLabel).toBe(
+        'home.plan.focusA11y|Leer,10',
+      );
+      await fireEvent.press(screen.getByTestId('today-plan-focus'));
+      expect(mockPomodoro.setFocusTarget).toHaveBeenCalledWith(target, 10);
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('Pomodoro', {
+        target,
+        sessionMinutes: 10,
+      });
+      expect(mockPomodoro.minutes).toBe(25);
+    } finally {
+      planSpy.mockRestore();
+    }
+  });
+
+  it('Enfocar retoma una sesión pausada sin reemplazar duración ni objetivo', async () => {
+    mockPomodoro.sessionMinutes = 10;
+    mockPomodoro.secondsLeft = 400;
+    const screen = await render(<OverviewScreen />);
+    await fireEvent.press(screen.getByTestId('today-plan-focus'));
+    expect(mockPomodoro.setFocusTarget).not.toHaveBeenCalled();
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('Pomodoro');
   });
 
   it('con una sesión corriendo no le cambia el objetivo, sólo abre Pomodoro', async () => {
@@ -265,7 +335,10 @@ describe('OverviewScreen con plan del día', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'settings.resumeNudge.start' }));
 
     const target = { kind: 'milestone', goalId: 'g-a', milestoneId: 'm1' };
-    expect(mockPomodoro.setFocusTarget).toHaveBeenCalledWith(target);
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('Pomodoro', { target });
+    expect(mockPomodoro.setFocusTarget).toHaveBeenCalledWith(target, 25);
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('Pomodoro', {
+      target,
+      sessionMinutes: 25,
+    });
   });
 });
