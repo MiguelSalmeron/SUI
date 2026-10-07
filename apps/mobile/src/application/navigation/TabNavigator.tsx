@@ -1,21 +1,15 @@
-import React, { useCallback, useContext, useEffect, useMemo, useRef } from 'react';
-import {
-  Animated,
-  AppState,
-  Pressable,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { createBottomTabNavigator, type BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@/shared/ui/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '@/features/auth/public';
 import { useDeferredStarterSeed } from '@/features/onboarding/public';
 import {
   MD3_RADIUS,
+  SCREEN_CONTENT_BOTTOM_PADDING,
   type AppTheme,
   SPACING,
   type ColorScheme,
@@ -29,6 +23,7 @@ import {
 import { appEventBus } from '@/shared/events/appEventBus';
 import { Avatar } from '@/shared/ui/Avatar';
 import { SuiMark } from '@/shared/ui/SuiMark';
+import { SuiAnimatedMark } from '@/shared/ui/SuiAnimatedMark';
 import type { MainTabParamList, RootStackNavigationProp } from '@/shared/navigation/types';
 import { ASSISTANT_INSERT_INDEX, MAIN_TAB_ITEMS } from './mainTabs';
 import { CalendarScreen } from '@/features/calendar/public';
@@ -53,6 +48,9 @@ import { PRODUCT_CONFIG } from '@/shared/config/product';
 export { MAIN_TAB_ITEMS } from './mainTabs';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
+const TAB_BAR_CONTENT_HEIGHT = 58;
+const TAB_BAR_TOP_PADDING = 8;
+const tabBarBottomPadding = (bottomInset: number) => Math.max(bottomInset, 8) + 8;
 
 /**
  * Wrapper externo del TabNavigator sin superficie propia: la única superficie
@@ -216,16 +214,8 @@ export const MainTabBar = ({
     () => tabBarStyles(colors, elevation, scheme),
     [colors, elevation, scheme],
   );
-  const assistantScale = useRef(new Animated.Value(1)).current;
-  useEffect(() => () => assistantScale.stopAnimation(), [assistantScale]);
-
-  const animateAssistant = (value: number) => {
-    Animated.timing(assistantScale, {
-      toValue: value,
-      duration: 100,
-      useNativeDriver: true,
-    }).start();
-  };
+  const [winkSignal, setWinkSignal] = useState(0);
+  const focused = useIsFocused();
 
   const assistantButton = (
     <Pressable
@@ -234,29 +224,24 @@ export const MainTabBar = ({
       onPress={() => {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
         onAssistant();
+        setWinkSignal((signal) => signal + 1);
       }}
-      onPressIn={() => animateAssistant(0.96)}
-      onPressOut={() => animateAssistant(1)}
       accessibilityRole="button"
       accessibilityLabel={assistantAccessibilityLabel}
       accessibilityHint={assistantAccessibilityHint}
       testID="assistant-tab-button"
     >
-      <Animated.View style={[styles.assistantOrb, { transform: [{ scale: assistantScale }] }]}>
-        <View pointerEvents="none" style={styles.assistantHalo} />
-        <View style={styles.assistantButton}>
-          <SuiMark variant="isotype" tone="inverse" size={24} />
-        </View>
-      </Animated.View>
+      <SuiAnimatedMark winkSignal={winkSignal} active={focused} enabled />
     </Pressable>
   );
 
   return (
     <View
+      pointerEvents="box-none"
       style={[
         styles.barSurface,
         {
-          paddingBottom: Math.max(insets.bottom, 8) + 8,
+          paddingBottom: tabBarBottomPadding(insets.bottom),
         },
       ]}
     >
@@ -424,7 +409,16 @@ export const TabNavigator = () => {
           />
         )}
         screenOptions={{
-          sceneStyle: { backgroundColor: colors.background },
+          sceneStyle: {
+            backgroundColor: colors.background,
+            paddingBottom: Math.max(
+              0,
+              TAB_BAR_CONTENT_HEIGHT +
+                TAB_BAR_TOP_PADDING +
+                tabBarBottomPadding(insets.bottom) -
+                SCREEN_CONTENT_BOTTOM_PADDING,
+            ),
+          },
           // Wrapper nativo transparente: sin esto se ve el rectángulo full-width.
           tabBarStyle: TRANSPARENT_TAB_BAR_STYLE,
           tabBarBackground: renderTransparentTabBarBackground,
@@ -491,14 +485,18 @@ const tabBarStyles = (
 ) =>
   StyleSheet.create({
     barSurface: {
-      backgroundColor: colors.background,
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'transparent',
       paddingHorizontal: 16,
-      paddingTop: 8,
+      paddingTop: TAB_BAR_TOP_PADDING,
     },
     barContent: {
       width: '100%',
       maxWidth: 560,
-      height: 58,
+      height: TAB_BAR_CONTENT_HEIGHT,
       borderRadius: MD3_RADIUS.full,
       backgroundColor: colors.surface,
       ...elevation.floating,
@@ -537,29 +535,5 @@ const tabBarStyles = (
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: -20,
-    },
-    assistantOrb: {
-      width: 52,
-      height: 52,
-    },
-    assistantHalo: {
-      position: 'absolute',
-      width: 60,
-      height: 60,
-      top: -4,
-      left: -4,
-      backgroundColor: colors.primaryContainer,
-      opacity: scheme === 'dark' ? 0.12 : 0.18,
-      borderRadius: MD3_RADIUS.full,
-    },
-    assistantButton: {
-      width: 52,
-      height: 52,
-      borderRadius: MD3_RADIUS.full,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.primary,
-      borderWidth: 3,
-      borderColor: colors.surface,
     },
   });
