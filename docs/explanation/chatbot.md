@@ -52,7 +52,11 @@ El módulo vive bajo `src/features/chat`:
 ## Contexto
 
 El prompt combina instrucciones de seguridad/voz, idioma activo, nombre de
-cuenta cuando existe, hasta tres metas activas y ventana conversacional reciente.
+cuenta cuando existe, hasta tres metas activas con progreso, hasta tres hábitos
+activos con racha, momento local del día y racha global, más ventana
+conversacional reciente. El modelo debe responder en máximo 80 palabras:
+validar en una frase, proponer una sola micro-acción concreta ligada a una
+meta o hábito por nombre, y cerrar con una pregunta abierta breve.
 Bienvenida no recopila perfil psicológico, cronotipo, carrera ni objetivos
 obligatorios.
 
