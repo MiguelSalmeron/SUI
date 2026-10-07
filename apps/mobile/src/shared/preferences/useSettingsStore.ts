@@ -13,9 +13,9 @@ export interface SettingsState {
   notificationsEnabled: boolean;
   /** Tamaño de fuente aplicado a la escala tipográfica global */
   fontSize: FontSize;
-  /** Idioma de interfaz; system sigue configuración del dispositivo. */
+  /** Idioma de interfaz; default de producto es español, system sigue al dispositivo solo si se elige a mano. */
   language: LanguagePreference;
-  /** Modo de tema; system sigue configuración del dispositivo. */
+  /** Modo de tema; default de producto es claro, system sigue al dispositivo solo si se elige a mano. */
   theme: ThemePreference;
 
   /** Espejo Google: metas con fecha (default on). */
@@ -36,6 +36,9 @@ export interface SettingsState {
 }
 
 const SETTINGS_STORAGE_KEY = '@sui/settings-v1';
+// Deuda post-Kronox: el tema vive en dos claves (`@sui/settings-v1` como dueño
+// y `@sui/theme-mode` como espejo que escribe `setTheme`). Acá no se unifica:
+// el espejo se conserva tal cual para no ampliar el alcance de la RC.
 const THEME_MODE_KEY = '@sui/theme-mode';
 
 export const useSettingsStore = create<SettingsState>()(
@@ -43,8 +46,10 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       notificationsEnabled: false,
       fontSize: 'medium',
-      language: 'system',
-      theme: 'system',
+      // Default de producto: instalación limpia arranca en español y claro.
+      // System sigue disponible como opción manual en Ajustes.
+      language: 'es',
+      theme: 'light',
       mirrorGoalsEnabled: DEFAULT_MIRROR_PREFS.goalsEnabled,
       mirrorHabitsEnabled: DEFAULT_MIRROR_PREFS.habitsEnabled,
       calendarConnectDismissed: false,
@@ -93,13 +98,13 @@ export const applyUserPreferences = (preferences: UserPreferences): void => {
   if (preferences.fontSize) {
     store.setFontSize(preferences.fontSize);
   }
-  if (preferences.language) {
-    store.setLanguage(preferences.language);
-  }
+  // Fijate que tema e idioma no se tocan a propósito: la copia del sobre es un
+  // snapshot que solo se refresca en `saveState`, así que una elección explícita
+  // en Ajustes quedaba pisada por un valor viejo al reabrir la app. En esta RC
+  // la apariencia manda en el dispositivo y el sobre solo aporta el resto.
+  // El idioma comparte el mismo camino stale que el tema, por eso entra acá
+  // sin ampliar el alcance: mismo `saveState` fuera del debounce.
   if (typeof preferences.notificationsEnabled === 'boolean') {
     store.setNotificationsEnabled(preferences.notificationsEnabled);
-  }
-  if (preferences.theme) {
-    store.setTheme(preferences.theme);
   }
 };

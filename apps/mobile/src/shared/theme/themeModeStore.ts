@@ -4,7 +4,8 @@
  * Vive fuera de React para que la preferencia persistida en AsyncStorage no
  * obligue a un provider y para evitar parpadeos en el primer render. El modo
  * también se refleja en `useSettingsStore`; acá se mantiene la caché sincrónica
- * que leen los hooks.
+ * que leen los hooks como espejo, sin reemplazar al store principal.
+ * Default inicial claro para alinear con el default de producto.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,7 +18,8 @@ const THEME_MODE_KEY = '@sui/theme-mode';
 type Listener = (mode: ThemeMode) => void;
 
 const themeModeListeners = new Set<Listener>();
-let themeModeCache: ThemeMode = 'system';
+// Espejo del default de producto en useSettingsStore; system sigue válido si hay valor guardado.
+let themeModeCache: ThemeMode = 'light';
 let themeModeHydrated = false;
 
 const loadThemeMode = async (): Promise<ThemeMode> => {
@@ -28,11 +30,11 @@ const loadThemeMode = async (): Promise<ThemeMode> => {
       themeModeCache = raw;
     }
   } catch {
-    // ignore — default 'system'
+    // ignore — default claro de producto
   }
   themeModeHydrated = true;
   // Notificar tras hidratación: el primer render pudo usar el default
-  // 'system' mientras AsyncStorage resolvía. Sin esto, la preferencia
+  // claro mientras AsyncStorage resolvía. Sin esto, la preferencia
   // persistida nunca se aplica si difiere del default.
   themeModeListeners.forEach((cb) => cb(themeModeCache));
   return themeModeCache;
@@ -55,10 +57,14 @@ export const getThemeMode = (): ThemeMode => {
 };
 
 export const setThemeMode = async (mode: ThemeMode): Promise<void> => {
-  await persistThemeMode(mode);
+  // Fijate que el store se escribe primero y se persiste después: el snapshot
+  // de `getThemeMode()` lee el store antes que la caché, así que notificar
+  // antes de escribir dejaba al provider con el valor viejo y React descartaba
+  // el re-render (el primer toque se perdía y recién el segundo cambiaba).
   if (useSettingsStore.getState().theme !== mode) {
     useSettingsStore.getState().setTheme(mode);
   }
+  await persistThemeMode(mode);
 };
 
 export const subscribeThemeMode = (cb: Listener): (() => void) => {

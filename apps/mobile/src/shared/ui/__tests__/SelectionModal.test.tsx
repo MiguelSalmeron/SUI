@@ -44,4 +44,30 @@ describe('SelectionModal', () => {
     expect(onSelect).toHaveBeenCalledWith('system');
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('un toque al valor actual también dispara onSelect una vez y cierra', async () => {
+    // El modal es tonto a propósito: no filtra ni confirma, cada toque llega
+    // al dueño. Si el primer toque se perdía, no era acá.
+    const onSelect = jest.fn();
+    const onClose = jest.fn();
+    const screen = await render(
+      <SelectionModal
+        visible
+        title="Tema"
+        value="dark"
+        options={[
+          { value: 'light', label: 'Claro' },
+          { value: 'dark', label: 'Oscuro' },
+        ]}
+        closeLabel="Cerrar"
+        onSelect={onSelect}
+        onClose={onClose}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('radio', { name: 'Oscuro' }));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith('dark');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });
