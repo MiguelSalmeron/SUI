@@ -55,6 +55,31 @@ export { MAIN_TAB_ITEMS } from './mainTabs';
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 /**
+ * Wrapper externo del TabNavigator sin superficie propia: la única superficie
+ * visible es la cápsula de `MainTabBar`. Sin esto, el contenedor default de
+ * `@react-navigation/bottom-tabs` pinta `colors.card` + `borderTopWidth` +
+ * `elevation: 8` a todo el ancho (ver `BottomTabBar.tsx` del lib) y se ve el
+ * rectángulo detrás de la cápsula. Transparente vale para light y dark porque
+ * no pinta nada: deja ver el `background` de la pantalla.
+ */
+export const TRANSPARENT_TAB_BAR_STYLE = {
+  position: 'absolute',
+  backgroundColor: 'transparent',
+  borderTopWidth: 0,
+  borderWidth: 0,
+  elevation: 0,
+  shadowOpacity: 0,
+  shadowColor: 'transparent',
+} as const;
+
+/**
+ * Fondo nulo del tab bar default: con esto `BottomTabBar` usa `transparent`
+ * en vez de `colors.card` (rama `tabBarBackgroundElement != null`). La cápsula
+ * conserva su `elevation.floating` propia, acá no se toca.
+ */
+export const renderTransparentTabBarBackground = () => null;
+
+/**
  * Hidrata accountability con la sesión vigente y reconcilia la agenda:
  * al montar, al cambiar de usuario y al volver a foreground (plan §7.5).
  * Limpia compromisos de metas/hábitos eliminados vía verificación inyectada.
@@ -400,6 +425,9 @@ export const TabNavigator = () => {
         )}
         screenOptions={{
           sceneStyle: { backgroundColor: colors.background },
+          // Wrapper nativo transparente: sin esto se ve el rectángulo full-width.
+          tabBarStyle: TRANSPARENT_TAB_BAR_STYLE,
+          tabBarBackground: renderTransparentTabBarBackground,
           header: () => (
             <TabHeader
               colors={colors}
