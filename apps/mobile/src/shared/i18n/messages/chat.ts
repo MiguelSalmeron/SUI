@@ -1,5 +1,7 @@
 export const chat = {
   es: {
+    'chat.assistantName': 'Sui',
+    'chat.presence.concern': 'Estoy aquí contigo',
     'chat.clearTitle': 'Borrar conversación',
     'chat.clearBody': '¿Seguro que quieres limpiar el chat?',
     'chat.clear': 'Limpiar',
@@ -25,6 +27,8 @@ export const chat = {
     'chat.connectionLost': 'Se cortó la conexión. Tu mensaje está a salvo.',
   },
   en: {
+    'chat.assistantName': 'Sui',
+    'chat.presence.concern': 'I’m here with you',
     'chat.clearTitle': 'Delete conversation',
     'chat.clearBody': 'Are you sure you want to clear this chat?',
     'chat.clear': 'Clear',

@@ -1,6 +1,10 @@
 import { Easing } from 'react-native';
 
 export const MOTION = {
+  springs: {
+    settle: { speed: 12, bounciness: 6 },
+    bounce: { speed: 40, bounciness: 14 },
+  },
   durations: {
     quick: 180,
     smooth: 320,

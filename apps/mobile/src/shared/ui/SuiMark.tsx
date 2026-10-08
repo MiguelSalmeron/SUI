@@ -54,9 +54,12 @@ export const SuiMark = ({
   );
 };
 
+export type PresencePose =
+  'idle' | 'wink' | 'think' | 'read' | 'listen' | 'speak' | 'warm' | 'concern';
+
 type SuiAvatarProps = {
   size: number;
-  pose?: 'idle' | 'wink';
+  pose?: PresencePose;
   layer?: 'all' | 'body' | 'eyes';
 };
 
@@ -75,12 +78,22 @@ export const SuiAvatar = React.memo(function SuiAvatar({
         />
       )}
       {layer !== 'body' && (
-        <G>
+        <G
+          transform={
+            pose === 'think'
+              ? 'translate(0 -5)'
+              : pose === 'read' || pose === 'concern'
+                ? 'translate(0 4)'
+                : undefined
+          }
+        >
           <G transform="translate(86 53) rotate(-4)">
-            <Path
-              fill={colors.onPrimary}
-              d="M-10.5 -11.5 C-10.5 -25.5 10.5 -25.5 10.5 -11.5 V11.5 C10.5 25.5 -10.5 25.5 -10.5 11.5 Z"
-            />
+            <G transform={`scale(1 ${pose === 'warm' ? 0.12 : pose === 'think' ? 0.82 : 1})`}>
+              <Path
+                fill={colors.onPrimary}
+                d="M-10.5 -11.5 C-10.5 -25.5 10.5 -25.5 10.5 -11.5 V11.5 C10.5 25.5 -10.5 25.5 -10.5 11.5 Z"
+              />
+            </G>
           </G>
           <G transform="translate(140 50) rotate(-4)">
             {pose === 'wink' ? (
@@ -92,10 +105,12 @@ export const SuiAvatar = React.memo(function SuiAvatar({
                 strokeLinecap="round"
               />
             ) : (
-              <Path
-                fill={colors.onPrimary}
-                d="M-10.5 -11.5 C-10.5 -25.5 10.5 -25.5 10.5 -11.5 V11.5 C10.5 25.5 -10.5 25.5 -10.5 11.5 Z"
-              />
+              <G transform={`scale(1 ${pose === 'warm' ? 0.12 : pose === 'think' ? 0.82 : 1})`}>
+                <Path
+                  fill={colors.onPrimary}
+                  d="M-10.5 -11.5 C-10.5 -25.5 10.5 -25.5 10.5 -11.5 V11.5 C10.5 25.5 -10.5 25.5 -10.5 11.5 Z"
+                />
+              </G>
             )}
           </G>
         </G>

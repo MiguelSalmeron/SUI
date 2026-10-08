@@ -31,6 +31,9 @@ jest.mock('expo-haptics', () => ({
 
 import * as Clipboard from 'expo-clipboard';
 import { ChatMessage } from '../ChatMessage';
+import { SuiAvatar } from '@/shared/ui/SuiMark';
+
+jest.mock('@/shared/ui/motion/useReduceMotion', () => ({ useReduceMotion: () => true }));
 
 const baseTime = 1759792800000;
 
@@ -65,7 +68,7 @@ describe('ChatMessage', () => {
         onRetry={onRetry}
       />,
     );
-    fireEvent.press(last.getByRole('button', { name: 'chat.retry' }));
+    await fireEvent.press(last.getByRole('button', { name: 'chat.retry' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
@@ -77,7 +80,7 @@ describe('ChatMessage', () => {
       />,
     );
 
-    fireEvent.press(screen.getByRole('button', { name: 'chat.copy' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'chat.copy' }));
     await waitFor(() => {
       expect(Clipboard.setStringAsync).toHaveBeenCalledWith('Respirá conmigo');
     });
@@ -100,7 +103,10 @@ describe('ChatMessage', () => {
       />,
     );
 
-    fireEvent.press(screen.getByRole('button', { name: 'chat.stop' }));
+    expect(screen.getByText('Voy ')).toBeTruthy();
+    expect(screen.getByTestId('streaming-cursor', { includeHiddenElements: true })).toBeTruthy();
+    expect(jest.mocked(SuiAvatar).mock.calls.at(-1)?.[0]).toEqual({ size: 20 });
+    await fireEvent.press(screen.getByRole('button', { name: 'chat.stop' }));
     expect(onStop).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: 'chat.copy' })).toBeNull();
   });
@@ -114,6 +120,7 @@ describe('ChatMessage', () => {
       />,
     );
     expect(waiting.getByText('chat.thinking')).toBeTruthy();
+    expect(waiting.queryByTestId('streaming-cursor', { includeHiddenElements: true })).toBeNull();
 
     const failed = await render(
       <ChatMessage

@@ -1,27 +1,32 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, AppState, Easing, Platform, StyleSheet, View } from 'react-native';
 import { useAppTheme } from '@/shared/theme/theme';
-import { SuiAvatar } from './SuiMark';
+import { SuiAvatar, type PresencePose } from './SuiMark';
 import { MOTION } from './motion/motionTokens';
 import { useReduceMotion } from './motion/useReduceMotion';
 
 type Props = {
-  winkSignal: number;
+  winkSignal?: number;
+  pose?: PresencePose;
+  speakSignal?: number;
+  size?: number;
   enabled?: boolean;
   active?: boolean;
 };
 
-type Pose = 'idle' | 'wink';
-
 export const SuiAnimatedMark = React.memo(function SuiAnimatedMark({
-  winkSignal,
+  winkSignal = 0,
+  pose: controlledPose = 'idle',
+  speakSignal = 0,
+  size = 58,
   enabled = true,
   active = true,
 }: Props) {
   const { colors } = useAppTheme();
   const reduceMotion = useReduceMotion();
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
-  const [pose, setPose] = useState<Pose>('idle');
+  const [gesturePose, setPose] = useState<'idle' | 'wink'>('idle');
+  const pose = controlledPose === 'idle' ? gesturePose : controlledPose;
   const breathe = useRef(new Animated.Value(0)).current;
   const squash = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
@@ -29,6 +34,8 @@ export const SuiAnimatedMark = React.memo(function SuiAnimatedMark({
   const gazeY = useRef(new Animated.Value(0)).current;
   const blink = useRef(new Animated.Value(1)).current;
   const lastWinkSignal = useRef(winkSignal);
+  const lastSpeakSignal = useRef(speakSignal);
+  const lastGesturePose = useRef(controlledPose);
   const animate = enabled && reduceMotion === false && foreground;
 
   useEffect(() => {
@@ -38,14 +45,15 @@ export const SuiAnimatedMark = React.memo(function SuiAnimatedMark({
     return () => subscription.remove();
   }, []);
 
-  const idleActive = animate && active;
+  const idleActive =
+    animate && active && (controlledPose === 'idle' || controlledPose === 'listen');
 
   useEffect(() => {
     if (!idleActive) return;
     const timing = (toValue: number) =>
       Animated.timing(breathe, {
         toValue,
-        duration: MOTION.durations.breathe / 2,
+        duration: (controlledPose === 'listen' ? 1200 : MOTION.durations.breathe) / 2,
         easing: Easing.inOut(Easing.sin),
         useNativeDriver: Platform.OS !== 'web',
         isInteraction: false,
@@ -56,9 +64,9 @@ export const SuiAnimatedMark = React.memo(function SuiAnimatedMark({
       loop.stop();
       breathe.setValue(0);
     };
-  }, [idleActive, breathe]);
+  }, [idleActive, controlledPose, breathe]);
 
-  const autonomousActive = idleActive && pose !== 'wink';
+  const autonomousActive = animate && active && ['idle', 'listen', 'speak'].includes(pose);
 
   useEffect(() => {
     if (!autonomousActive) return;
@@ -130,9 +138,27 @@ export const SuiAnimatedMark = React.memo(function SuiAnimatedMark({
   }, [autonomousActive, gazeX, gazeY, blink]);
 
   useEffect(() => {
+    if (!animate || !active || controlledPose !== 'read') return;
+    const timing = (toValue: number) =>
+      Animated.timing(gazeX, {
+        toValue,
+        duration: MOTION.durations.smooth,
+        easing: MOTION.easings.gentle,
+        useNativeDriver: Platform.OS !== 'web',
+        isInteraction: false,
+      });
+    const scan = Animated.sequence([timing(-2), timing(2), timing(0)]);
+    scan.start();
+    return () => {
+      scan.stop();
+      gazeX.setValue(0);
+    };
+  }, [animate, active, controlledPose, gazeX]);
+
+  useEffect(() => {
     const changed = lastWinkSignal.current !== winkSignal;
     lastWinkSignal.current = winkSignal;
-    if (!animate || !changed) {
+    if (!animate || controlledPose !== 'idle' || !changed) {
       setPose('idle');
       return;
     }
@@ -159,14 +185,71 @@ export const SuiAnimatedMark = React.memo(function SuiAnimatedMark({
       squash.setValue(0);
       pulse.setValue(0);
     };
-  }, [animate, winkSignal, squash, pulse]);
+  }, [animate, controlledPose, winkSignal, squash, pulse]);
+
+  useEffect(() => {
+    const changed = lastSpeakSignal.current !== speakSignal;
+    lastSpeakSignal.current = speakSignal;
+    const enteredWarm = lastGesturePose.current !== 'warm' && controlledPose === 'warm';
+    lastGesturePose.current = controlledPose;
+    if (!animate || !active) return;
+    const timing = (value: Animated.Value, toValue: number, duration: number) =>
+      Animated.timing(value, {
+        toValue,
+        duration,
+        useNativeDriver: Platform.OS !== 'web',
+        isInteraction: false,
+      });
+    let gesture: Animated.CompositeAnimation;
+    if (controlledPose === 'speak' && changed) {
+      gesture = Animated.sequence([
+        timing(squash, 0.6, 60),
+        Animated.spring(squash, {
+          toValue: 0,
+          ...MOTION.springs.bounce,
+          useNativeDriver: Platform.OS !== 'web',
+          isInteraction: false,
+        }),
+      ]);
+    } else if (enteredWarm) {
+      squash.setValue(0.4);
+      pulse.setValue(1);
+      gesture = Animated.parallel([
+        Animated.spring(squash, {
+          toValue: 0,
+          ...MOTION.springs.settle,
+          useNativeDriver: Platform.OS !== 'web',
+          isInteraction: false,
+        }),
+        timing(pulse, 0, MOTION.durations.gentle),
+      ]);
+    } else {
+      return;
+    }
+    gesture.start();
+    return () => {
+      gesture.stop();
+      squash.setValue(0);
+      pulse.setValue(0);
+    };
+  }, [animate, active, controlledPose, speakSignal, squash, pulse]);
+
+  const poseOffset = controlledPose === 'listen' ? -1 : controlledPose === 'concern' ? 1 : 0;
+  const haloOpacity =
+    controlledPose === 'think' || controlledPose === 'read' || controlledPose === 'concern'
+      ? 0
+      : controlledPose === 'speak'
+        ? 0.2
+        : controlledPose === 'listen'
+          ? 0.18
+          : 0.14;
 
   return (
     <View
       pointerEvents="none"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={styles.box}
+      style={[styles.box, { width: size, height: size }]}
     >
       {animate ? (
         <>
@@ -176,9 +259,18 @@ export const SuiAnimatedMark = React.memo(function SuiAnimatedMark({
             style={[
               styles.halo,
               {
+                width: size * (64 / 58),
+                height: size * (42 / 58),
+                top: size * (8 / 58),
+                left: size * (-3 / 58),
+              },
+              {
                 backgroundColor: colors.primaryContainer,
                 opacity: Animated.add(
-                  breathe.interpolate({ inputRange: [0, 1], outputRange: [0.14, 0.2] }),
+                  breathe.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [haloOpacity, haloOpacity + 0.06],
+                  }),
                   pulse.interpolate({ inputRange: [0, 1], outputRange: [0, 0.08] }),
                 ),
               },
@@ -189,7 +281,12 @@ export const SuiAnimatedMark = React.memo(function SuiAnimatedMark({
             style={{
               transform: [
                 { scale: breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.03] }) },
-                { translateY: breathe.interpolate({ inputRange: [0, 1], outputRange: [0, -1] }) },
+                {
+                  translateY: Animated.add(
+                    breathe.interpolate({ inputRange: [0, 1], outputRange: [0, -1] }),
+                    poseOffset,
+                  ),
+                },
               ],
             }}
           >
@@ -202,8 +299,8 @@ export const SuiAnimatedMark = React.memo(function SuiAnimatedMark({
                 ],
               }}
             >
-              <View style={styles.character}>
-                <SuiAvatar size={58} layer="body" />
+              <View style={{ width: size, height: size * (124 / 208) }}>
+                <SuiAvatar size={size} layer="body" />
                 <Animated.View
                   pointerEvents="none"
                   testID="sui-gaze"
@@ -217,7 +314,7 @@ export const SuiAnimatedMark = React.memo(function SuiAnimatedMark({
                     testID="sui-blink"
                     style={{ transform: [{ scaleY: blink }] }}
                   >
-                    <SuiAvatar size={58} pose={pose} layer="eyes" />
+                    <SuiAvatar size={size} pose={pose} layer="eyes" />
                   </Animated.View>
                 </Animated.View>
               </View>
@@ -225,7 +322,9 @@ export const SuiAnimatedMark = React.memo(function SuiAnimatedMark({
           </Animated.View>
         </>
       ) : (
-        <SuiAvatar size={58} />
+        <View style={{ transform: [{ translateY: poseOffset }] }}>
+          <SuiAvatar size={size} pose={controlledPose} />
+        </View>
       )}
     </View>
   );
@@ -239,7 +338,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'visible',
   },
-  character: { width: 58, height: 58 * (124 / 208) },
   eyes: { position: 'absolute', top: 0, left: 0 },
   halo: { position: 'absolute', width: 64, height: 42, top: 8, left: -3, borderRadius: 21 },
 });

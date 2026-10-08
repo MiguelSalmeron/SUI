@@ -1,7 +1,7 @@
 import { act, type ReactElement } from 'react';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 import { Animated, AppState, type AppStateStatus } from 'react-native';
-import { Path } from 'react-native-svg';
+import { G, Path } from 'react-native-svg';
 import { SuiAvatar } from '../SuiMark';
 import { SuiAnimatedMark } from '../SuiAnimatedMark';
 
@@ -283,5 +283,155 @@ describe('SuiAnimatedMark, Fase 1', () => {
     update(1);
     const eyelid = renderer.root.findAllByType(Path).find((node) => node.props.stroke);
     expect(eyelid?.props.stroke).toBe(eyeColor);
+  });
+  it.each(['think', 'read', 'warm', 'concern'] as const)(
+    'pose %s apaga autonomía; concern también respira quieto',
+    (pose) => {
+      jest.spyOn(Animated, 'sequence').mockReturnValue({
+        start: jest.fn(),
+        stop: jest.fn(),
+        reset: jest.fn(),
+      });
+      render(0, { pose });
+      expect(face().props.pose).toBe(pose);
+      expect(loop.start).not.toHaveBeenCalled();
+      expect(jest.getTimerCount()).toBe(0);
+    },
+  );
+
+  it('listen cambia cadencia; pensar detiene respiración y autonomía', () => {
+    const timing = jest.spyOn(Animated, 'timing');
+    render();
+    update(0, { pose: 'listen' });
+    expect(loop.stop).toHaveBeenCalledTimes(1);
+    expect(timing.mock.calls.slice(-2).map(([, config]) => config.duration)).toEqual([600, 600]);
+    update(0, { pose: 'think' });
+    expect(loop.stop).toHaveBeenCalledTimes(2);
+    act(() => jest.advanceTimersByTime(1));
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it('read hace un barrido finito, sin loop; cambio de estado cancela barrido', () => {
+    const timing = jest.spyOn(Animated, 'timing');
+    const scan = { start: jest.fn(), stop: jest.fn(), reset: jest.fn() };
+    jest.spyOn(Animated, 'sequence').mockReturnValue(scan);
+    render(0, { pose: 'read' });
+    expect(scan.start).toHaveBeenCalledTimes(1);
+    expect(timing.mock.calls.map(([, config]) => config.toValue)).toEqual([-2, 2, 0]);
+    expect(loop.start).not.toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+    update(0, { pose: 'concern' });
+    expect(scan.stop).toHaveBeenCalledTimes(1);
+    expect(scan.start).toHaveBeenCalledTimes(1);
+  });
+
+  it('warm asienta una vez; background o cambio de preferencia no repiten gesto', () => {
+    const spring = jest.spyOn(Animated, 'spring');
+    render(0, { pose: 'think' });
+    update(0, { pose: 'warm' });
+    expect(spring).toHaveBeenCalledTimes(1);
+    expect(spring.mock.calls[0][1]).toEqual(
+      expect.objectContaining({ speed: 12, bounciness: 6, isInteraction: false }),
+    );
+    act(() => changeAppState('background'));
+    expect(flash.stop).toHaveBeenCalledTimes(1);
+    act(() => changeAppState('active'));
+    expect(spring).toHaveBeenCalledTimes(1);
+    reduceMotion.mockReturnValue(true);
+    update(0, { pose: 'warm' });
+    reduceMotion.mockReturnValue(false);
+    update(0, { pose: 'warm' });
+    expect(spring).toHaveBeenCalledTimes(1);
+  });
+
+  it('speaking en background consume señal sin reproducirla al volver', () => {
+    const spring = jest.spyOn(Animated, 'spring');
+    render(0, { pose: 'speak' });
+    update(0, { pose: 'speak', speakSignal: 1 });
+    expect(spring).toHaveBeenCalledTimes(1);
+    act(() => changeAppState('background'));
+    update(0, { pose: 'speak', speakSignal: 2 });
+    act(() => changeAppState('active'));
+    expect(spring).toHaveBeenCalledTimes(1);
+    update(0, { pose: 'speak', speakSignal: 3 });
+    expect(spring).toHaveBeenCalledTimes(2);
+  });
+
+  it('crisis corta respiración, timers y rebote anterior', () => {
+    const gesture = { start: jest.fn(), stop: jest.fn(), reset: jest.fn() };
+    jest.spyOn(Animated, 'sequence').mockReturnValue(gesture);
+    render(0, { pose: 'speak', speakSignal: 0 });
+    update(0, { pose: 'speak', speakSignal: 1 });
+    expect(gesture.start).toHaveBeenCalledTimes(1);
+    update(0, { pose: 'concern', speakSignal: 1 });
+    expect(gesture.stop).toHaveBeenCalledTimes(1);
+    act(() => jest.advanceTimersByTime(1));
+    expect(jest.getTimerCount()).toBe(0);
+    expect(face().props.pose).toBe('concern');
+  });
+
+  it('señales speak consecutivas cancelan rebote, spring compartido; misma señal no repite', () => {
+    const spring = jest.spyOn(Animated, 'spring');
+    const gesture = { start: jest.fn(), stop: jest.fn(), reset: jest.fn() };
+    jest.spyOn(Animated, 'sequence').mockReturnValue(gesture);
+    render(0, { pose: 'speak', speakSignal: 0, size: 36 });
+    update(0, { pose: 'speak', speakSignal: 1, size: 36 });
+    expect(face().props.size).toBe(36);
+    expect(spring).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        speed: 40,
+        bounciness: 14,
+        useNativeDriver: true,
+        isInteraction: false,
+      }),
+    );
+    update(0, { pose: 'speak', speakSignal: 2, size: 36 });
+    expect(gesture.stop).toHaveBeenCalledTimes(1);
+    expect(gesture.start).toHaveBeenCalledTimes(2);
+    update(0, { pose: 'speak', speakSignal: 2, size: 36 });
+    expect(gesture.start).toHaveBeenCalledTimes(2);
+    act(() => renderer.unmount());
+    expect(gesture.stop).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([true, null])(
+    'preferencia %s conserva pose controlada y tamaño sin animar',
+    (preference) => {
+      reduceMotion.mockReturnValue(preference);
+      const spring = jest.spyOn(Animated, 'spring');
+      render(0, { pose: 'warm', size: 36 });
+      expect(face().props.pose).toBe('warm');
+      expect(face().props.size).toBe(36);
+      update(0, { pose: 'speak', speakSignal: 1, size: 36 });
+      expect(spring).not.toHaveBeenCalled();
+      expect(loop.start).not.toHaveBeenCalled();
+    },
+  );
+
+  it('poses nuevas transforman geometría existente; warm cierra ambos ojos sin trazado wink', () => {
+    reduceMotion.mockReturnValue(true);
+    render(0, { pose: 'warm' });
+    const groups = renderer.root.findAllByType(G);
+    expect(groups.filter((node) => node.props.transform === 'scale(1 0.12)')).toHaveLength(2);
+    expect(renderer.root.findAllByType(Path).map((node) => node.props.d)).toHaveLength(3);
+    expect(renderer.root.findAllByType(Path).some((node) => node.props.d === 'M-11 0 H11')).toBe(
+      false,
+    );
+    update(0, { pose: 'think' });
+    expect(
+      renderer.root.findAllByType(G).some((node) => node.props.transform === 'translate(0 -5)'),
+    ).toBe(true);
+    expect(
+      renderer.root.findAllByType(G).filter((node) => node.props.transform === 'scale(1 0.82)'),
+    ).toHaveLength(2);
+    update(0, { pose: 'read' });
+    expect(
+      renderer.root.findAllByType(G).some((node) => node.props.transform === 'translate(0 4)'),
+    ).toBe(true);
+    update(0, { pose: 'concern' });
+    expect(
+      renderer.root.findAllByType(G).some((node) => node.props.transform === 'translate(0 4)'),
+    ).toBe(true);
   });
 });

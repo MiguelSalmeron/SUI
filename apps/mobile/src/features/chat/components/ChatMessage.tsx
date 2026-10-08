@@ -7,6 +7,7 @@ import { Ionicons } from '@/shared/ui/Ionicons';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { ChatMessage as ChatMessageType } from '../types/chat';
 import { useI18n } from '@/shared/i18n/i18n';
+import { StreamingCursor } from './StreamingCursor';
 
 interface Props {
   message: ChatMessageType;
@@ -98,8 +99,8 @@ export const ChatMessage = React.memo(function ChatMessage({
   return (
     <View style={styles.botRow}>
       <View style={styles.botHeader}>
-        <SuiAvatar size={32} />
-        <Text style={styles.botAuthor}>Sui</Text>
+        <SuiAvatar size={20} />
+        <Text style={styles.botAuthor}>{t('chat.assistantName')}</Text>
         {timeLabel ? <Text style={styles.botTime}>{timeLabel}</Text> : null}
       </View>
 
@@ -111,10 +112,10 @@ export const ChatMessage = React.memo(function ChatMessage({
             </Text>
           ) : null
         ) : (
-          <Text style={styles.botText}>
-            {message.content}
-            {message.streaming && <Text style={styles.cursor}>▍</Text>}
-          </Text>
+          <View style={styles.contentRow}>
+            <Text style={styles.botText}>{message.content}</Text>
+            {message.streaming && !message.error ? <StreamingCursor /> : null}
+          </View>
         )}
         {message.error && !message.streaming && (
           <Text style={styles.errorText}>{t('chat.connectionLost')}</Text>
@@ -217,12 +218,14 @@ const createStyles = ({ colors, type }: AppTheme) =>
       paddingVertical: SPACING.sm,
     },
     botText: {
+      flexShrink: 1,
       ...type.bodyLg,
       color: colors.onSurface,
     },
-    cursor: {
-      ...type.bodyLg,
-      color: colors.secondary,
+    contentRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: SPACING.xs,
     },
     errorText: {
       ...type.bodyMd,

@@ -5,9 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppTheme, SPACING, useAppTheme } from '@/shared/theme/theme';
 import { useCelebrationStore } from '@/shared/domain/productivity/public';
 import { useI18n } from '@/shared/i18n/i18n';
+import { MOTION } from '@/shared/ui/motion/motionTokens';
+import { useReduceMotion } from '@/shared/ui/motion/useReduceMotion';
 
 export const CelebrationToast = () => {
   const theme = useAppTheme();
+  const reduceMotion = useReduceMotion();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
@@ -30,23 +33,31 @@ export const CelebrationToast = () => {
   useEffect(() => {
     if (!visible) return;
 
-    translateY.setValue(-120);
+    translateY.setValue(reduceMotion === false ? -120 : 0);
     opacity.setValue(0);
 
-    Animated.parallel([
-      Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: Platform.OS !== 'web',
-        speed: 18,
-        bounciness: 8,
-      }),
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-    ]).start();
-  }, [visible, title, translateY, opacity]);
+    const fade = Animated.timing(opacity, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: Platform.OS !== 'web',
+      isInteraction: false,
+    });
+    // Sin preferencia resuelta o con movimiento reducido, celebrá sólo con opacidad.
+    const entrance =
+      reduceMotion === false
+        ? Animated.parallel([
+            Animated.spring(translateY, {
+              toValue: 0,
+              useNativeDriver: Platform.OS !== 'web',
+              ...MOTION.springs.settle,
+              isInteraction: false,
+            }),
+            fade,
+          ])
+        : fade;
+    entrance.start();
+    return () => entrance.stop();
+  }, [visible, title, reduceMotion, translateY, opacity]);
 
   if (!visible) return null;
 
@@ -58,7 +69,7 @@ export const CelebrationToast = () => {
         {
           top: insets.top + SPACING.sm,
           opacity,
-          transform: [{ translateY }],
+          transform: reduceMotion === false ? [{ translateY }] : undefined,
         },
       ]}
     >

@@ -28,6 +28,8 @@ import {
   useAppTheme,
 } from '@/shared/theme/theme';
 import { ChatMessage } from '../components/ChatMessage';
+import { SuiDock } from '../components/SuiDock';
+import { useSuiPresence } from '../hooks/useSuiPresence';
 import { ChatInput } from '../components/ChatInput';
 import { EmergencyOverlay } from '../components/EmergencyOverlay';
 import { useChatStore } from '../store/useChatStore';
@@ -88,7 +90,6 @@ export const ChatScreen = ({ navigation }: Props) => {
   // Fijate que la espera es estado de pantalla, no persistido: si salís y
   // volvés, no hay frase vieja colgada, sólo el borrador.
   const [waitingPhase, setWaitingPhase] = useState<WaitingPhase>(null);
-  const [waitingId, setWaitingId] = useState<string | null>(null);
 
   const listRef = useRef<FlatList<ChatMessageType>>(null);
   const controllerRef = useRef<StreamController | null>(null);
@@ -103,12 +104,19 @@ export const ChatScreen = ({ navigation }: Props) => {
     }
     return null;
   }, [messages]);
-  const waitingText =
-    waitingPhase === 'remembering'
-      ? t('chat.remembering')
-      : waitingPhase === 'thinking'
-        ? t('chat.thinking')
-        : null;
+  const { presence, speakSignal, label } = useSuiPresence({
+    streamingMessage: streamingId
+      ? messages.find((message) => message.id === streamingId)
+      : undefined,
+    lastAssistant: messages.find((message) => message.id === lastAssistantId),
+    waitingPhase,
+    overlayVisible,
+    draft,
+  });
+  const headerTitle = useCallback(
+    () => <SuiDock presence={presence} speakSignal={speakSignal} label={label} />,
+    [presence, speakSignal, label],
+  );
   const suggestions = useMemo(
     () => [
       t('chat.suggestionPrioritize'),
@@ -123,7 +131,6 @@ export const ChatScreen = ({ navigation }: Props) => {
     waitTimers.current.forEach((timer) => clearTimeout(timer));
     waitTimers.current = [];
     setWaitingPhase(null);
-    setWaitingId(null);
   }, []);
 
   // La frase sólo aparece si la espera es real: antes de 600 ms no se muestra
@@ -131,7 +138,6 @@ export const ChatScreen = ({ navigation }: Props) => {
   const scheduleWaiting = useCallback(
     (assistantId: string, hasActiveGoals: boolean) => {
       clearWaiting();
-      setWaitingId(assistantId);
       const thinkingTimer = setTimeout(() => {
         const current = useChatStore.getState().messages.find((m) => m.id === assistantId);
         if (current && current.streaming && current.content.length === 0) {
@@ -157,9 +163,9 @@ export const ChatScreen = ({ navigation }: Props) => {
   }, [clear, t]);
 
   // Header nativo: el botón de retorno lo provee el Stack (flecha nativa).
-  // Solo inyectamos la acción "Limpiar" a la derecha del header.
   useLayoutEffect(() => {
     navigation.setOptions({
+      headerTitle,
       headerRight: () => (
         <TouchableOpacity
           onPress={confirmClear}
@@ -172,7 +178,7 @@ export const ChatScreen = ({ navigation }: Props) => {
         </TouchableOpacity>
       ),
     });
-  }, [navigation, confirmClear, styles, t]);
+  }, [navigation, headerTitle, confirmClear, styles, t]);
 
   // Carga del diccionario de crisis + limpieza de historial + borrador.
   useEffect(() => {
@@ -365,12 +371,11 @@ export const ChatScreen = ({ navigation }: Props) => {
       <ChatMessage
         message={item}
         isLastAssistant={item.role === 'assistant' && item.id === lastAssistantId}
-        waitingText={item.id === waitingId ? waitingText : null}
         onRetry={() => handleRetry(item.id)}
         onStop={handleStop}
       />
     ),
-    [lastAssistantId, waitingId, waitingText, handleRetry, handleStop],
+    [lastAssistantId, handleRetry, handleStop],
   );
 
   return (
