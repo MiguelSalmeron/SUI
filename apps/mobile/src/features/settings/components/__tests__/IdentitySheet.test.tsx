@@ -100,3 +100,20 @@ test('picker de cuenta anterior no deja preview en cuenta nueva', async () => {
   await waitFor(() => expect(screen.queryByText('Usar foto')).toBeNull());
   expect(useIdentityStore.getState().identity.localPhotoUri).toBeUndefined();
 });
+test('cancelar o cerrar con preview limpia caché y conserva foto', async () => {
+  jest.mocked(pickPhoto).mockResolvedValueOnce('file:///cache/preview.webp');
+  const onClose = jest.fn();
+  const screen = await render(<IdentitySheet visible name="Ana" onClose={onClose} />);
+  await fireEvent.press(screen.getByText('Cambiar foto'));
+  await waitFor(() => expect(screen.getByText('Usar foto')).toBeTruthy());
+  await fireEvent.press(screen.getByText('Cancelar'));
+  expect(removePhotoPreview).toHaveBeenCalledWith('file:///cache/preview.webp');
+  expect(screen.queryByText('Usar foto')).toBeNull();
+  expect(saveLocalPhoto).not.toHaveBeenCalled();
+  jest.mocked(pickPhoto).mockResolvedValueOnce('file:///cache/otro.webp');
+  await fireEvent.press(screen.getByText('Cambiar foto'));
+  await waitFor(() => expect(screen.getByText('Usar foto')).toBeTruthy());
+  await fireEvent.press(screen.getByLabelText('Cerrar'));
+  expect(removePhotoPreview).toHaveBeenCalledWith('file:///cache/otro.webp');
+  expect(onClose).toHaveBeenCalled();
+});

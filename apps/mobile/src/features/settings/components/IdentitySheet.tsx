@@ -99,6 +99,12 @@ export function IdentitySheet({
     setError('');
     void persistRemote().finally(() => setBusy(false));
   };
+  // El preview es un archivo de caché sin confirmar: al descartarlo se borra
+  // para no dejar basura. Nunca se toca la foto ya guardada.
+  const discardPreview = () => {
+    if (preview) removePhotoPreview(preview);
+    setPreview(undefined);
+  };
   const select = async () => {
     const selectionOwner = store.owner;
     setError('');
@@ -131,8 +137,7 @@ export function IdentitySheet({
         return;
       }
       useIdentityStore.getState().setLocalPhoto(uri);
-      removePhotoPreview(preview);
-      setPreview(undefined);
+      discardPreview();
       await removeLocalPhoto(oldUri);
       await persistRemote();
     } catch {
@@ -169,7 +174,7 @@ export function IdentitySheet({
   );
   const close = () => {
     if (!busy) {
-      setPreview(undefined);
+      discardPreview();
       setError('');
       onClose();
     }
@@ -211,7 +216,7 @@ export function IdentitySheet({
             {preview ? (
               <View style={styles.row}>
                 {action(t('settings.identityUsePhoto'), () => void save())}
-                {action(t('common.cancel'), () => setPreview(undefined))}
+                {action(t('common.cancel'), () => discardPreview())}
               </View>
             ) : null}
             {busy ? (
