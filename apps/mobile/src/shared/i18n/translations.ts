@@ -18,6 +18,7 @@ import { notifications } from './messages/notifications';
 import { accountability } from './messages/accountability';
 import { engagement } from './messages/engagement';
 import { connections } from './messages/connections';
+import { tasks } from './messages/tasks';
 import { calendar } from './messages/calendar';
 import { nav } from './messages/nav';
 import { goals } from './messages/goals';
@@ -49,6 +50,7 @@ export const translations = {
     ...accountability.es,
     ...engagement.es,
     ...connections.es,
+    ...tasks.es,
     ...calendar.es,
     ...nav.es,
     ...goals.es,
@@ -79,6 +81,7 @@ export const translations = {
     ...accountability.en,
     ...engagement.en,
     ...connections.en,
+    ...tasks.en,
     ...calendar.en,
     ...nav.en,
     ...goals.en,

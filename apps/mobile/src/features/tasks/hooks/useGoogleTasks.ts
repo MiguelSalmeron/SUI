@@ -3,36 +3,33 @@ import { Platform } from 'react-native';
 import { ResponseType } from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import { auth } from '@/shared/infrastructure/firebase/firebase';
+import { recordTelemetry } from '@/shared/observability/telemetry';
+import { useI18n } from '@/shared/i18n/i18n';
+import { androidReverseRedirectUri } from '@/features/calendar/public';
+import type { ConnectionProvider, ConnectionStatus } from '@/features/connections/public';
 import {
-  clearGoogleEventsCache,
-  GOOGLE_CALENDAR_WRITE_SCOPE,
-  loadGoogleCalendarCache,
-  resolveLoadedCache,
-  saveGoogleEventsCache,
-  type CalendarSyncStatus,
-  type GoogleCalendarCache,
-} from '../services/googleSync';
+  clearGoogleTasksCache,
+  loadGoogleTasksCache,
+  resolveLoadedTasksCache,
+  saveGoogleTasksCache,
+  type GoogleTasksCache,
+  type TasksSyncStatus,
+} from '../services/tasksCache';
 import {
   ConnectionApiError,
-  connectGoogleCalendar,
-  disconnectGoogleCalendarConnection,
-  getGoogleCalendarConnectionStatus,
-  googleCalendarApiConfigured,
-  syncGoogleCalendarConnection,
-} from '../services/googleConnectionApi';
-import type { GoogleEvent } from '@/shared/types/models';
-import type { ConnectionProvider, ConnectionStatus } from '@/features/connections/public';
-import { recordTelemetry } from '@/shared/observability/telemetry';
-import { auth } from '@/shared/infrastructure/firebase/firebase';
-import { useI18n } from '@/shared/i18n/i18n';
-import {
-  androidReverseRedirectUri,
-  calendarPromptParams,
-  connectionErrorReason as errorReason,
-  translateConnectionError as getCalendarError,
-} from '../services/calendarAuth';
+  connectGoogleTasks,
+  disconnectGoogleTasksConnection,
+  getGoogleTasksConnectionStatus,
+  googleTasksApiConfigured,
+  syncGoogleTasksConnection,
+  type NormalizedTask,
+} from '../services/tasksApi';
+import { tasksPromptParams, translateTasksError } from '../services/tasksAuth';
 
 WebBrowser.maybeCompleteAuthSession();
+
+export const GOOGLE_TASKS_SCOPE = 'https://www.googleapis.com/auth/tasks';
 
 const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim() ?? '';
 const androidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim() || undefined;
@@ -45,14 +42,12 @@ const androidRedirectUri = androidReverseRedirectUri(
   androidClientId,
 );
 
-const EMPTY_CACHE: GoogleCalendarCache = {
-  events: [],
-  lastSyncedAt: null,
-};
+const EMPTY_CACHE: GoogleTasksCache = { tasks: [], lastSyncedAt: null };
 
 const cancelled = (result: { type: string }): boolean =>
   result.type === 'cancel' || result.type === 'dismiss';
 
+/** 401 en cualquier capa significa que hay que volver a autorizar. */
 const isAuthError = (error: unknown): boolean => {
   if (error instanceof ConnectionApiError && error.status === 401) return true;
   if (error && typeof error === 'object') {
@@ -73,17 +68,16 @@ const isAuthError = (error: unknown): boolean => {
 };
 
 /**
- * OAuth independiente para leer Google Calendar.
- * No reutiliza el id_token de Firebase y no persiste el access token.
+ * OAuth independiente para Google Tasks.
  *
- * Devuelve el contrato `ConnectionProvider` completo, sin cast: todo lo que la
- * tarjeta genérica necesita (último sync, error, aviso de plataforma) está
- * declarado en el contrato.
+ * No reutiliza la sesión de Firebase ni la de Calendar: son consentimientos
+ * distintos y `ADR-0006` los mantiene separados. Tampoco persiste el access
+ * token en el cliente — el refresh vive en el backend.
  */
-export const useGoogleCalendar = (): ConnectionProvider<GoogleEvent[]> => {
+export const useGoogleTasks = (): ConnectionProvider<NormalizedTask[]> => {
   const { t } = useI18n();
-  const [cache, setCache] = useState<GoogleCalendarCache>(EMPTY_CACHE);
-  const [status, setStatus] = useState<CalendarSyncStatus>('loading-cache');
+  const [cache, setCache] = useState<GoogleTasksCache>(EMPTY_CACHE);
+  const [status, setStatus] = useState<TasksSyncStatus>('loading-cache');
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const inFlightRef = useRef(false);
@@ -94,7 +88,7 @@ export const useGoogleCalendar = (): ConnectionProvider<GoogleEvent[]> => {
     cacheRef.current = cache;
   }, [cache]);
 
-  const configured = Boolean(webClientId) && googleCalendarApiConfigured();
+  const configured = Boolean(webClientId) && googleTasksApiConfigured();
   const effectiveWebId = configured ? webClientId : PLACEHOLDER_CLIENT_ID;
 
   const [request, , promptAsync] = Google.useAuthRequest({
@@ -103,33 +97,31 @@ export const useGoogleCalendar = (): ConnectionProvider<GoogleEvent[]> => {
     webClientId: effectiveWebId,
     androidClientId: configured ? androidClientId || effectiveWebId : PLACEHOLDER_CLIENT_ID,
     iosClientId: configured ? iosClientId || effectiveWebId : PLACEHOLDER_CLIENT_ID,
-    scopes: [GOOGLE_CALENDAR_WRITE_SCOPE],
+    scopes: [GOOGLE_TASKS_SCOPE],
     responseType: ResponseType.Code,
     shouldAutoExchangeCode: false,
     usePKCE: true,
     selectAccount: false,
-    extraParams: calendarPromptParams(),
+    extraParams: tasksPromptParams(),
   });
 
   const sync = useCallback(async (): Promise<boolean> => {
     if (inFlightRef.current || !configured) return false;
     const currentUser = auth.currentUser;
-    if (!currentUser || currentUser.isAnonymous) {
-      return false;
-    }
+    if (!currentUser || currentUser.isAnonymous) return false;
     inFlightRef.current = true;
     const startedAt = Date.now();
     setStatus('syncing');
     setError(null);
     try {
-      const result = await syncGoogleCalendarConnection();
-      await saveGoogleEventsCache(result.events, result.syncedAt, currentUser.uid);
-      setCache({ events: result.events, lastSyncedAt: result.syncedAt, ownerUid: currentUser.uid });
+      const result = await syncGoogleTasksConnection();
+      await saveGoogleTasksCache(result.tasks, result.syncedAt, currentUser.uid);
+      setCache({ tasks: result.tasks, lastSyncedAt: result.syncedAt, ownerUid: currentUser.uid });
       setConnected(true);
       setStatus('synced');
       recordTelemetry(
         'connection.completed',
-        { provider: 'google_calendar', action: 'sync', result: 'success' },
+        { provider: 'google_tasks', action: 'sync', result: 'success' },
         Date.now() - startedAt,
       );
       return true;
@@ -137,18 +129,18 @@ export const useGoogleCalendar = (): ConnectionProvider<GoogleEvent[]> => {
       if (isAuthError(syncError)) {
         setConnected(false);
         setStatus('reauthRequired');
-        setError(t('connections.reauthRequired'));
+        setError(t('tasks.reauthRequired'));
       } else {
-        setError(getCalendarError(syncError, t));
+        setError(translateTasksError(syncError, t));
         setStatus(cacheRef.current.lastSyncedAt ? 'offline' : 'error');
       }
       recordTelemetry(
         'connection.completed',
         {
-          provider: 'google_calendar',
+          provider: 'google_tasks',
           action: 'sync',
           result: 'error',
-          reason: errorReason(syncError),
+          reason: syncError instanceof ConnectionApiError ? `http_${syncError.status}` : 'unknown',
         },
         Date.now() - startedAt,
       );
@@ -165,53 +157,47 @@ export const useGoogleCalendar = (): ConnectionProvider<GoogleEvent[]> => {
   useEffect(() => {
     let active = true;
     setStatus('loading-cache');
-    loadGoogleCalendarCache()
+    loadGoogleTasksCache()
       .then(async (stored) => {
         if (!active) return;
         const currentUser = auth.currentUser;
-        const cache = resolveLoadedCache(
+        const resolved = resolveLoadedTasksCache(
           stored,
           currentUser && !currentUser.isAnonymous ? currentUser.uid : '',
         );
-        setCache(cache);
-        setStatus(cache.lastSyncedAt ? 'offline' : 'idle');
+        setCache(resolved);
+        setStatus(resolved.lastSyncedAt ? 'offline' : 'idle');
         if (!configured) return;
         if (!currentUser || currentUser.isAnonymous) {
           setConnected(false);
-          setStatus(cache.lastSyncedAt ? 'offline' : 'idle');
           return;
         }
         let remoteConnected = false;
         try {
-          remoteConnected = await getGoogleCalendarConnectionStatus();
+          remoteConnected = await getGoogleTasksConnectionStatus();
         } catch (statusError) {
           if (!active) return;
           if (isAuthError(statusError)) {
             setConnected(false);
             setStatus('reauthRequired');
-            setError(t('connections.reauthRequired'));
+            setError(t('tasks.reauthRequired'));
             return;
           }
-          setStatus(cache.lastSyncedAt ? 'offline' : 'error');
+          setStatus(resolved.lastSyncedAt ? 'offline' : 'error');
           return;
         }
         if (!active) return;
         setConnected(remoteConnected);
-        if (remoteConnected) {
-          void syncRef.current();
-        } else {
-          setStatus(cache.lastSyncedAt ? 'offline' : 'idle');
-        }
+        if (remoteConnected) void syncRef.current();
       })
       .catch((err) => {
-        if (active) {
-          if (isAuthError(err)) {
-            setConnected(false);
-            setStatus('reauthRequired');
-            setError(t('connections.reauthRequired'));
-          } else {
-            setStatus(cacheRef.current.lastSyncedAt ? 'offline' : 'error');
-          }
+        if (!active) return;
+        if (isAuthError(err)) {
+          setConnected(false);
+          setStatus('reauthRequired');
+          setError(t('tasks.reauthRequired'));
+        } else {
+          setStatus(cacheRef.current.lastSyncedAt ? 'offline' : 'error');
         }
       });
 
@@ -220,21 +206,21 @@ export const useGoogleCalendar = (): ConnectionProvider<GoogleEvent[]> => {
     };
   }, [configured, t]);
 
-  const connectAndSync = useCallback(async (): Promise<boolean> => {
+  const connect = useCallback(async (): Promise<boolean> => {
     if (inFlightRef.current) return false;
     if (!configured) {
-      setError(t('connections.errorConfig'));
+      setError(t('tasks.errorConfig'));
       setStatus('error');
       return false;
     }
     const currentUser = auth.currentUser;
     if (!currentUser || currentUser.isAnonymous) {
-      setError(t('connections.errorDenied'));
+      setError(t('tasks.errorDenied'));
       setStatus('error');
       return false;
     }
     if (!request) {
-      setError(t('connections.errorPreparing'));
+      setError(t('tasks.errorPreparing'));
       setStatus('error');
       return false;
     }
@@ -244,33 +230,24 @@ export const useGoogleCalendar = (): ConnectionProvider<GoogleEvent[]> => {
     setError(null);
 
     try {
-      if (__DEV__) {
-        console.log('[Google Calendar] Starting auth flow with:', {
-          clientId: request.clientId,
-          redirectUri: request.redirectUri,
-          platform: Platform.OS,
-        });
-      }
       const authResult = await promptAsync();
       if (cancelled(authResult)) {
         setStatus(cacheRef.current.lastSyncedAt ? 'offline' : 'idle');
         return false;
       }
       if (authResult.type !== 'success') {
-        setError(t('connections.errorDenied'));
+        setError(t('tasks.errorDenied'));
         setStatus('error');
         return false;
       }
-
       const code = authResult.params.code?.trim() ?? '';
       const codeVerifier = request.codeVerifier?.trim() ?? '';
       if (!code || !codeVerifier) {
-        setError(t('connections.errorCode'));
+        setError(t('tasks.errorCode'));
         setStatus('error');
         return false;
       }
-
-      await connectGoogleCalendar({
+      await connectGoogleTasks({
         code,
         codeVerifier,
         redirectUri: request.redirectUri,
@@ -279,20 +256,20 @@ export const useGoogleCalendar = (): ConnectionProvider<GoogleEvent[]> => {
       setConnected(true);
       inFlightRef.current = false;
       return sync();
-    } catch (syncError) {
-      if (isAuthError(syncError)) {
+    } catch (connectError) {
+      if (isAuthError(connectError)) {
         setConnected(false);
         setStatus('reauthRequired');
-        setError(t('connections.reauthRequired'));
+        setError(t('tasks.reauthRequired'));
       } else {
-        setError(getCalendarError(syncError, t));
+        setError(translateTasksError(connectError, t));
         setStatus(cacheRef.current.lastSyncedAt ? 'offline' : 'error');
       }
       recordTelemetry('connection.completed', {
-        provider: 'google_calendar',
+        provider: 'google_tasks',
         action: 'connect',
         result: 'error',
-        reason: errorReason(syncError),
+        reason: connectError instanceof ConnectionApiError ? `http_${connectError.status}` : 'unknown',
       });
       return false;
     } finally {
@@ -301,12 +278,10 @@ export const useGoogleCalendar = (): ConnectionProvider<GoogleEvent[]> => {
   }, [configured, promptAsync, request, sync, t]);
 
   const disconnect = useCallback(async (): Promise<void> => {
-    // Best-effort: un fallo de red no debe dejar la caché local viva ni la UI
-    // en estado "conectado fantasma".
-    if (configured) {
-      await disconnectGoogleCalendarConnection().catch(() => undefined);
-    }
-    await clearGoogleEventsCache().catch(() => undefined);
+    // Best-effort: un fallo de red no debe dejar caché viva ni un "conectado
+    // fantasma" en la UI.
+    if (configured) await disconnectGoogleTasksConnection().catch(() => undefined);
+    await clearGoogleTasksCache().catch(() => undefined);
     setCache(EMPTY_CACHE);
     setConnected(false);
     setError(null);
@@ -316,6 +291,8 @@ export const useGoogleCalendar = (): ConnectionProvider<GoogleEvent[]> => {
   const clearError = useCallback(() => setError(null), []);
 
   const platformHint = useMemo(() => {
+    // Mismo criterio que Calendar: si falta el Client ID de la plataforma,
+    // avisamos en texto en vez de dejar un botón que falla sin explicación.
     if (Platform?.OS === 'android' && configured && !androidClientId) {
       return t('connections.androidConfig');
     }
@@ -342,32 +319,33 @@ export const useGoogleCalendar = (): ConnectionProvider<GoogleEvent[]> => {
 
   return useMemo(
     () => ({
-      id: 'google-calendar',
-      labelKey: 'connections.googleCalendar',
+      id: 'google-tasks',
+      labelKey: 'tasks.title',
       status: connectionStatus,
       connected,
       configured,
-      // El espejo escribe eventos con `calendar.events`, así que `write` va en
-      // true. Antes decía false, que contradecía el comportamiento real.
-      capabilities: { read: true, write: true, backgroundSync: true },
-      data: cache.events,
+      // Tasks escribe (espejo de metas y hábitos), a diferencia de lo que
+      // decía el contrato de Calendar, que declaraba `write: false` siendo
+      // que el espejo sí escribe.
+      capabilities: { read: true, write: true, backgroundSync: false },
+      data: cache.tasks,
       lastSyncedAt: cache.lastSyncedAt,
       error,
       platformHint,
-      connect: connectAndSync,
+      connect,
       sync,
       disconnect,
       clearError,
     }),
     [
-      cache.events,
+      cache.tasks,
       cache.lastSyncedAt,
-      error,
+      connectionStatus,
       connected,
       configured,
-      connectionStatus,
+      error,
       platformHint,
-      connectAndSync,
+      connect,
       sync,
       disconnect,
       clearError,

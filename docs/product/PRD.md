@@ -243,6 +243,8 @@ users/{uid}/connections/{provider}  # backend-only
 
 - Outlook y Apple Calendar.
 - Escritura hacia calendarios externos.
+- Google Tasks más allá del espejo Sui → Tasks: no hay import inverso, y el
+  conector vive atrás del flag `googleTasksEnabled` hasta aprobar su alcance.
 - Sincronizar historial de Chat.
 - Red social, equipos, feed o competencia pública.
 - Menores de 18 años o consentimiento parental.

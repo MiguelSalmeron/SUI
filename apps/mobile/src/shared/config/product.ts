@@ -11,6 +11,13 @@ export const PRODUCT_CONFIG = {
     .filter(Boolean),
   accountabilityEnabled: process.env.EXPO_PUBLIC_ACCOUNTABILITY_ENABLED?.trim() === 'true',
   engagementEnabled: process.env.EXPO_PUBLIC_ENGAGEMENT_ENABLED?.trim() === 'true',
+  /**
+   * Google Tasks. Apagado por defecto: el conector es nuevo y su alcance en
+   * producción todavía no está aprobado. Es el mismo mecanismo que
+   * `engagementEnabled`, y es lo que permite revertir el conector sin tocar
+   * migraciones (borrar el documento deja al cliente en desconectado).
+   */
+  googleTasksEnabled: process.env.EXPO_PUBLIC_GOOGLE_TASKS_ENABLED?.trim() === 'true',
 } as const;
 
 export const isProductionEnvironment = PRODUCT_CONFIG.environment === 'production';

@@ -40,7 +40,7 @@ export const CalendarScreen = () => {
   const { locale, t, formatDate } = useI18n();
   const daysHeader =
     locale === 'es' ? ['L', 'M', 'X', 'J', 'V', 'S', 'D'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-  const { events: googleEvents, connected: calendarConnected } = useGoogleCalendar();
+  const { data: googleEvents, connected: calendarConnected } = useGoogleCalendar();
   useMirrorEffects(calendarConnected);
 
   const goals = useProductivityStore((s) => s.goals);

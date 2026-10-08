@@ -18,6 +18,14 @@ export {
   googleMirrorDelete,
   googleMirrorUpsert,
 } from './connections/googleCalendar';
+export {
+  googleTasksConnect,
+  googleTasksDisconnect,
+  googleTasksStatus,
+  googleTasksSync,
+  googleTasksMirrorDelete,
+  googleTasksMirrorUpsert,
+} from './connections/googleTasks';
 export { deleteAccount } from './account/deleteAccount';
 export { syncProductivity } from './productivity/endpoint';
 

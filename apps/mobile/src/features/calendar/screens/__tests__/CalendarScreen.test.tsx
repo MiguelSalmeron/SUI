@@ -42,7 +42,9 @@ jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate }),
 }));
 jest.mock('../../hooks/useGoogleCalendar', () => ({
-  useGoogleCalendar: () => ({ events: [], connected: mockConnected }),
+  // El hook devuelve el contrato `ConnectionProvider`: los eventos van en
+  // `data`, no en el `events` del cast viejo.
+  useGoogleCalendar: () => ({ data: [], connected: mockConnected }),
 }));
 jest.mock('../../hooks/useMirrorEffects', () => ({
   useMirrorEffects: jest.fn(),
