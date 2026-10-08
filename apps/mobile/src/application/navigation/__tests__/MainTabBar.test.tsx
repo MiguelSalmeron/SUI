@@ -1,3 +1,6 @@
+import { AuthContext } from '@/features/auth/public';
+import { Avatar } from '@/shared/ui/Avatar';
+import { useIdentityStore, defaultIdentity } from '@/shared/identity/useIdentityStore';
 import { act } from 'react';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
@@ -5,6 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { SuiAnimatedMark } from '@/shared/ui/SuiAnimatedMark';
 import {
   MainTabBar,
+  TabHeader,
   renderTransparentTabBarBackground,
   TRANSPARENT_TAB_BAR_STYLE,
 } from '../TabNavigator';
@@ -15,7 +19,9 @@ jest.mock('@/shared/ui/SuiAnimatedMark', () => ({ SuiAnimatedMark: () => null })
 jest.mock('@/shared/ui/SuiMark', () => ({ SuiMark: () => null }));
 jest.mock('@/shared/ui/Avatar', () => ({ Avatar: () => null }));
 jest.mock('@/shared/ui/Ionicons', () => ({ Ionicons: () => null }));
-jest.mock('@/features/auth/public', () => ({}));
+jest.mock('@/features/auth/public', () => ({
+  AuthContext: require('react').createContext({ user: null, loading: false }),
+}));
 jest.mock('@/features/onboarding/public', () => ({}));
 jest.mock('@/features/calendar/public', () => ({}));
 jest.mock('@/features/goals/public', () => ({}));
@@ -117,5 +123,52 @@ describe('MainTabBar, wrapper nativo transparente', () => {
       }),
     );
     expect(renderTransparentTabBarBackground()).toBeNull();
+  });
+});
+
+describe('TabHeader identidad', () => {
+  it('no muestra foto anterior; avatar mantiene acceso a Ajustes', async () => {
+    let renderer!: ReactTestRenderer;
+    const onSettings = jest.fn();
+    useIdentityStore.setState({
+      owner: 'a',
+      identity: { ...defaultIdentity(), localPhotoUri: 'file:///a.webp' },
+      identities: {},
+    });
+    const props = {
+      colors: { primary: '#2455A4' },
+      topInset: 0,
+      profileName: 'Bea',
+      settingsLabel: 'Abrir Ajustes',
+      settingsHint: 'Preferencias',
+      onSettings,
+    } as unknown as React.ComponentProps<typeof TabHeader>;
+    await act(async () => {
+      renderer = create(
+        <AuthContext.Provider
+          value={{ user: { uid: 'b', isAnonymous: false } as never, loading: false }}
+        >
+          <TabHeader {...props} />
+        </AuthContext.Provider>,
+      );
+    });
+    expect(renderer.root.findAllByType(Avatar)[0].props.source).toBeUndefined();
+    await act(async () => {
+      useIdentityStore.setState({
+        owner: 'b',
+        identity: { ...defaultIdentity(), localPhotoUri: 'file:///b.webp' },
+      });
+    });
+    expect(renderer.root.findAllByType(Avatar)[0].props.source).toBe('file:///b.webp');
+    const button = renderer.root.findAll(
+      (node) =>
+        node.props.accessibilityLabel === 'Abrir Ajustes' &&
+        typeof node.props.onPress === 'function',
+    )[0];
+    await act(async () => {
+      (button.props.onPress as () => void)();
+    });
+    expect(onSettings).toHaveBeenCalledTimes(1);
+    await act(async () => renderer.unmount());
   });
 });

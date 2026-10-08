@@ -459,3 +459,12 @@ npx expo-doctor
 ```
 
 Revisión manual completa usa matriz definida en [PRD](PRD.md#10-criterios-de-release).
+
+### Editor de identidad
+
+Fila de identidad en Ajustes abre sheet dentro de pantalla existente. Presenta
+preview grande, cambiar/quitar foto, ocho colores, detalle cerrado y preview del
+header. Targets mínimos de 44 dp; texto usa escala del tema. Procesamiento y
+subida deshabilitan controles, con indicador y error inline anunciado. Foto
+ilegible conserva label accesible y cae a emoji o inicial. Header mantiene
+acción de abrir Ajustes. No hay nombre editable ni texto libre.

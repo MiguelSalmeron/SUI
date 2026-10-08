@@ -1,4 +1,8 @@
 import React, { useContext, useMemo, useState } from 'react';
+import { IdentitySheet } from '../components/IdentitySheet';
+import { Avatar } from '@/shared/ui/Avatar';
+import { defaultIdentity, useIdentityStore } from '@/shared/identity/useIdentityStore';
+import { removeLocalPhoto } from '@/shared/infrastructure/profile/localPhoto';
 import {
   Linking,
   Alert,
@@ -164,6 +168,11 @@ export const SettingsScreen = ({ navigation }: Props) => {
   const { user } = useContext(AuthContext);
   const { mode, setMode } = useThemeController();
   const settings = useSettingsStore();
+  const identityState = useIdentityStore();
+  const owner = !user || user.isAnonymous ? 'local' : user.uid;
+  const identity = identityState.owner === owner ? identityState.identity : defaultIdentity();
+  const [identityVisible, setIdentityVisible] = useState(false);
+  const profileName = user?.displayName?.trim() || user?.email?.split('@')[0]?.trim() || 'Sui';
   const accountMode = useIntroStore((state) => state.accountMode);
   const syncEnabled = useIntroStore((state) => state.syncEnabled);
   const setSyncEnabled = useIntroStore((state) => state.setSyncEnabled);
@@ -289,6 +298,7 @@ export const SettingsScreen = ({ navigation }: Props) => {
     setLogoutBusy(true);
     try {
       await signOutCurrentUser();
+      useIdentityStore.getState().switchOwner(null);
       await cancelAllAccountabilityNotifications();
       await useAccountabilityStore.getState().handleAuthUserChanged(null);
       await cancelAllEngagementNotifications();
@@ -310,6 +320,8 @@ export const SettingsScreen = ({ navigation }: Props) => {
   };
 
   const performDelete = async () => {
+    const deletionOwner = useIdentityStore.getState().owner;
+    const photoUri = useIdentityStore.getState().identity.localPhotoUri;
     const current = auth.currentUser;
     const currentUid = current?.uid;
     if (current && !current.isAnonymous) {
@@ -317,6 +329,8 @@ export const SettingsScreen = ({ navigation }: Props) => {
     } else if (current) {
       await deleteAnonymousUser();
     }
+    useIdentityStore.getState().reset(deletionOwner);
+    await removeLocalPhoto(photoUri);
     await clearGoogleEventsCache();
     await cancelAllAccountabilityNotifications();
     await clearAccountability(currentUid ?? null);
@@ -498,13 +512,20 @@ export const SettingsScreen = ({ navigation }: Props) => {
               onPress={() => void requestPasswordChange()}
             />
           ) : null}
-          {user && !user.isAnonymous ? (
-            <SettingsRow
-              icon="person-circle-outline"
-              label={user.displayName || user.email || 'Sui'}
-              description={user.providerData.map((item) => item.providerId).join(' · ')}
-            />
-          ) : null}
+          <SettingsRow
+            icon="person-circle-outline"
+            label={t('settings.identity')}
+            description={profileName}
+            onPress={() => setIdentityVisible(true)}
+            right={
+              <Avatar
+                name={profileName}
+                source={identity.localPhotoUri || identity.photoUrl}
+                accentColor={identity.accentColor}
+                detail={identity.detail}
+              />
+            }
+          />
         </Section>
 
         <Section title={t('settings.privacy')}>
@@ -529,6 +550,15 @@ export const SettingsScreen = ({ navigation }: Props) => {
           />
         </Section>
       </ScrollView>
+      {identityVisible ? (
+        <IdentitySheet
+          key={owner}
+          owner={owner}
+          visible
+          name={profileName}
+          onClose={() => setIdentityVisible(false)}
+        />
+      ) : null}
       <ConfirmModal
         visible={logoutVisible}
         title={t('settings.logout')}

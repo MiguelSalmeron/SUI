@@ -62,7 +62,15 @@
       "expo-localization",
       "expo-secure-store",
       "@sentry/react-native",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permit\u00ed que Sui use una foto de tu galer\u00eda para tu avatar.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "extra": {
       "eas": {

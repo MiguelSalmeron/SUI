@@ -1,9 +1,10 @@
+import { useIdentitySession } from '@/shared/identity/useIdentitySession';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
-import { AuthProvider, signInAnon } from '@/features/auth/public';
+import { AuthContext, AuthProvider, signInAnon } from '@/features/auth/public';
 import { useIntroStore } from '@/features/onboarding/public';
 import { configureNotificationHandler, reconcileNightlyReport } from '@/features/settings/public';
 import { ThemeProvider, useAppTheme } from '@/shared/theme/theme';
@@ -133,6 +134,13 @@ function Boot() {
 export default wrapApplication(App);
 
 const AppShell = () => {
+  const { user, loading } = useContext(AuthContext);
+  const registered = Boolean(
+    user &&
+    !user.isAnonymous &&
+    (!user.providerData.some((p) => p.providerId === 'password') || user.emailVerified),
+  );
+  useIdentitySession(user?.isAnonymous || !user ? 'local' : user.uid, registered, loading);
   const theme = useAppTheme();
   useSyncWebChrome(theme.colors.background);
 

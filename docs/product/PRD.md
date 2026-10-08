@@ -271,3 +271,15 @@ users/{uid}/connections/{provider}  # backend-only
 - [Privacidad y crisis](../explanation/privacy-and-crisis.md)
 - [Rollout productivo](../how-to/production-rollout.md)
 - [Roadmap](../roadmap.md)
+
+### Identidad visual privada
+
+Ajustes permite elegir foto de galería, color entre ocho opciones y detalle del
+catálogo cerrado. Foto opcional: cancelación o error conserva identidad actual.
+Color y detalle se aplican al tocar; foto requiere confirmar preview. Identidad
+se guarda por cuenta en dispositivo, separada del motor de productividad.
+
+Cuentas registradas verificadas pueden respaldar foto en Storage privado y
+metadatos en `users/{uid}.identity`, exclusivamente mediante `updateIdentity`.
+Modo local y anónimo conservan foto en dispositivo. Avatar no aparece en Chat
+ni en perfiles públicos. Borrado de cuenta incluye archivo remoto.

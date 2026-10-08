@@ -128,3 +128,13 @@ Se pueden comprobar con `curl -I https://xsui.web.app`.
 2. **Preservar evidencia:** respaldar logs y estado sin sobrescribirlos.
 3. **Rotar credenciales:** cambiarlas directamente en el proveedor.
 4. **Recuperar validado:** restaurar en un entorno aislado y verificar antes de reabrir.
+
+## Fotos de identidad
+
+Avatar privado: reglas Storage limitan lectura/escritura al dueño registrado,
+rechazan anónimos y cuentas de contraseña sin verificar. Solo archivo canónico,
+WebP/JPEG y máximo 1 MiB; Firestore mantiene escrituras de cliente denegadas.
+
+URL de descarga es credencial de acceso al objeto: no compartirla, publicarla ni
+registrarla en logs. Avatar no se muestra en Chat ni superficies públicas.
+Servidor deriva URL después de validar objeto; borrado de cuenta elimina foto.

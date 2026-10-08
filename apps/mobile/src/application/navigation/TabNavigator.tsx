@@ -21,6 +21,7 @@ import {
   useProductivityStore,
 } from '@/shared/domain/productivity/public';
 import { appEventBus } from '@/shared/events/appEventBus';
+import { defaultIdentity, useIdentityStore } from '@/shared/identity/useIdentityStore';
 import { Avatar } from '@/shared/ui/Avatar';
 import { SuiMark } from '@/shared/ui/SuiMark';
 import { SuiAnimatedMark } from '@/shared/ui/SuiAnimatedMark';
@@ -168,6 +169,10 @@ export const TabHeader = React.memo(function TabHeader({
   settingsHint,
   onSettings,
 }: TabHeaderProps) {
+  const { user } = useContext(AuthContext);
+  const owner = !user || user.isAnonymous ? 'local' : user.uid;
+  const identityState = useIdentityStore();
+  const identity = identityState.owner === owner ? identityState.identity : defaultIdentity();
   const styles = useMemo(() => headerStyles(colors), [colors]);
   return (
     <View style={[styles.headerShell, { paddingTop: topInset + SPACING.sm }]}>
@@ -181,7 +186,14 @@ export const TabHeader = React.memo(function TabHeader({
           accessibilityLabel={settingsLabel}
           accessibilityHint={settingsHint}
         >
-          <Avatar name={profileName} size="sm" variant="primary" />
+          <Avatar
+            name={profileName}
+            size="sm"
+            variant="primary"
+            source={identity.localPhotoUri || identity.photoUrl}
+            accentColor={identity.accentColor}
+            detail={identity.detail}
+          />
         </TouchableOpacity>
       </View>
     </View>

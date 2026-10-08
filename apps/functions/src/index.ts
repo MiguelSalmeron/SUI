@@ -169,3 +169,5 @@ export const chatProxy = onRequest(
     await relayAzureSse(upstream, response);
   },
 );
+
+export { updateIdentity } from './profile/updateIdentity';

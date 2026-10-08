@@ -5,8 +5,12 @@
  * Tamaños: sm (32) | md (40) | lg (56).
  */
 
-import React, { useMemo } from 'react';
-import { StyleSheet, Text, View, ViewStyle } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Image, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { useI18n } from '@/shared/i18n/i18n';
+import { IDENTITY_PALETTE, IDENTITY_FOREGROUND } from '@/shared/theme/tokens';
+import type { UserIdentity } from '@sui/contracts';
+import { resolveLocalPhoto } from '@/shared/infrastructure/profile/localPhoto';
 import { AppTheme, TypographyToken, useAppTheme } from '@/shared/theme/theme';
 
 export type AvatarSize = 'sm' | 'md' | 'lg';
@@ -14,6 +18,9 @@ export type AvatarVariant = 'primary' | 'surface';
 
 export type AvatarProps = {
   name: string;
+  source?: string;
+  accentColor?: UserIdentity['accentColor'];
+  detail?: string;
   size?: AvatarSize;
   variant?: AvatarVariant;
   style?: ViewStyle;
@@ -37,7 +44,32 @@ export const Avatar: React.FC<AvatarProps> = ({
   size = 'md',
   variant = 'primary',
   style,
+  source,
+  accentColor,
+  detail,
 }) => {
+  const [resolved, setResolved] = useState<{ source?: string; uri?: string }>();
+  const [failedSource, setFailedSource] = useState<string>();
+  useEffect(() => {
+    let active = true;
+    let objectUrl: string | undefined;
+    setResolved(undefined);
+    void resolveLocalPhoto(source)
+      .then((uri) => {
+        if (!active) {
+          if (source?.startsWith('identity-photo:') && uri) URL.revokeObjectURL(uri);
+          return;
+        }
+        objectUrl = uri;
+        setResolved({ source, uri });
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+      if (source?.startsWith('identity-photo:') && objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [source]);
+  const { t } = useI18n();
   const theme = useAppTheme();
   const dims = SIZES[size];
   const styles = useMemo(
@@ -47,11 +79,27 @@ export const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <View
-      style={[styles.base, style]}
+      style={[
+        styles.base,
+        accentColor && { backgroundColor: IDENTITY_PALETTE[accentColor], borderWidth: 1 },
+        style,
+      ]}
       accessibilityRole="image"
-      accessibilityLabel={`Avatar de ${name}`}
+      accessibilityLabel={t('settings.identityAvatar', { name })}
     >
-      <Text style={styles.initial}>{initialOf(name)}</Text>
+      {resolved?.source === source && resolved?.uri && failedSource !== source ? (
+        <Image
+          testID="avatar-photo"
+          source={{ uri: resolved.uri }}
+          style={StyleSheet.absoluteFill}
+          onError={() => setFailedSource(source)}
+          accessible={false}
+        />
+      ) : (
+        <Text style={[styles.initial, accentColor && { color: IDENTITY_FOREGROUND }]}>
+          {detail || initialOf(name)}
+        </Text>
+      )}
     </View>
   );
 };
@@ -65,6 +113,7 @@ const createStyles = (
   const { colors, type } = theme;
   return StyleSheet.create({
     base: {
+      overflow: 'hidden',
       width: box,
       height: box,
       borderRadius: box / 2,

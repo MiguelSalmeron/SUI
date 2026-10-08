@@ -81,3 +81,22 @@ Escala base:
 Tamaños Pequeño/Mediano/Grande aplican factores `0.88`, `1`, `1.15` sin desactivar escalado nativo.
 
 Navegación inferior expone cuatro rutas reales y una acción central Sui. `SCREEN_CONTENT_BOTTOM_PADDING` protege listas de barra y safe area.
+
+## Identidad visual
+
+- Contrato `UserIdentity`, catálogo de colores y emojis: `packages/contracts/src/profile.ts`, exportado desde `@sui/contracts`.
+- Store compartido: `shared/identity/useIdentityStore.ts`; AsyncStorage
+  `@sui/identity-v1`, espacios por dueño. No pertenece al sobre de productividad.
+- Foto nativa: archivo WebP privado en directorio de documentos; web: Blob en
+  IndexedDB `sui-identity`, referencia local opaca en store. Nunca sube URI local.
+- Foto procesada al centro, cuadrada, máximo 512 px y 1 MiB.
+- Storage: `users/{uid}/avatar/avatar.webp`, WebP/JPEG; dueño registrado según
+  misma premisa de Firestore. Otras rutas denegadas.
+- `POST updateIdentity`: Bearer + App Check + CORS, base existente
+  `EXPO_PUBLIC_CONNECTIONS_API_URL`. Body `{identity, clearPhoto}`; validación
+  estricta sin UID ni URL aportados por cliente. Reemplaza mapa `identity`
+  preservando otros campos del documento. URL se deriva de Storage.
+- Error remoto conserva copia local pendiente y permite reintento en editor.
+- Desplegar `storage.rules` y Functions requiere bucket privado configurado.
+  No se desplegó como parte de esta implementación. App Check nativo conserva
+  soporte actual del repo; modo enforcement requiere integración nativa previa.

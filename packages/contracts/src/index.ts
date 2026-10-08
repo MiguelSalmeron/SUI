@@ -20,3 +20,5 @@ export * from './widgets';
 export * from './notifications';
 export * from './calendarMirror';
 export { isPlannedTime } from './validation';
+
+export * from './profile';

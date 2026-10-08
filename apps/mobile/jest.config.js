@@ -6,6 +6,9 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@react-native-async-storage/async-storage$': '<rootDir>/__mocks__/async-storage.js',
+    '^expo-image-picker$': '<rootDir>/__mocks__/expo-image-picker.js',
+    '^expo-image-manipulator$': '<rootDir>/__mocks__/expo-image-manipulator.js',
+    '^expo-file-system$': '<rootDir>/__mocks__/expo-file-system.js',
     '^expo-crypto$': '<rootDir>/__mocks__/expo-crypto.js',
     '^expo-haptics$': '<rootDir>/__mocks__/expo-haptics.js',
     '^expo-localization$': '<rootDir>/__mocks__/expo-localization.js',

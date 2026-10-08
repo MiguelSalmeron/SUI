@@ -87,3 +87,16 @@ export const NAV_BAR_HEIGHT = 72;
 export const SCREEN_CONTENT_BOTTOM_PADDING = SPACING.xl + SPACING.lg;
 
 export const SCREEN_MAX_CONTENT_WIDTH = 560;
+
+export const IDENTITY_PALETTE = {
+  blue: '#2455A4',
+  green: '#26633F',
+  purple: '#71439B',
+  rose: '#A33059',
+  orange: '#934E16',
+  teal: '#17676B',
+  slate: '#475569',
+  indigo: '#4C4799',
+} as const;
+
+export const IDENTITY_FOREGROUND = '#FFFFFF';

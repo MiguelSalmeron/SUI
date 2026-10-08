@@ -32,7 +32,7 @@
     "functions:build": "npm run build --workspace @sui/functions",
     "functions:test": "npm run test --workspace @sui/functions",
     "test:sync": "npm run functions:build && node --test apps/functions/test/productivitySync.emulator.test.js",
-    "test:rules": "firebase emulators:exec --only firestore --project sui-rules-test \"node --test test/firestore.rules.test.mjs && npm run test:sync\"",
+    "test:rules": "firebase emulators:exec --only firestore,storage --project sui-rules-test \"node --test test/firestore.rules.test.mjs test/storage.rules.test.mjs && npm run test:sync\"",
     "check": "npm run architecture && npm run architecture:test && npm run lint && npm run dead-code && npm run deps:check && npm run check:production && npm run typecheck && npm run test && npm run test:rules",
     "build": "turbo run build"
   },

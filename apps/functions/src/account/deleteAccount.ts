@@ -1,3 +1,4 @@
+import { deleteAvatar } from '../profile/updateIdentity';
 import { onRequest } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
 import { authenticateBearer } from '../chat/auth';
@@ -39,6 +40,7 @@ export const deleteAccount = onRequest(
     const uid = authentication.uid;
     try {
       await disconnectGoogleCalendarForUser(uid);
+      await deleteAvatar(uid);
       await firestore.recursiveDelete(firestore.collection('users').doc(uid));
       await getAuth().deleteUser(uid);
       response.status(200).json({ deleted: true });

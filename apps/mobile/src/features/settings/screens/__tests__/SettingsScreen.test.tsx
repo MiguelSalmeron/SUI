@@ -1,3 +1,6 @@
+jest.mock('@/shared/identity/identitySync', () => ({
+  syncIdentity: jest.fn(async () => undefined),
+}));
 import { Alert, Share } from 'react-native';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
@@ -273,5 +276,30 @@ describe('SettingsScreen estado de cuenta', () => {
     const screen = await renderScreen();
     expect(screen.getByText('settings.accountError')).toBeTruthy();
     expect(screen.getByText('settings.accountErrorDescription')).toBeTruthy();
+  });
+});
+
+describe('SettingsScreen identidad', () => {
+  it('nombre del avatar elimina espacios y cae a correo si queda vacío', async () => {
+    const user = mockUser as { displayName: string | null; email: string };
+    const previous = user.displayName;
+    try {
+      user.displayName = '  Ana  ';
+      const screen = await renderScreen();
+      expect(screen.getByText('Ana').props.children).toBe('Ana');
+      await screen.unmount();
+      user.displayName = '   ';
+      const fallback = await renderScreen();
+      expect(fallback.getByText('user')).toBeTruthy();
+    } finally {
+      user.displayName = previous;
+    }
+  });
+  it('fila abre sheet y cierre conserva pantalla', async () => {
+    const screen = await renderScreen();
+    await fireEvent.press(screen.getByText('settings.identity'));
+    expect(screen.getByText('settings.identityChangePhoto')).toBeTruthy();
+    await fireEvent.press(screen.getByText('common.close'));
+    expect(screen.queryByText('settings.identityChangePhoto')).toBeNull();
   });
 });

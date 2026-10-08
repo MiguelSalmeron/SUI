@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isRegisteredOwner(uid) {
+      return request.auth != null && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && (request.auth.token.firebase.sign_in_provider != 'password' || request.auth.token.email_verified == true);
+    }
+    match /users/{uid}/avatar/avatar.webp {
+      allow read: if isRegisteredOwner(uid);
+      allow write: if isRegisteredOwner(uid) && (request.resource == null || (request.resource.size <= 1048576 && request.resource.contentType in ['image/webp', 'image/jpeg']));
+    }
+    match /{path=**} { allow read, write: if false; }
+  }
+}
