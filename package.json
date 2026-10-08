@@ -41,7 +41,7 @@
     "eslint": "^9.39.5",
     "eslint-config-expo": "^57.0.2",
     "eslint-config-prettier": "^10.1.8",
-    "firebase-tools": "^15.28.2",
+    "firebase-tools": "^15.32.1",
     "globals": "^17.11.0",
     "knip": "^6.33.0",
     "prettier": "^3.9.6",
