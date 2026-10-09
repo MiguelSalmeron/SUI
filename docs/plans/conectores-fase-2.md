@@ -33,7 +33,7 @@ clasificación de Google. Eso implica:
   sensitive no esté aprobado. Agotado, Google deshabilita el sign-in. El cap no
   se resetea.
 
-Ningún scope de Calendar es *restricted*, así que no hay CASA ni recertificación
+Ningún scope de Calendar es _restricted_, así que no hay CASA ni recertificación
 anual. El riesgo es el cap y el video, no el costo.
 
 Implicación directa: **cualquier conector que agreguemos debe poder lanzarse sin
@@ -51,14 +51,14 @@ Fuentes: [verification requirements](https://support.google.com/cloud/answer/134
 `ConnectionProvider` no alcanza para renderizar una lista de conectores. Le
 falta lo que `ConnectionsScreen` ya lee del hook de Google:
 
-| Falta en el contrato | Dónde se usa hoy |
-| --- | --- |
-| `lastSyncedAt` | `ConnectionsScreen.tsx:81` |
-| `error` | `ConnectionsScreen.tsx:93` |
-| `platformHint` | `ConnectionsScreen.tsx:90` |
+| Falta en el contrato              | Dónde se usa hoy                                 |
+| --------------------------------- | ------------------------------------------------ |
+| `lastSyncedAt`                    | `ConnectionsScreen.tsx:81`                       |
+| `error`                           | `ConnectionsScreen.tsx:93`                       |
+| `platformHint`                    | `ConnectionsScreen.tsx:90`                       |
 | `readOnly` / capacidades visibles | `connections.readOnly` ya existe en i18n sin uso |
-| `connectAndSync` | `useGoogleCalendar.ts:380` |
-| `clearError` | `useGoogleCalendar.ts:384` |
+| `connectAndSync`                  | `useGoogleCalendar.ts:380`                       |
+| `clearError`                      | `useGoogleCalendar.ts:384`                       |
 
 El hook resuelve esto con un cast (`useGoogleCalendar.ts:375`:
 `as ConnectionProvider<GoogleEvent[]> & {...}`). Ese cast es exactamente lo que
@@ -83,12 +83,12 @@ costo cero, y esfuerzo bajo dado lo que ya existe.
 
 #### A. Google Tasks — el más rentable
 
-| | |
-| --- | --- |
-| Costo | Gratis. Cuota de cortesía **50.000 queries/día** por proyecto, ajustable. |
+|            |                                                                             |
+| ---------- | --------------------------------------------------------------------------- |
+| Costo      | Gratis. Cuota de cortesía **50.000 queries/día** por proyecto, ajustable.   |
 | Aprobación | **No.** `tasks` y `tasks.readonly` no figuran como sensitive ni restricted. |
-| Registro | Self-serve en el mismo proyecto de Cloud que Calendar. |
-| Plataforma | Servidor, o sea iOS, Android y web sin ramas. |
+| Registro   | Self-serve en el mismo proyecto de Cloud que Calendar.                      |
+| Plataforma | Servidor, o sea iOS, Android y web sin ramas.                               |
 
 Por qué aporta: Calendar ya resuelve **cuándo**. Tasks resuelve **qué falta hacer**,
 que es la otra mitad de una meta. El espejo actual escribe eventos con fecha;
@@ -113,12 +113,12 @@ Tasks no importa de vuelta hacia Sui en v1.
 
 #### B. Telegram Bot API — el canal del Accountability
 
-| | |
-| --- | --- |
-| Costo | Gratis. Sin SLA. |
+|            |                                                                |
+| ---------- | -------------------------------------------------------------- |
+| Costo      | Gratis. Sin SLA.                                               |
 | Aprobación | **Ninguna.** Token con `/newbot` en `@BotFather`, instantáneo. |
-| Límites | 1 msg/s en chat privado, 20/min en grupo, ~30/s broadcast. |
-| Plataforma | Todas, porque es un bot que corre en nuestro servidor. |
+| Límites    | 1 msg/s en chat privado, 20/min en grupo, ~30/s broadcast.     |
+| Plataforma | Todas, porque es un bot que corre en nuestro servidor.         |
 
 Por qué aporta: `docs/product/ACCOUNTABILITY_PLAN.md` define el seguimiento duro
 —"en progreso", "no pude", "reprogramar", "cerrar"— y hoy el MVP es local-only con
@@ -139,11 +139,11 @@ check-in, nunca el contenido.
 
 #### C. Deep links y App Intents — captura, no integración
 
-| | |
-| --- | --- |
-| Costo | Gratis. |
+|            |                                                                           |
+| ---------- | ------------------------------------------------------------------------- |
+| Costo      | Gratis.                                                                   |
 | Aprobación | **Ninguna.** App Shortcuts están disponibles desde que se instala la app. |
-| Límite | 10 app shortcuts por app. |
+| Límite     | 10 app shortcuts por app.                                                 |
 
 Por qué aporta: ataca la métrica de `PRD.md:59` —primera acción útil en menos de
 90 segundos— desde el otro lado. Hoy capturar una idea fuera de Sui exige abrir la
@@ -159,19 +159,19 @@ en iOS; conviene universal links con `assetlinks.json` en Android.
 
 ### 2.2 Descartados, con motivo
 
-| Candidato | Por qué no |
-| --- | --- |
-| **Outlook / Microsoft Graph** | Self-serve y gratis, pero el gate real es el admin de cada empresa: si el tenant tiene *user consent* deshabilitado, cada cliente necesita aprobar la app. Eso es un problema de onboarding y soporte, no técnico. Además `Calendars.Read` es el equivalente del Calendar que ya arrastra verificación. |
-| **Apple Calendar / Reminders (EventKit)** | Cero gate de Apple, pero **sólo iOS**, y Sui nace Android-first. Además desde iOS 17 Reminders no tiene write-only: o acceso completo o nada. Se deja para una fase iOS-first. |
-| **Todoist** | Self-serve, gratis, bien resuelto. Pero duplica el dominio de metas de Sui. La regla de `VERSION_FINAL.md:215` aplica: conector que no aporta contexto estorba. |
-| **Notion** | La documentación oficial se contradice sobre si la *public connection* pasa por review. Rate limit global de 3 req/s. Autorización por usuario y por workspace. No se puede afirmar que sea self-serve en producción. |
-| **GitHub** | Confirmado self-serve y sin review, pero OAuth apps sólo actúan en nombre de un usuario: si se va de la organización, la integración se rompe. El caso de uso (abrir PR desde una tarea) no es el de Sui. |
-| **Apple HealthKit** | Sin pre-aprobación, pero guideline **2.5.1**: un task manager que lee datos de fitness es uso marginal, y **5.1.1(ix)** exige entidad legal, no individuo, en campos regulados. Rechazo probable. |
-| **Android Health Connect** | Contradecía el supuesto: **Google Play sí revisa el acceso**. La *health apps declaration* es obligatoria desde 2024 para todas las apps, y el acceso a health & fitness se somete a revisión. Además `expo-health-connect` está deprecado y archivado. |
-| **Spotify** | La app arranca en development mode: **5 usuarios**, en allowlist, y requiere Premium del dueño. Extended quota exige **250.000 MAU** y review de hasta 6 semanas. Inalcanzable. |
-| **WhatsApp Business** | Cloud API gratis hasta 1.000 conversaciones/mes, pero exige verificación de negocio. Y `HACKATHON_ENTREGABLES.md:311` ya lo trata como entregable de hackathon, no como parte de la app. |
-| **Zapier** | El plan Free son 100 tasks/mes y **los webhooks no están en Free**. Son $19.99/mes desde el día uno. Si queremos webhooks, los hacemos nosotros: una Cloud Function es más simple que una dependencia de terceros. |
-| **n8n** | Self-host es gratis, pero la licencia prohíbe exactamente lo que querríamos: exponer un editor de workflows a los usuarios finales. Como motor interno sí; como producto para la gente, no. |
+| Candidato                                 | Por qué no                                                                                                                                                                                                                                                                                              |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Outlook / Microsoft Graph**             | Self-serve y gratis, pero el gate real es el admin de cada empresa: si el tenant tiene _user consent_ deshabilitado, cada cliente necesita aprobar la app. Eso es un problema de onboarding y soporte, no técnico. Además `Calendars.Read` es el equivalente del Calendar que ya arrastra verificación. |
+| **Apple Calendar / Reminders (EventKit)** | Cero gate de Apple, pero **sólo iOS**, y Sui nace Android-first. Además desde iOS 17 Reminders no tiene write-only: o acceso completo o nada. Se deja para una fase iOS-first.                                                                                                                          |
+| **Todoist**                               | Self-serve, gratis, bien resuelto. Pero duplica el dominio de metas de Sui. La regla de `VERSION_FINAL.md:215` aplica: conector que no aporta contexto estorba.                                                                                                                                         |
+| **Notion**                                | La documentación oficial se contradice sobre si la _public connection_ pasa por review. Rate limit global de 3 req/s. Autorización por usuario y por workspace. No se puede afirmar que sea self-serve en producción.                                                                                   |
+| **GitHub**                                | Confirmado self-serve y sin review, pero OAuth apps sólo actúan en nombre de un usuario: si se va de la organización, la integración se rompe. El caso de uso (abrir PR desde una tarea) no es el de Sui.                                                                                               |
+| **Apple HealthKit**                       | Sin pre-aprobación, pero guideline **2.5.1**: un task manager que lee datos de fitness es uso marginal, y **5.1.1(ix)** exige entidad legal, no individuo, en campos regulados. Rechazo probable.                                                                                                       |
+| **Android Health Connect**                | Contradecía el supuesto: **Google Play sí revisa el acceso**. La _health apps declaration_ es obligatoria desde 2024 para todas las apps, y el acceso a health & fitness se somete a revisión. Además `expo-health-connect` está deprecado y archivado.                                                 |
+| **Spotify**                               | La app arranca en development mode: **5 usuarios**, en allowlist, y requiere Premium del dueño. Extended quota exige **250.000 MAU** y review de hasta 6 semanas. Inalcanzable.                                                                                                                         |
+| **WhatsApp Business**                     | Cloud API gratis hasta 1.000 conversaciones/mes, pero exige verificación de negocio. Y `HACKATHON_ENTREGABLES.md:311` ya lo trata como entregable de hackathon, no como parte de la app.                                                                                                                |
+| **Zapier**                                | El plan Free son 100 tasks/mes y **los webhooks no están en Free**. Son $19.99/mes desde el día uno. Si queremos webhooks, los hacemos nosotros: una Cloud Function es más simple que una dependencia de terceros.                                                                                      |
+| **n8n**                                   | Self-host es gratis, pero la licencia prohíbe exactamente lo que querríamos: exponer un editor de workflows a los usuarios finales. Como motor interno sí; como producto para la gente, no.                                                                                                             |
 
 ## 3. DECISIÓN
 
@@ -316,7 +316,7 @@ Igual que Calendar, sin excepciones:
 - `deleteAccount` tiene que revocar Tasks igual que revoca Calendar hoy. Si se
   olvida, queda acceso granting tras la eliminación de la cuenta, y `PRD.md:233`
   lo exige explícitamente.
-- Tasks es *no sensitive*, pero la pantalla de consentimiento de Google **sigue
+- Tasks es _no sensitive_, pero la pantalla de consentimiento de Google **sigue
   mostrando «app no verificada»** si el proyecto tiene Calendar sin verificar.
   No es culpa de Tasks, pero hay que saberlo antes de culpar a Tasks.
 

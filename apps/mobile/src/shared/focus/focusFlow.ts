@@ -19,10 +19,7 @@ export function sameFocusTarget(a: FocusTarget | null, b: FocusTarget | null): b
 // Fijate que las metas con hitos enfocan el primer hito pendiente en vez de la
 // meta entera: la meta sola no se puede completar de un toque (A1 la deja como
 // not_completable), el hito sí avanza de verdad.
-export function timelineItemToFocusTarget(
-  item: TimelineItem,
-  goals: Goal[],
-): FocusTarget | null {
+export function timelineItemToFocusTarget(item: TimelineItem, goals: Goal[]): FocusTarget | null {
   if (item.origin === 'habit') {
     return { kind: 'habit', habitId: item.originalId };
   }

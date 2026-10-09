@@ -48,7 +48,10 @@ test('una fecha inválida no se manda: mejor sin due que con una inventada', () 
 });
 
 test('sin título no hay tarea que escribir', () => {
-  assert.equal(toGoogleTaskBody({ suiType: 'goal', suiId: 'g1', title: '  ', completed: false }), null);
+  assert.equal(
+    toGoogleTaskBody({ suiType: 'goal', suiId: 'g1', title: '  ', completed: false }),
+    null,
+  );
 });
 
 test('el fingerprint cambia si cambia cualquier campo visible', () => {

@@ -26,6 +26,7 @@ sirve.
 campos que el contrato no declara, y el hook lo resuelve con un cast:
 
 `apps/mobile/src/features/calendar/hooks/useGoogleCalendar.ts:375`
+
 ```ts
 ) as ConnectionProvider<GoogleEvent[]> & {
 ```

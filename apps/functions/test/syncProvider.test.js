@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+// El test corre contra el JS compilado: Knip no sigue este require hasta el
+// fuente, y por eso inMemorySyncProvider.ts está en el ignore de knip.json.
 const { InMemorySyncProvider } = require('../lib/productivity/inMemorySyncProvider.js');
 const {
   applyMutationBatch,

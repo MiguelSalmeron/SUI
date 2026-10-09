@@ -6,7 +6,14 @@ import { authenticateBearer } from '../chat/auth';
 import { firestore } from '../chat/firebase';
 import { setCorsHeaders } from '../http/cors';
 import { verifyAppCheckHeader } from '../http/appCheck';
-import { createTask, deleteTask, ensureSuiTaskList, fetchTasks, patchTask, TasksApiError } from './tasksApi';
+import {
+  createTask,
+  deleteTask,
+  ensureSuiTaskList,
+  fetchTasks,
+  patchTask,
+  TasksApiError,
+} from './tasksApi';
 import { fingerprintTaskBody, toGoogleTaskBody, toMirrorSource } from './taskMirrorMapper';
 
 /**
@@ -178,7 +185,12 @@ const readSuiEntity = async (
   suiId: string,
 ): Promise<Record<string, unknown> | null> => {
   const collection = suiType === 'goal' ? 'goals' : 'habits';
-  const snapshot = await firestore.collection('users').doc(uid).collection(collection).doc(suiId).get();
+  const snapshot = await firestore
+    .collection('users')
+    .doc(uid)
+    .collection(collection)
+    .doc(suiId)
+    .get();
   if (!snapshot.exists) return null;
   const stored = snapshot.data() as { data?: unknown } | undefined;
   if (!stored || typeof stored.data !== 'object' || stored.data === null) return null;
@@ -187,14 +199,16 @@ const readSuiEntity = async (
 
 const describeError = (error: unknown): { status: number; message: string } => {
   if (error instanceof TasksApiError) {
-    if (error.code === 'reconnect_required') return { status: 401, message: 'Reconnect Google Tasks' };
+    if (error.code === 'reconnect_required')
+      return { status: 401, message: 'Reconnect Google Tasks' };
     if (error.code === 'rate_limited') return { status: 429, message: 'Tasks rate limited' };
   }
   const code = error instanceof Error ? error.message : '';
   if (code === 'not_connected' || code === 'reconnect_required') {
     return { status: 401, message: 'Reconnect Google Tasks' };
   }
-  if (code === 'mirror_disabled' || code === 'invalid_mirror_request') return { status: 400, message: code };
+  if (code === 'mirror_disabled' || code === 'invalid_mirror_request')
+    return { status: 400, message: code };
   return { status: 502, message: 'Tasks sync failed' };
 };
 
@@ -211,7 +225,9 @@ export const disconnectGoogleTasksForUser = async (uid: string): Promise<void> =
     await fetch(REVOKE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ token: connection.refreshToken ?? connection.accessToken }).toString(),
+      body: new URLSearchParams({
+        token: connection.refreshToken ?? connection.accessToken,
+      }).toString(),
     }).catch(() => undefined);
   }
   await ref.delete();

@@ -25,7 +25,8 @@ export const ConnectionsScreen = (_props: Props) => {
   const connecting = calendar.status === 'connecting';
   // Familia 3: sincronizar nunca bloquea ni esconde el control; el estado va en texto.
   const syncing = calendar.status === 'syncing';
-  const needsReauth = calendar.connectionStatus === 'reauthRequired';
+  // Reauth vive en `status` del contrato, el mismo campo que connecting y sync.
+  const needsReauth = calendar.status === 'reauthRequired';
   const [mirrorPending, setMirrorPending] = useState(0);
 
   useEffect(() => {

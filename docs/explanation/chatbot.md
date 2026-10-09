@@ -79,13 +79,13 @@ Los contactos deben revisarse por país y por especialistas responsables del pro
 
 Límites actuales:
 
-| Control | Valor |
-|---|---:|
-| Mensajes máximos | 12 |
-| Caracteres por mensaje | 2000 |
-| Tokens máximos de salida | 600 |
-| Timeout upstream | 90 segundos |
-| Requests por UID | 30 por 60 minutos |
+| Control                  |             Valor |
+| ------------------------ | ----------------: |
+| Mensajes máximos         |                12 |
+| Caracteres por mensaje   |              2000 |
+| Tokens máximos de salida |               600 |
+| Timeout upstream         |       90 segundos |
+| Requests por UID         | 30 por 60 minutos |
 
 Rate limit es fail-open ante fallos transitorios de Firestore. Antes de escala
 masiva requiere monitorización de abuso y evaluación de fail-closed selectivo.

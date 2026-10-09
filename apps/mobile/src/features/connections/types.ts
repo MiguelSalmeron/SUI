@@ -1,13 +1,7 @@
 import type { TranslationKey } from '@/shared/i18n/translations';
 
 export type ConnectionStatus =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'syncing'
-  | 'offline'
-  | 'reauthRequired'
-  | 'error';
+  'disconnected' | 'connecting' | 'connected' | 'syncing' | 'offline' | 'reauthRequired' | 'error';
 
 export type ConnectionCapabilities = {
   read: boolean;

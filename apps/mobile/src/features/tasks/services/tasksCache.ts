@@ -10,13 +10,7 @@ import type { NormalizedTask } from './tasksApi';
 const TASKS_CACHE_KEY = '@sui/google-tasks-v1';
 
 export type TasksSyncStatus =
-  | 'idle'
-  | 'loading-cache'
-  | 'syncing'
-  | 'synced'
-  | 'offline'
-  | 'reauthRequired'
-  | 'error';
+  'idle' | 'loading-cache' | 'syncing' | 'synced' | 'offline' | 'reauthRequired' | 'error';
 
 export interface GoogleTasksCache {
   tasks: NormalizedTask[];

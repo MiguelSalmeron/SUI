@@ -36,11 +36,7 @@ const androidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim()
 const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() || undefined;
 const PLACEHOLDER_CLIENT_ID = 'missing.apps.googleusercontent.com';
 
-const androidRedirectUri = androidReverseRedirectUri(
-  Platform.OS,
-  webClientId,
-  androidClientId,
-);
+const androidRedirectUri = androidReverseRedirectUri(Platform.OS, webClientId, androidClientId);
 
 const EMPTY_CACHE: GoogleTasksCache = { tasks: [], lastSyncedAt: null };
 
@@ -269,7 +265,8 @@ export const useGoogleTasks = (): ConnectionProvider<NormalizedTask[]> => {
         provider: 'google_tasks',
         action: 'connect',
         result: 'error',
-        reason: connectError instanceof ConnectionApiError ? `http_${connectError.status}` : 'unknown',
+        reason:
+          connectError instanceof ConnectionApiError ? `http_${connectError.status}` : 'unknown',
       });
       return false;
     } finally {

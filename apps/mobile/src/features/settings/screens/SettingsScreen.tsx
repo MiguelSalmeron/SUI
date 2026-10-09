@@ -73,13 +73,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 type IconName = keyof typeof Ionicons.glyphMap;
 
 export type AccountSyncState =
-  | 'cloud'
-  | 'pending'
-  | 'local'
-  | 'localRegistered'
-  | 'offline'
-  | 'error'
-  | 'syncing';
+  'cloud' | 'pending' | 'local' | 'localRegistered' | 'offline' | 'error' | 'syncing';
 
 /**
  * Estado de cuenta visible en Ajustes.

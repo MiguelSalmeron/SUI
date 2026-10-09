@@ -59,7 +59,10 @@ const request = async <T>(endpoint: string, init: RequestInit = {}): Promise<T> 
   });
   const body = (await response.json().catch(() => ({}))) as { error?: string } & T;
   if (!response.ok) {
-    throw new ConnectionApiError(response.status, body.error || 'No se pudo completar la conexión.');
+    throw new ConnectionApiError(
+      response.status,
+      body.error || 'No se pudo completar la conexión.',
+    );
   }
   return body;
 };
@@ -108,4 +111,3 @@ export const tasksMirrorDelete = async (suiId: string): Promise<void> => {
     body: JSON.stringify({ suiId }),
   });
 };
-

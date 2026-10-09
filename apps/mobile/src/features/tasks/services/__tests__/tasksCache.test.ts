@@ -50,9 +50,10 @@ describe('caché de tareas por cuenta', () => {
   });
 
   it('descarta caché sin ownerUid antes que mostrar tareas ajenas', () => {
-    expect(
-      resolveLoadedTasksCache({ tasks: [task('x')], lastSyncedAt: 1 }, 'uid-A'),
-    ).toEqual({ tasks: [], lastSyncedAt: null });
+    expect(resolveLoadedTasksCache({ tasks: [task('x')], lastSyncedAt: 1 }, 'uid-A')).toEqual({
+      tasks: [],
+      lastSyncedAt: null,
+    });
   });
 
   it('sin sesión resuelta no descarta todavía', () => {

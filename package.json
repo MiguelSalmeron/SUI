@@ -18,7 +18,7 @@
     "export:web": "npm run export:web --workspace @sui/mobile",
     "architecture": "node scripts/check-architecture.mjs",
     "architecture:test": "node --test scripts/check-architecture.test.mjs",
-    "lint": "eslint . --max-warnings=0",
+    "lint": "npm run build --workspace @sui/contracts && eslint . --max-warnings=0",
     "format:changed": "node scripts/check-format-changed.mjs",
     "dead-code": "knip --include files,dependencies,unlisted --reporter compact",
     "deps:check": "npm run deps:check --workspace @sui/mobile",
