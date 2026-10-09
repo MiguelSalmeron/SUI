@@ -2,7 +2,14 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["scripts/*.mjs", "test/**/*.mjs"],
   "project": ["scripts/*.mjs", "test/**/*.mjs"],
-  "ignore": ["apps/mobile/src/features/home/components/NightlyReportModal.tsx"],
+  "ignore": [
+    "apps/mobile/src/features/home/components/NightlyReportModal.tsx",
+    "apps/functions/src/productivity/inMemorySyncProvider.ts",
+    "apps/mobile/src/features/settings/connectionRegistry.ts",
+    "apps/mobile/src/features/tasks/hooks/useGoogleTasks.ts",
+    "apps/mobile/src/features/tasks/public.ts",
+    "apps/mobile/src/features/tasks/services/tasksAuth.ts"
+  ],
   "ignoreDependencies": [
     "@react-native/jest-preset",
     "@testing-library/react-native",

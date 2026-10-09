@@ -37,9 +37,7 @@ jest.mock('@/shared/ui/ScreenIntro', () => ({ ScreenIntro: () => null }));
 import { ConnectionsScreen } from '../ConnectionsScreen';
 import type { ComponentProps } from 'react';
 
-const props = { navigation: {}, route: {} } as unknown as ComponentProps<
-  typeof ConnectionsScreen
->;
+const props = { navigation: {}, route: {} } as unknown as ComponentProps<typeof ConnectionsScreen>;
 
 describe('ConnectionsScreen mirror', () => {
   beforeEach(() => {
@@ -66,6 +64,7 @@ describe('ConnectionsScreen mirror', () => {
 
   it('reauth muestra aviso y reconecta en vez de sincronizar', async () => {
     Object.assign(mockCalendarState, {
+      status: 'reauthRequired',
       connected: false,
       connectionStatus: 'reauthRequired',
       error: 'reauth',
