@@ -59,7 +59,9 @@ describe('focusFlow', () => {
     expect(
       timelineItemToFocusTarget(item({ origin: 'google_calendar', originalId: 'e1' }), [goal()]),
     ).toBeNull();
-    expect(timelineItemToFocusTarget(item({ origin: 'goal', originalId: 'ausente' }), [goal()])).toBeNull();
+    expect(
+      timelineItemToFocusTarget(item({ origin: 'goal', originalId: 'ausente' }), [goal()]),
+    ).toBeNull();
   });
 
   it('siguiente paso salta el actual sin reordenar', () => {

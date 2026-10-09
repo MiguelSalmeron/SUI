@@ -20,6 +20,7 @@
 ## 2. Qué quedó implementado
 
 ### G0 — Verificación real en Android
+
 - Onboarding completo OK.
 - Persistencia local y reapertura OK.
 - Navegación OK.
@@ -28,13 +29,16 @@
 - Engagement y Accountability ocultos OK.
 
 ### G1 — Base estable (`demo-o1` = `732db80`)
+
 - **B1** (`b83b4bd`): guarda el objetivo de enfoque y un historial corto por día.
 - **A1** (`25eace8`): plan del día determinístico (`buildDayPlan`) y completar sin deshacer.
 - **E1** (`732db80`): explica el estado de los datos en Ajustes y agrega el aviso de regreso.
 - Commits de soporte: contratos de enfoque (`bd6464a`), perfil demo aislado (`3df4bd5`), siembra diferida hasta tener uid (`89d4342`).
 
 ### G2 — Integración A2 + B2 (`demo-o2` = `c953831`)
+
 **A2 (`706d2d9`) — autoridad visual de Home:**
+
 - `TodayPlanCard` reemplaza la tarjeta antigua “SIGUIENTE”.
 - Título “Tu plan de hoy”, apoyado en `buildDayPlan` real.
 - Hasta 3 pasos según el modelo.
@@ -46,6 +50,7 @@
 - Empty state de primera vez sin datos conservado.
 
 **B2 (`c953831`) — autoridad de lógica Focus/Pomodoro:**
+
 - Módulo compartido `shared/focus/focusFlow.ts` (`sameFocusTarget`, `timelineItemToFocusTarget`, `nextFocusTarget`).
 - Pomodoro recibe `FocusTarget` por `route.params.target`.
 - Muestra el contexto del foco: título y meta madre (`resolveFocusTarget`), con fallback seguro para sesión libre o paso ausente.
@@ -56,6 +61,7 @@
 - Protección contra doble completado (dominio idempotente).
 
 ### Resolución de conflictos (A2 + B2)
+
 - `OverviewScreen.tsx`: se conservó **A2** (visual de Home). Los cambios de B2 en ese archivo pertenecían a la tarjeta “SIGUIENTE”, que no se restaura; el `FocusTarget` ya lo aporta `buildDayPlan`.
 - `messages/home.ts`: auto-fusión coherente; paridad ES/EN exacta, sin claves duplicadas.
 - Se retiró `OverviewFocusAction.test.tsx` (probaba la UI eliminada); su cobertura quedó en `OverviewScreen.test.tsx`.
@@ -77,20 +83,20 @@ Hoy
 
 Checks finales (todos PASS):
 
-| Check | Resultado |
-| --- | --- |
-| mobile typecheck | PASS |
-| mobile tests | **88 suites / 590 tests** PASS |
-| architecture | PASS (303 archivos, 12 features) |
-| architecture:test | 12/12 PASS |
-| lint (`--max-warnings=0`) | PASS |
-| dead-code (knip) | PASS |
-| deps:check (expo install --check) | PASS |
-| format | PASS |
-| `git diff --check` | PASS |
-| `npm run check` completo | PASS |
-| Firestore rules (emulador) | 5/5 PASS |
-| sync emulator | 8/8 PASS |
+| Check                             | Resultado                        |
+| --------------------------------- | -------------------------------- |
+| mobile typecheck                  | PASS                             |
+| mobile tests                      | **88 suites / 590 tests** PASS   |
+| architecture                      | PASS (303 archivos, 12 features) |
+| architecture:test                 | 12/12 PASS                       |
+| lint (`--max-warnings=0`)         | PASS                             |
+| dead-code (knip)                  | PASS                             |
+| deps:check (expo install --check) | PASS                             |
+| format                            | PASS                             |
+| `git diff --check`                | PASS                             |
+| `npm run check` completo          | PASS                             |
+| Firestore rules (emulador)        | 5/5 PASS                         |
+| sync emulator                     | 8/8 PASS                         |
 
 - Casos obligatorios del flujo cubiertos por tests verdes: hábito, meta con hito, meta sin hito, calendario/sesión libre, sesión ya activa, target persistido tras reapertura, doble toque, plan vacío y ResumeNudge.
 - Nota: en `@sui/functions` aparece 1 test **SKIP** (requiere emulador) con `fail 0`; ese caso se ejecuta aparte en `test:sync` (8/8 PASS).
@@ -178,7 +184,7 @@ Checks finales (todos PASS):
 
 - `home.focus` posiblemente sin uso tras retirar la tarjeta antigua de Home.
 - `timelineItemToFocusTarget` / `nextFocusTarget` permanecen en la API compartida, cubiertas principalmente por tests.
-- Warning histórico de Jest por *open handles*: si reaparece, no bloquea mientras los tests estén verdes.
+- Warning histórico de Jest por _open handles_: si reaparece, no bloquea mientras los tests estén verdes.
 
 ## 12. Noche del 5 al 6 de octubre (sin commit)
 

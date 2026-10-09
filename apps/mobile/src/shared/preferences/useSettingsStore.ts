@@ -59,8 +59,7 @@ export const useSettingsStore = create<SettingsState>()(
       setLanguage: (language) => set({ language }),
       setMirrorGoalsEnabled: (mirrorGoalsEnabled) => set({ mirrorGoalsEnabled }),
       setMirrorHabitsEnabled: (mirrorHabitsEnabled) => set({ mirrorHabitsEnabled }),
-      setCalendarConnectDismissed: (calendarConnectDismissed) =>
-        set({ calendarConnectDismissed }),
+      setCalendarConnectDismissed: (calendarConnectDismissed) => set({ calendarConnectDismissed }),
       setTheme: (theme) => {
         set({ theme });
         void AsyncStorage.setItem(THEME_MODE_KEY, theme);

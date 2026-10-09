@@ -70,7 +70,9 @@ export function ConnectionCard<TData>({
             </Text>
           ) : null}
           {needsReauth ? <Text style={styles.error}>{t('connections.reauthHint')}</Text> : null}
-          {provider.platformHint ? <Text style={styles.detail}>{provider.platformHint}</Text> : null}
+          {provider.platformHint ? (
+            <Text style={styles.detail}>{provider.platformHint}</Text>
+          ) : null}
           {provider.error && !needsReauth ? (
             <Text style={styles.error}>{provider.error}</Text>
           ) : null}

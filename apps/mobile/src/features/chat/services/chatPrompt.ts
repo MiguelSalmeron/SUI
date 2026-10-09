@@ -66,11 +66,15 @@ export const buildSystemPrompt = (p: EmotionalProfile): string => {
   if (p.name) facts.push(p.locale === 'en' ? `Name: ${p.name}` : `Nombre: ${p.name}`);
   if (p.goals.length)
     facts.push(
-      p.locale === 'en' ? `Active goals: ${p.goals.join(', ')}` : `Metas activas: ${p.goals.join(', ')}`,
+      p.locale === 'en'
+        ? `Active goals: ${p.goals.join(', ')}`
+        : `Metas activas: ${p.goals.join(', ')}`,
     );
   if (p.habits.length)
     facts.push(
-      p.locale === 'en' ? `Active habits: ${p.habits.join(', ')}` : `Hábitos activos: ${p.habits.join(', ')}`,
+      p.locale === 'en'
+        ? `Active habits: ${p.habits.join(', ')}`
+        : `Hábitos activos: ${p.habits.join(', ')}`,
     );
   if (p.streak && p.streak > 1)
     facts.push(
